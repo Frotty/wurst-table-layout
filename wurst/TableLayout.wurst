@@ -1,0 +1,255 @@
+package TableLayout
+import LinkedList
+import ErrorHandling
+import FramehandleNames
+import ClosureFrames
+
+/**
+ * A table-like layout inspired by the libgdx table and css flex-box.
+ * A table consists of rows, which consist of cells, which contains framehandles.
+ * There are no columns, if you want your cells to align, you have to set them up that way.
+ * The framehandles take up the entire cell of which they are the content of.
+ *
+ */
+
+
+constant DEFAULT_PADDING = 0.0125
+
+public enum Align
+    START
+    CENTER
+    END
+    UNSET
+
+tuple padding(real top, real right, real bot, real left)
+
+function padding.getWidth() returns real
+    return this.left + this.right
+
+function padding.getHeight() returns real
+    return this.top + this.bot
+
+public class TableLayout
+    private constant rows = new LinkedList<Row>()
+
+    var padding = padding(DEFAULT_PADDING, DEFAULT_PADDING, DEFAULT_PADDING, DEFAULT_PADDING)
+    framehandle baseFrame = null
+
+    var defaultHalign = Align.UNSET
+
+    var width = 0.
+    var height = 0.
+
+    Cell lastCell = null
+
+    construct(real width, real height)
+        this.width = width
+        this.height = height
+
+    function row()
+        let row = new Row(this)
+        rows.add(row)
+        if defaultHalign != UNSET
+            row.halign = defaultHalign
+
+    function add(framehandle frame)
+        lastCell = rows.peek().add(frame)
+
+    function growX()
+        lastCell.growX = true
+
+    function padTop(real top)
+        lastCell.padding.top = top
+
+    function padBot(real bot)
+        lastCell.padding.bot = bot
+    
+    function padLeft(real left)
+        lastCell.padding.left = left
+
+    function padRight(real right)
+        lastCell.padding.right = right
+
+    function pad(real top, real right, real bot, real left)
+        lastCell.padding = padding(top, right, bot, left)
+
+    /** Applies this layout to the given base frame */
+    function applyTo(framehandle baseFrame)
+        this.baseFrame = baseFrame
+        baseFrame..setWidth(width)..setHeight(height)
+        layout(baseFrame)
+
+    function layout(framehandle baseFrame)
+        var offset = vec2(padding.left, -padding.top)
+        let availableSpace = width - padding.left - padding.right
+
+        for row in rows
+            
+            row.invalidate(availableSpace)
+            let rowPercentage = row.width / availableSpace
+
+            if rowPercentage > 1.
+                error("Row exeeding table width")
+
+            let freeSpace = (1. - rowPercentage) * width
+
+            switch row.halign
+                case UNSET
+                case START
+                    offset.x = padding.left
+                case CENTER
+                    offset.x = freeSpace / 2.
+                case END
+                    offset.x = freeSpace
+
+            row.layout(baseFrame, offset)
+            offset -= vec2(0, row.height)
+
+    function defaultHalign(Align align)
+        defaultHalign = align
+
+    function center()
+        if not rows.isEmpty()
+            rows.peek().halign = Align.CENTER
+
+    function start()
+        if not rows.isEmpty()
+            rows.peek().halign = Align.START
+
+    function end_()
+        if not rows.isEmpty()
+            rows.peek().halign = Align.END
+
+
+
+public class Row
+    constant cells = new LinkedList<Cell>()
+
+    var halign = Align.START
+    var valign = Align.START
+
+    TableLayout parent = null
+
+    var height = 0.
+    var width = 0.
+
+    construct(TableLayout parent)
+        this.parent = parent
+
+    function add(framehandle frame) returns Cell
+        let cell = new Cell(frame)
+        cells.add(cell)
+        return cell
+
+    function invalidate(real availableSpace)
+        height = 0.
+        width = 0.
+        var growCells = 0
+        var growVal = 0.
+        var otherCellWidths = 0.
+        for cell in cells
+            cell.invalidate()
+            if cell.growX
+                growCells++
+                otherCellWidths += cell.padding.getWidth()
+            else
+                otherCellWidths += cell.width + cell.padding.getWidth()
+        
+        if growCells > 0
+            growVal = (availableSpace - otherCellWidths) / growCells
+
+        for cell in cells
+            if cell.growX
+                cell.frame.setWidth(growVal)
+
+            cell.invalidate()
+            if cell.height + cell.padding.getHeight() > height
+                height = cell.height + cell.padding.getHeight()
+            width += cell.width + cell.padding.getWidth()
+
+    function layout(framehandle baseFrame, vec2 offset)
+        var celloffset = offset
+        for cell in cells
+            celloffset.y = offset.y
+            celloffset += vec2(cell.padding.left, -cell.padding.top)
+            cell.layout(baseFrame, celloffset)
+            celloffset += vec2(cell.width + cell.padding.right, 0)
+
+
+public class Cell
+    
+    var width = 0.
+    var height = 0.
+    framehandle frame
+
+    var growX = false
+
+    var padding = padding(0, 0, 0, 0)
+
+    construct(framehandle frame)
+        this.frame = frame
+
+    function invalidate()
+        width = frame.getWidth()
+        height = frame.getHeight()
+
+    function layout(framehandle baseFrame, vec2 offset)
+        frame.setParent(baseFrame)
+        frame.setPoint(FRAMEPOINT_TOPLEFT, baseFrame, FRAMEPOINT_TOPLEFT, offset)
+
+public function p(string text) returns framehandle
+    return textframe("p", text)
+
+public function h1(string text) returns framehandle
+    return textframe("h1", text)
+
+public function h2(string text) returns framehandle
+    return textframe("h2", text)
+
+public function h3(string text) returns framehandle
+    return textframe("h3", text)
+
+public function h4(string text) returns framehandle
+    return textframe("h4", text)
+
+public function img(string path) returns framehandle
+    return img(path, 0.025)
+
+public function img(string path, real size) returns framehandle
+    return img(path, size, size)
+
+public function img(string path, real width, real height) returns framehandle
+    return imgframe(path, width, height)
+
+public function btn(string text) returns framehandle
+    return createFrame("button", GAME_UI, 0, 0)..setText(text)..setTextAlignment(TEXT_JUSTIFY_CENTER, TEXT_JUSTIFY_CENTER)
+
+public function imgBtn(string path) returns framehandle
+    return imgBtnFrame(path, 0.025, 0.025)
+
+function textframe(string typeClass, string text) returns framehandle
+    return createFrame(typeClass, GAME_UI, 0, 0)..setText(text)..setTextAlignment(TEXT_JUSTIFY_CENTER, TEXT_JUSTIFY_CENTER)
+   
+function imgframe(string path, real width, real height) returns framehandle
+    return createFrame(FramehandleTypeNames.backdrop, "", GAME_UI, "", 0)
+        ..setSize(width, height)
+        ..setTexture(path, 0, false)
+
+function imgBtnFrame(string path, real width, real height) returns framehandle
+    let imgButton = createFrame(FramehandleTypeNames.gluebutton, "PickIconButton", GAME_UI, FramehandleNames.iconButtonTemplate, 2)
+    let imgTexture = createFrame(FramehandleTypeNames.backdrop, "pickIcon", imgButton, "", 2)
+
+    imgButton
+    ..setSize(width, height)
+    ..onClick() ->
+        let p = GetTriggerPlayer()
+        print(p.getName())
+
+    imgTexture
+    ..setAllPoints(imgButton)
+    ..setTexture(path, 0, true)
+
+    return imgButton
+
+init
+    loadTOCFile("TableLayout.toc")

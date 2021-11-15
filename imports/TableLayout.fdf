@@ -1,0 +1,190 @@
+// -- INCLUDE FILES ---------------------------------------------------------
+
+IncludeFile "UI\FrameDef\UI\EscMenuTemplates.fdf",
+
+Frame "POPUPMENU" "MyPopupTemplate" {
+    Width 0.125,
+    Height 0.025,
+    PopupButtonInset 0.01, // -x offset for PopupArrowFrame from RIGHT of the POPUPMENU
+
+    // Background Enabled
+    ControlBackdrop "MyPopupTemplateBackdropTemplate",
+    Frame "BACKDROP" "MyPopupTemplateBackdropTemplate" INHERITS "EscMenuButtonBackdropTemplate" {
+    }
+
+    // Background Disabled
+    ControlDisabledBackdrop "MyPopupTemplateDisabledBackdropTemplate",
+    Frame "BACKDROP" "MyPopupTemplateDisabledBackdropTemplate" INHERITS "EscMenuButtonDisabledBackdropTemplate" {
+    }
+
+    // Text markup for the current selected Text, also can be used with a FrameEvent to know when someone starts selecting.
+    PopupTitleFrame "PopupMenuTitleTemplate",
+    Frame "GLUETEXTBUTTON" "PopupMenuTitleTemplate" INHERITS WITHCHILDREN "EscMenuPopupMenuTitleTemplate" {
+    }
+
+    // the Arrow at the right
+    PopupArrowFrame "PopupMenuArrowTemplate",
+    Frame "BUTTON" "PopupMenuArrowTemplate" INHERITS WITHCHILDREN "EscMenuPopupMenuArrowTemplate" { 
+    }
+	
+	// The Container for the selectable options
+	// actulay it is smarter to not define this in the Template.
+    //PopupMenuFrame "TestPopupMenu",
+    //Frame "MENU" "TestPopupMenu" INHERITS WITHCHILDREN "EscMenuPopupMenuMenuTemplate" {
+//	
+//	}	
+}
+
+Frame "POPUPMENU" "DifficultyPopup" INHERITS WITHCHILDREN "MyPopupTemplate" {
+    // The Container for the selectable options
+    PopupMenuFrame "DifficultyPopup",
+    Frame "MENU" "DifficultyPopup" INHERITS WITHCHILDREN "EscMenuPopupMenuMenuTemplate" {
+        MenuItem "|cff65a7e9Practice",     -2,
+        MenuItem "|cffaabbccNormal",   -2,
+        MenuItem "|cffca4410Hard",     -2,
+        MenuItem "|cff8f0808Hell",     -2,
+    }
+}
+
+Frame "POPUPMENU" "BiomePopup" INHERITS WITHCHILDREN "MyPopupTemplate" {
+    // The Container for the selectable options
+    PopupMenuFrame "BiomePopup",
+    Frame "MENU" "BiomePopup" INHERITS WITHCHILDREN "EscMenuPopupMenuMenuTemplate" {
+        MenuItem "|cff663dd6Random",     -2,
+        MenuItem "|cff4011c0Random No Jungle",     -2,
+        MenuItem "|cff30a30dSummer",     -2,
+        MenuItem "|cffa7a54fSavanna",     -2,
+        MenuItem "|cff0082ceTundra",     -2,
+        MenuItem "|cff118835Jungle",     -2,
+        MenuItem "|cff88815cPlagueland",     -2,
+    }
+}
+
+Frame "POPUPMENU" "FogPopup" INHERITS WITHCHILDREN "MyPopupTemplate" {
+    // The Container for the selectable options
+    PopupMenuFrame "FogPopup",
+    Frame "MENU" "FogPopup" INHERITS WITHCHILDREN "EscMenuPopupMenuMenuTemplate" {
+        MenuItem "|cff534d61Black Mask",     -2,
+        MenuItem "|cff4c53b9Explored",     -2,
+        MenuItem "|cffd1d4ffAll Visible",     -2,
+    }
+}
+
+
+
+// -- LOCAL TEMPLATES -------------------------------------------------------
+Frame "BACKDROP" "BoxedTextBackgroundTemplate" {
+        DecorateFileNames, //Look-Up Names in some String table (for example gameinterface)
+        BackdropTileBackground, //Tile mode enabled
+        BackdropBackground  "ToolTipBackground", //BackgroundFile
+        BackdropCornerFlags "UL|UR|BL|BR|T|L|B|R",
+        BackdropCornerSize  0.008, //higher numbers make the corners bigger.
+        BackdropBackgroundInsets 0.0022 0.0022 0.0022 0.0022, //makes the background smaller, from the outside.
+        BackdropEdgeFile  "ToolTipBorder", //the border File
+        BackdropBlendAll,
+}
+// -- Frames -------------------------------------------------------
+Frame "GLUETEXTBUTTON" "GeneralButton" INHERITS WITHCHILDREN "EscMenuButtonTemplate" {
+    UseActiveContext,
+    ButtonText "GeneralButtonText",
+    Frame "TEXT" "GeneralButtonText" INHERITS "EscMenuButtonTextTemplate" {
+        Text "",
+    }
+}
+
+Frame "BACKDROP" "HeroPickMenuBackdrop" {
+        DecorateFileNames, //Look-Up Names in some String table (for example gameinterface)
+        BackdropTileBackground, //Tile mode enabled
+        BackdropBackground  "EscMenuBackground", //BackgroundFile
+        BackdropCornerFlags "UL|UR|BL|BR|T|L|B|R",
+        BackdropBackgroundInsets 0.0022 0.0022 0.0022 0.0022, //makes the background smaller, from the outside.
+        BackdropEdgeFile  "EscMenuBorder", //the border File
+        BackdropBlendAll,
+}
+
+Frame "BACKDROP" "BoxedText" INHERITS "BoxedTextBackgroundTemplate" {
+   UseActiveContext,
+ 
+   Frame "TEXT" "BoxedTextTitle" {
+       UseActiveContext,
+       DecorateFileNames,
+       SetPoint TOPLEFT, "BoxedText", TOPLEFT, 0.005, -0.005, //Positionate "BoxedTextSimpleTitle"'s TOPLEFT to "BoxedText"'s TOPLEFT with an offset
+       SetPoint TOPRIGHT, "BoxedText", TOPRIGHT, -0.005, -0.005,
+       FontFlags "FIXEDSIZE",
+       FrameFont "MasterFont", 0.012, "",
+       FontColor 1.0 1.0 1.0 1.0, //Red Green Blue Alpha 0.0 to 1.0
+       FontShadowColor 0.0 0.0 0.0 0.9,
+       FontShadowOffset 0.001 -0.001,
+   }
+ 
+   Frame "TEXT" "BoxedTextValue" {
+       UseActiveContext,
+       DecorateFileNames,
+       SetPoint TOPLEFT, "BoxedText", TOPLEFT, 0.005, -0.02,
+       SetPoint BOTTOMRIGHT,  "BoxedText", BOTTOMRIGHT, -0.005, 0.005,
+       FontFlags "FIXEDSIZE",
+       FrameFont "MasterFont", 0.010, "",
+       FontColor 1.0 1.0 1.0 1.0,
+       FontShadowColor 0.0 0.0 0.0 0.9,
+       FontShadowOffset 0.001 -0.001,
+   }
+}
+ 
+
+Frame "TEXT" "h1" {
+    UseActiveContext,
+    DecorateFileNames,
+    FontFlags "FIXEDSIZE",
+    FrameFont "MasterFont", 0.0225, "",
+    FontColor 1.0 1.0 1.0 1.0,
+    FontShadowColor 0.0 0.0 0.0 0.9,
+    FontShadowOffset 0.001 -0.001,
+}
+
+Frame "TEXT" "h2" {
+    UseActiveContext,
+    DecorateFileNames,
+    FontFlags "FIXEDSIZE",
+    FrameFont "MasterFont", 0.0195, "",
+    FontColor 1.0 1.0 1.0 1.0,
+    FontShadowColor 0.0 0.0 0.0 0.9,
+    FontShadowOffset 0.001 -0.001,
+}
+
+Frame "TEXT" "h3" {
+    UseActiveContext,
+    DecorateFileNames,
+    FontFlags "FIXEDSIZE",
+    FrameFont "MasterFont", 0.0175, "",
+    FontColor 1.0 1.0 1.0 1.0,
+    FontShadowColor 0.0 0.0 0.0 0.9,
+    FontShadowOffset 0.001 -0.001,
+}
+
+Frame "TEXT" "h4" {
+    UseActiveContext,
+    DecorateFileNames,
+    FontFlags "FIXEDSIZE",
+    FrameFont "MasterFont", 0.0145, "",
+    FontColor 1.0 1.0 1.0 1.0,
+    FontShadowColor 0.0 0.0 0.0 0.9,
+    FontShadowOffset 0.001 -0.001,
+}
+
+Frame "TEXT" "p" {
+    UseActiveContext,
+    DecorateFileNames,
+    FontFlags "FIXEDSIZE",
+    FrameFont "MasterFont", 0.01, "",
+    FontColor 1.0 1.0 1.0 1.0,
+    FontShadowColor 0.0 0.0 0.0 0.9,
+    FontShadowOffset 0.001 -0.001,
+}
+
+Frame "GLUETEXTBUTTON" "button" INHERITS WITHCHILDREN "EscMenuButtonTemplate" {
+    UseActiveContext,
+    ButtonText "GeneralButtonText",
+    Frame "TEXT" "GeneralButtonText" INHERITS "EscMenuButtonTextTemplate" {
+        Text "",
+    }
+}

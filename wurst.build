@@ -1,0 +1,5 @@
+---
+projectName: wurst-table-layout
+dependencies:
+  - https://github.com/wurstscript/wurstStdlib2
+buildMapData: {}
