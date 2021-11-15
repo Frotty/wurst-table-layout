@@ -6,7 +6,8 @@ After setting up the layout you can apply it to any framehandle.
 
 > The table layout can not be used with scaling
 
-table diagram here
+![Diagram](https://user-images.githubusercontent.com/1486037/141851102-390b7136-41b1-4b8f-9197-be286a7a4ba5.png)
+
 
 ## Basics
 
