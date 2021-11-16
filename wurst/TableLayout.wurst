@@ -13,7 +13,7 @@ import ClosureFrames
  */
 
 
-constant DEFAULT_PADDING = 0.0125
+constant DEFAULT_PADDING = 0.0175
 
 public enum Align
     START
@@ -72,6 +72,10 @@ public class TableLayout
 
     function pad(real top, real right, real bot, real left)
         lastCell.padding = padding(top, right, bot, left)
+
+    /** Applies this layout to a default frame */
+    function createFrame()
+        applyTo(defaultFrame())
 
     /** Applies this layout to the given base frame */
     function applyTo(framehandle baseFrame)
@@ -196,6 +200,12 @@ public class Cell
     function layout(framehandle baseFrame, vec2 offset)
         frame.setParent(baseFrame)
         frame.setPoint(FRAMEPOINT_TOPLEFT, baseFrame, FRAMEPOINT_TOPLEFT, offset)
+
+public function defaultFrame() returns framehandle
+    let baseFrame = createFrame("FRAME", "multiboardFrame", GAME_UI, null, 0)
+        ..setAbsPoint(FRAMEPOINT_TOP, vec2(0.4, 0.515))
+    createFrame("HeroPickMenuBackdrop", baseFrame, 0, 0)..setAllPoints(baseFrame)
+    return baseFrame
 
 public function p(string text) returns framehandle
     return textframe("p", text)
