@@ -1,6 +1,7 @@
 # wurst-table-layout
 
-![tablelayout](https://user-images.githubusercontent.com/1486037/142081112-6fa20cc6-6f6f-454a-b099-8ea133375532.png)
+![chrome_EkMQO3cJuA](https://user-images.githubusercontent.com/1486037/142081152-42348ece-7cfb-47db-a4e2-c9d552537f02.png)
+
 
 This library allows you to easily create and align framehandles in a table-ish layout inspired by flex-box.
 Table-ish because there are no columns. A table simply consists of rows, which themselves consist of cells which contain a framehandle as content.
