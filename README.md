@@ -19,7 +19,8 @@ new TableLayout(0.3, 0.35)
 ..createFrame()
 ```
 
-SCREENSHOT HERE
+![Photoshop_oXmHmp3h1B](https://user-images.githubusercontent.com/1486037/142065401-1f754d8d-5bf8-4376-baec-e608eef57f83.png)
+
 
 ```
 // Provide custom parent
@@ -47,11 +48,12 @@ new TableLayout(0.2, 0.15)
 ..createFrame()
 ```
 
-SCREENSHOT HERE
+![Warcraft_III_ZMlsVQqqxX](https://user-images.githubusercontent.com/1486037/142065460-35d1eb89-ecb9-4573-9f4e-5438e947d8ec.png)
+
 
 ## Padding
 
-by default cells have no padding, making them appear right next to each other. We can introduce some space between the cells by adding padding to each of the four sides left, right, top and bottom.
+By default cells have no padding, making them appear right next to each other. We can introduce some space between the cells by adding padding to each of the four sides left, right, top and bottom.
 
 ```
 new TableLayout(0.2, 0.15)
@@ -66,7 +68,8 @@ new TableLayout(0.2, 0.15)
 ..createFrame()
 ```
 
-SCREENSHOT HERE
+![Warcraft_III_MzBrGAza4Q](https://user-images.githubusercontent.com/1486037/142065482-3c9d8b72-6acf-4925-bb07-8378ffdde546.png)
+
 
 ## Alignment
 
@@ -85,7 +88,8 @@ new TableLayout(0.2, 0.15)
 ..createFrame()
 ```
 
-SCREENSHOT HERE
+![Warcraft_III_1R8F91NBJl](https://user-images.githubusercontent.com/1486037/142065499-73aabd15-1da1-4173-b081-ed1c6130ecfb.png)
+
 
 You can also make certain cells grow horizontally. This can be used to distribute cells evenly.
 
@@ -102,7 +106,8 @@ new TableLayout(0.2, 0.15)
 ..createFrame()
 ```
 
-SCREENSHOT HERE
+![Warcraft_III_GEeA1xkx1e](https://user-images.githubusercontent.com/1486037/142065518-b15fe6dd-579f-4616-a7bc-28d243a986eb.png)
+
 
 ## Presets
 
@@ -136,4 +141,5 @@ new TableLayout(0.2, 0.25)
 ..createFrame()
 ```
 
-SCREENSHOT HERE
+![Warcraft_III_iajLsjehEv](https://user-images.githubusercontent.com/1486037/142065527-b0fe678f-078f-4113-90b3-a0236b3cb7cc.png)
+
