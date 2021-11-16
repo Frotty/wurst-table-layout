@@ -21,18 +21,18 @@ public enum Align
     END
     UNSET
 
-tuple padding(real top, real right, real bot, real left)
+public tuple padding(real top, real right, real bot, real left)
 
-function padding.getWidth() returns real
+public function padding.getWidth() returns real
     return this.left + this.right
 
-function padding.getHeight() returns real
+public function padding.getHeight() returns real
     return this.top + this.bot
 
 public class TableLayout
     private constant rows = new LinkedList<Row>()
-
     var padding = padding(DEFAULT_PADDING, DEFAULT_PADDING, DEFAULT_PADDING, DEFAULT_PADDING)
+
     framehandle baseFrame = null
 
     var defaultHalign = Align.UNSET
@@ -63,7 +63,7 @@ public class TableLayout
 
     function padBot(real bot)
         lastCell.padding.bot = bot
-    
+
     function padLeft(real left)
         lastCell.padding.left = left
 
@@ -77,14 +77,14 @@ public class TableLayout
     function applyTo(framehandle baseFrame)
         this.baseFrame = baseFrame
         baseFrame..setWidth(width)..setHeight(height)
-        layout(baseFrame)
+        layout()
 
-    function layout(framehandle baseFrame)
+    function layout()
         var offset = vec2(padding.left, -padding.top)
         let availableSpace = width - padding.left - padding.right
 
         for row in rows
-            
+
             row.invalidate(availableSpace)
             let rowPercentage = row.width / availableSpace
 
@@ -154,7 +154,7 @@ public class Row
                 otherCellWidths += cell.padding.getWidth()
             else
                 otherCellWidths += cell.width + cell.padding.getWidth()
-        
+
         if growCells > 0
             growVal = (availableSpace - otherCellWidths) / growCells
 
@@ -177,7 +177,7 @@ public class Row
 
 
 public class Cell
-    
+
     var width = 0.
     var height = 0.
     framehandle frame
@@ -229,7 +229,7 @@ public function imgBtn(string path) returns framehandle
 
 function textframe(string typeClass, string text) returns framehandle
     return createFrame(typeClass, GAME_UI, 0, 0)..setText(text)..setTextAlignment(TEXT_JUSTIFY_CENTER, TEXT_JUSTIFY_CENTER)
-   
+
 function imgframe(string path, real width, real height) returns framehandle
     return createFrame(FramehandleTypeNames.backdrop, "", GAME_UI, "", 0)
         ..setSize(width, height)
