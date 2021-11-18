@@ -1,7 +1,7 @@
 package TableLayout
+import public ClosureFrames
 import LinkedList
 import FramehandleNames
-import ClosureFrames
 
 /**
  * A table-like layout inspired by the libgdx table and css flex-box.
@@ -86,24 +86,25 @@ public class TableLayout
 
     function layout()
         var offset = vec2(padding.left, -padding.top)
-        let availableSpace = width - padding.left - padding.right
+        let availableSpace = width - padding.getWidth()
 
         for row in rows
 
             row.invalidate(availableSpace)
+            
             let rowPercentage = row.width / availableSpace
-
+            
             if rowPercentage > 1.
                 Log.warn("Row exeeding table width")
-
-            let freeSpace = (1. - rowPercentage) * width
+                
+            let freeSpace = (1. - rowPercentage) * availableSpace
 
             switch row.halign
                 case UNSET
                 case START
                     offset.x = padding.left
                 case CENTER
-                    offset.x = padding.left + freeSpace / 2.
+                    offset.x = padding.left + (freeSpace / 2.)
                 case END
                     offset.x = freeSpace
 
