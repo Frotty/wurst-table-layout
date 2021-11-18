@@ -103,7 +103,7 @@ public class TableLayout
                 case START
                     offset.x = padding.left
                 case CENTER
-                    offset.x = freeSpace / 2.
+                    offset.x = padding.left + freeSpace / 2.
                 case END
                     offset.x = freeSpace
 
@@ -162,6 +162,7 @@ public class Row
 
         if growCells > 0
             growVal = (availableSpace - otherCellWidths) / growCells
+            width = availableSpace
 
         for cell in cells
             if cell.growX
@@ -170,7 +171,12 @@ public class Row
             cell.invalidate()
             if cell.height + cell.padding.getHeight() > height
                 height = cell.height + cell.padding.getHeight()
-            width += cell.width + cell.padding.getWidth()
+
+            if growCells == 0
+                width += cell.width + cell.padding.getWidth()
+
+
+                
 
     function layout(framehandle baseFrame, vec2 offset)
         var celloffset = offset
@@ -252,9 +258,6 @@ function imgBtnFrame(string path, real width, real height) returns framehandle
 
     imgButton
     ..setSize(width, height)
-    ..onClick() ->
-        let p = GetTriggerPlayer()
-        print(p.getName())
 
     imgTexture
     ..setAllPoints(imgButton)
