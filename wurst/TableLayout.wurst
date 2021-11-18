@@ -1,6 +1,5 @@
 package TableLayout
 import LinkedList
-import ErrorHandling
 import FramehandleNames
 import ClosureFrames
 
@@ -74,8 +73,10 @@ public class TableLayout
         lastCell.padding = padding(top, right, bot, left)
 
     /** Applies this layout to a default frame */
-    function createFrame()
-        applyTo(defaultFrame())
+    function createFrame() returns framehandle
+        let fhandle = defaultFrame()
+        applyTo(fhandle)
+        return fhandle
 
     /** Applies this layout to the given base frame */
     function applyTo(framehandle baseFrame)
@@ -93,7 +94,7 @@ public class TableLayout
             let rowPercentage = row.width / availableSpace
 
             if rowPercentage > 1.
-                error("Row exeeding table width")
+                Log.warn("Row exeeding table width")
 
             let freeSpace = (1. - rowPercentage) * width
 
