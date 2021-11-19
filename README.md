@@ -2,7 +2,6 @@
 
 ![chrome_EkMQO3cJuA](https://user-images.githubusercontent.com/1486037/142081152-42348ece-7cfb-47db-a4e2-c9d552537f02.png)
 
-
 This library allows you to easily create and align framehandles in a table-ish layout inspired by flex-box.
 Table-ish because there are no columns. A table simply consists of rows, which themselves consist of cells which contain a framehandle as content.
 After setting up the layout you can apply it to any framehandle.
@@ -10,6 +9,8 @@ After setting up the layout you can apply it to any framehandle.
 > The table layout can not be used with scaling
 
 ![Diagram](https://user-images.githubusercontent.com/1486037/141851102-390b7136-41b1-4b8f-9197-be286a7a4ba5.png)
+
+# Documentation
 
 ## Basics
 
@@ -24,14 +25,13 @@ new TableLayout(0.3, 0.35)
 
 ![Photoshop_oXmHmp3h1B](https://user-images.githubusercontent.com/1486037/142065401-1f754d8d-5bf8-4376-baec-e608eef57f83.png)
 
-
 ```
 // Provide custom parent
 new TableLayout(0.3, 0.35)
 ..applyTo(yourCustomFrame)
 ```
 
-## Rows and Cells
+### Rows and Cells
 
 The API makes heavy use of the cascade operator to apply changes to the root element.
 First create a table layout, passing width and height of relative screen space.
@@ -53,8 +53,7 @@ new TableLayout(0.2, 0.15)
 
 ![Warcraft_III_ZMlsVQqqxX](https://user-images.githubusercontent.com/1486037/142065460-35d1eb89-ecb9-4573-9f4e-5438e947d8ec.png)
 
-
-## Padding
+### Padding
 
 By default cells have no padding, making them appear right next to each other. We can introduce some space between the cells by adding padding to each of the four sides left, right, top and bottom.
 
@@ -73,8 +72,7 @@ new TableLayout(0.2, 0.15)
 
 ![Warcraft_III_MzBrGAza4Q](https://user-images.githubusercontent.com/1486037/142065482-3c9d8b72-6acf-4925-bb07-8378ffdde546.png)
 
-
-## Alignment
+### Alignment
 
 By default the alignment in a table is top left. You can adjust horizontal alignment on a per row basis.
 
@@ -93,7 +91,6 @@ new TableLayout(0.2, 0.15)
 
 ![Warcraft_III_1R8F91NBJl](https://user-images.githubusercontent.com/1486037/142065499-73aabd15-1da1-4173-b081-ed1c6130ecfb.png)
 
-
 You can also make certain cells grow horizontally. This can be used to distribute cells evenly.
 
 ```
@@ -110,7 +107,6 @@ new TableLayout(0.2, 0.15)
 ```
 
 ![Warcraft_III_GEeA1xkx1e](https://user-images.githubusercontent.com/1486037/142065518-b15fe6dd-579f-4616-a7bc-28d243a986eb.png)
-
 
 ## Presets
 
@@ -146,3 +142,30 @@ new TableLayout(0.2, 0.25)
 
 ![Warcraft_III_iajLsjehEv](https://user-images.githubusercontent.com/1486037/142065527-b0fe678f-078f-4113-90b3-a0236b3cb7cc.png)
 
+## Events and Framehandles
+
+Since the table is just a layout container, you can modify the contained framehandles as you like.
+You can use the cascade operator for inline notation or simply save the framehandle in a variable.
+
+```
+let titleHandle = h1("Hello")
+new TableLayout(0.2, 0.25)
+..row()..center()
+..add(titleHandle)
+..row()
+..add(btn("button")..setWidth(0.125))
+..createFrame()
+```
+
+You can combine this with the `ClosureFrames` package to add event listeners.
+
+```
+new TableLayout(0.5, 0.25)
+..row()..center()
+..add(btn("button")..onClick(() -> print("clicked")))
+..createFrame()
+```
+
+## Dynamic changes
+
+There currently is no change detection. If you changed the contained frames and want the table to recognize the change, you have to call `table.layout()` to update the table and its contents.
