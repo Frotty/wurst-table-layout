@@ -14,7 +14,11 @@ After setting up the layout you can apply it to any framehandle.
 
 ## Install
 
+Install as dependency via grill:
+
 `grill install https://github.com/Frotty/wurst-table-layout`
+
+Make sure you have the latest wurstscript version with transitive dependencies.
 
 ## Basics
 
