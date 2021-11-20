@@ -12,6 +12,10 @@ After setting up the layout you can apply it to any framehandle.
 
 # Documentation
 
+## Install
+
+`grill install https://github.com/Frotty/wurst-table-layout`
+
 ## Basics
 
 The layout is applied to a framehandle which becomes the base frame all other framehandles are children of.
