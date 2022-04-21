@@ -46,32 +46,6 @@ Frame "POPUPMENU" "DifficultyPopup" INHERITS WITHCHILDREN "MyPopupTemplate" {
     }
 }
 
-Frame "POPUPMENU" "BiomePopup" INHERITS WITHCHILDREN "MyPopupTemplate" {
-    // The Container for the selectable options
-    PopupMenuFrame "BiomePopup",
-    Frame "MENU" "BiomePopup" INHERITS WITHCHILDREN "EscMenuPopupMenuMenuTemplate" {
-        MenuItem "|cff663dd6Random",     -2,
-        MenuItem "|cff4011c0Random No Jungle",     -2,
-        MenuItem "|cff30a30dSummer",     -2,
-        MenuItem "|cffa7a54fSavanna",     -2,
-        MenuItem "|cff0082ceTundra",     -2,
-        MenuItem "|cff118835Jungle",     -2,
-        MenuItem "|cff88815cPlagueland",     -2,
-    }
-}
-
-Frame "POPUPMENU" "FogPopup" INHERITS WITHCHILDREN "MyPopupTemplate" {
-    // The Container for the selectable options
-    PopupMenuFrame "FogPopup",
-    Frame "MENU" "FogPopup" INHERITS WITHCHILDREN "EscMenuPopupMenuMenuTemplate" {
-        MenuItem "|cff534d61Black Mask",     -2,
-        MenuItem "|cff4c53b9Explored",     -2,
-        MenuItem "|cffd1d4ffAll Visible",     -2,
-    }
-}
-
-
-
 // -- LOCAL TEMPLATES -------------------------------------------------------
 Frame "BACKDROP" "BoxedTextBackgroundTemplate" {
         DecorateFileNames, //Look-Up Names in some String table (for example gameinterface)
@@ -171,11 +145,41 @@ Frame "TEXT" "h4" {
     FontShadowOffset 0.001 -0.001,
 }
 
+Frame "TEXT" "h5" {
+    UseActiveContext,
+    DecorateFileNames,
+    FontFlags "FIXEDSIZE",
+    FrameFont "MasterFont", 0.0125, "",
+    FontColor 1.0 1.0 1.0 1.0,
+    FontShadowColor 0.0 0.0 0.0 0.9,
+    FontShadowOffset 0.001 -0.001,
+}
+
 Frame "TEXT" "p" {
     UseActiveContext,
     DecorateFileNames,
     FontFlags "FIXEDSIZE",
     FrameFont "MasterFont", 0.01, "",
+    FontColor 1.0 1.0 1.0 1.0,
+    FontShadowColor 0.0 0.0 0.0 0.9,
+    FontShadowOffset 0.001 -0.001,
+}
+
+Frame "TEXT" "p2" {
+    UseActiveContext,
+    DecorateFileNames,
+    FontFlags "FIXEDSIZE",
+    FrameFont "MasterFont", 0.0075, "",
+    FontColor 1.0 1.0 1.0 1.0,
+    FontShadowColor 0.0 0.0 0.0 0.9,
+    FontShadowOffset 0.001 -0.001,
+}
+
+Frame "TEXT" "p3" {
+    UseActiveContext,
+    DecorateFileNames,
+    FontFlags "FIXEDSIZE",
+    FrameFont "MasterFont", 0.005, "",
     FontColor 1.0 1.0 1.0 1.0,
     FontShadowColor 0.0 0.0 0.0 0.9,
     FontShadowOffset 0.001 -0.001,

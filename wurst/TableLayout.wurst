@@ -29,7 +29,9 @@ public function padding.getHeight() returns real
     return this.top + this.bot
 
 public class TableLayout
+    private Cell lastCell = null
     private constant rows = new LinkedList<Row>()
+    
     var padding = padding(DEFAULT_PADDING, DEFAULT_PADDING, DEFAULT_PADDING, DEFAULT_PADDING)
 
     framehandle baseFrame = null
@@ -39,17 +41,18 @@ public class TableLayout
     var width = 0.
     var height = 0.
 
-    Cell lastCell = null
 
     construct(real width, real height)
         this.width = width
         this.height = height
 
-    function row()
+    function row() returns Row
         let row = new Row(this)
         rows.add(row)
         if defaultHalign != UNSET
             row.halign = defaultHalign
+
+        return row
 
     function add(framehandle frame)
         lastCell = rows.peek().add(frame)
@@ -114,18 +117,25 @@ public class TableLayout
     function defaultHalign(Align align)
         defaultHalign = align
 
+    /** Center of element alignment */
     function center()
         if not rows.isEmpty()
             rows.peek().halign = Align.CENTER
 
+    /** Start of element alignment */
     function start()
         if not rows.isEmpty()
             rows.peek().halign = Align.START
 
+    /** End of element alignment */
     function end_()
         if not rows.isEmpty()
             rows.peek().halign = Align.END
 
+    /** Removes a row and invalidates the layout */
+    function remove(Row row)
+        this.rows.remove(row)
+        layout()
 
 
 public class Row
@@ -218,6 +228,12 @@ public function defaultFrame() returns framehandle
 public function p(string text) returns framehandle
     return textframe("p", text)
 
+public function p2(string text) returns framehandle
+    return textframe("p2", text)
+
+public function p3(string text) returns framehandle
+    return textframe("p3", text)
+
 public function h1(string text) returns framehandle
     return textframe("h1", text)
 
@@ -229,6 +245,9 @@ public function h3(string text) returns framehandle
 
 public function h4(string text) returns framehandle
     return textframe("h4", text)
+
+public function h5(string text) returns framehandle
+    return textframe("h5", text)
 
 public function img(string path) returns framehandle
     return img(path, 0.025)
