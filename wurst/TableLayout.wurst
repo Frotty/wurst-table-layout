@@ -75,9 +75,15 @@ public class TableLayout
     function pad(real top, real right, real bot, real left)
         lastCell.padding = padding(top, right, bot, left)
 
-    /** Applies this layout to a default frame */
+    /** Applies this layout to a newly created default frame with backdrop */
     function createFrame() returns framehandle
         let fhandle = defaultFrame()
+        applyTo(fhandle)
+        return fhandle
+
+    /** Applies this layout to a newly created layout frame without backdrop */
+    function createContainer(framehandle parent) returns framehandle
+        let fhandle = layoutFrame(parent)
         applyTo(fhandle)
         return fhandle
 
@@ -219,8 +225,12 @@ public class Cell
         frame.setParent(baseFrame)
         frame.setPoint(FRAMEPOINT_TOPLEFT, baseFrame, FRAMEPOINT_TOPLEFT, offset)
 
+
+public function layoutFrame(framehandle parent) returns framehandle
+    return createFrame("FRAME", "multiboardFrame", parent, null, 0)
+
 public function defaultFrame() returns framehandle
-    let baseFrame = createFrame("FRAME", "multiboardFrame", GAME_UI, null, 0)
+    let baseFrame = layoutFrame(GAME_UI)
         ..setAbsPoint(FRAMEPOINT_TOP, vec2(0.4, 0.515))
     createFrame("HeroPickMenuBackdrop", baseFrame, 0, 0)..setAllPoints(baseFrame)
     return baseFrame
