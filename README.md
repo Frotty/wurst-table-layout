@@ -138,7 +138,13 @@ new TableLayout(0.2, 0.25)
 ..row()
 ..add(h4("h4"))
 ..row()
-..add(p("paragraph"))
+..add(h5("h5"))
+..row()
+..add(p("p"))
+..row()
+..add(p2("p2"))
+..row()
+..add(p3("p3"))
 ..row()
 ..add(img(Icons.bTNAcorn1))
 ..row()
@@ -148,7 +154,8 @@ new TableLayout(0.2, 0.25)
 ..createFrame()
 ```
 
-![Warcraft_III_iajLsjehEv](https://user-images.githubusercontent.com/1486037/142065527-b0fe678f-078f-4113-90b3-a0236b3cb7cc.png)
+![image](https://user-images.githubusercontent.com/1486037/166264855-d9e000f8-a452-4244-b193-400eb5dea243.png)
+
 
 ## Events and Framehandles
 
