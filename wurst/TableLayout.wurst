@@ -5,10 +5,10 @@ import FramehandleNames
 
 /**
  * A table-like layout inspired by the libgdx table and css flex-box.
- * A table consists of rows, which consist of cells, which contains framehandles.
+ * A table consists of rows, which consist of cells, which contain framehandles.
  * There are no columns, if you want your cells to align, you have to set them up that way.
  * The framehandles take up the entire cell of which they are the content of.
- *
+ * You can nest table layouts to achieve advanced layouts.
  */
 
 
@@ -40,11 +40,18 @@ public class TableLayout
 
     var width = 0.
     var height = 0.
+    var name = ""
 
 
     construct(real width, real height)
         this.width = width
         this.height = height
+        this.name = "Table#" + (this castTo int).toString()
+
+    construct(real width, real height, string name)
+        this.width = width
+        this.height = height
+        this.name = name
 
     function row() returns Row
         let row = new Row(this)
@@ -97,6 +104,7 @@ public class TableLayout
         var offset = vec2(padding.left, -padding.top)
         let availableSpace = width - padding.getWidth()
 
+        var count = 0
         for row in rows
 
             row.invalidate(availableSpace)
@@ -104,7 +112,7 @@ public class TableLayout
             let rowPercentage = row.width / availableSpace
             
             if rowPercentage > 1.
-                Log.warn("Row exeeding table width")
+                Log.warn("Row #" + count.toString() + " width: " + row.width.toString() + " exceeding table " + name + " availableSpace " + availableSpace.toString() + " width: " + width.toString())
                 
             let freeSpace = (1. - rowPercentage) * availableSpace
 
@@ -119,6 +127,8 @@ public class TableLayout
 
             row.layout(baseFrame, offset)
             offset -= vec2(0, row.height)
+
+            count++
 
     function defaultHalign(Align align)
         defaultHalign = align
@@ -294,6 +304,7 @@ function imgBtnFrame(string path, real width, real height) returns framehandle
     ..setTexture(path, 0, true)
 
     return imgButton
+
 
 init
     loadTOCFile("TableLayout.toc")
