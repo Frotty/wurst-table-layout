@@ -148,10 +148,20 @@ public class TableLayout
         if not rows.isEmpty()
             rows.peek().halign = Align.END
 
+
     /** Removes a row and invalidates the layout */
     function remove(Row row)
+        remove(row, false)
+
+    /** Removes a row and invalidates the layout */
+    function remove(Row row, boolean destroyFrames)
         this.rows.remove(row)
+        if destroyFrames
+            row.cells.forEach(cell -> cell.frame.remove())
+            row.cells.clear()
+            
         layout()
+
 
 
 public class Row
