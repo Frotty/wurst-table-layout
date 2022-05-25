@@ -2,10 +2,23 @@ package TableLayoutTest
 import ClosureTimers
 import TableLayout
 import Icons
+import GameTimer
+
+
 
 init
 
     doAfter(1.) ->
+
+        let bar1 = new UIBar(0.075, 0.01)
+        let bar2 = new UIBar(0.075, 0.01)
+        let bar3 = new UIBar(0.075, 0.01)
+
+        doPeriodically(0.01) cb ->
+            bar1.setValue((1 + Sin(currentTime * 1.)) * 0.5)
+            bar2.setValue((1 + Sin(1 + currentTime * 1.)) * 0.5)
+            bar3.setValue((1 + Sin(2 + currentTime * 1)) * 0.5)
+
         new TableLayout(0.2, 0.25)
         ..row()
         ..add(h1("h1"))
@@ -29,4 +42,10 @@ init
         ..add(btn("button")..setWidth(0.125)..setHeight(0.02))
         ..row()
         ..add(imgBtn(Icons.bTNHumanBuild))
+        ..row()
+        ..add(bar1.create())
+        ..row()
+        ..add(bar2.create())
+        ..row()
+        ..add(bar3.create())
         ..createFrame()

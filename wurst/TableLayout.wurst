@@ -2,6 +2,8 @@ package TableLayout
 import public ClosureFrames
 import LinkedList
 import FramehandleNames
+import ClosureTimers
+import GameTimer
 
 /**
  * A table-like layout inspired by the libgdx table and css flex-box.
@@ -315,6 +317,53 @@ function imgBtnFrame(string path, real width, real height) returns framehandle
 
     return imgButton
 
+
+public class UIBar
+    private var width = 0.
+    private var height = 0.
+    private var value = 0.
+    framehandle treeBarAc
+    framehandle treeBarBg
+
+    TableLayout layout = null
+
+    construct(real width, real height)
+        this.width = width
+        this.height = height
+        treeBarAc = img("bar-active.dds")..setWidth(0)..setHeight(height)
+        treeBarBg = img("bar-bg.dds")..setWidth(width)..setHeight(height)
+
+    function create() returns framehandle
+        layout = new TableLayout(width + 0.002, height)
+        layout.padding = padding(0, 0, 0, 0)
+
+        return layout..row()
+        ..add(treeBarAc)
+        ..add(treeBarBg)
+        .createContainer(GAME_UI)
+
+    function getActiveTexture() returns string
+        if value <= 0.3
+            return "bar-low"
+        if value <= 0.6
+            return "bar-mid"
+        return "bar-active"
+
+    function getBgTexture() returns string
+        return "bar-bg.dds"
+
+    function setValue(real value)
+        this.value = value
+        treeBarAc.show()
+        treeBarAc..setTexture(getActiveTexture(), 0, false).setWidth(value * width)
+        if value < 1.0
+            treeBarBg..setTexture(getBgTexture(), 0, false)..show()
+            treeBarBg.setWidth((1 - value) * width)
+        else
+            treeBarBg.hide()
+
+        if layout != null
+            layout.layout()
 
 init
     loadTOCFile("TableLayout.toc")
