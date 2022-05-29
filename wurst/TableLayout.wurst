@@ -355,8 +355,10 @@ public class UIBar
     function setValue(real value)
         this.value = value
         treeBarAc.show()
-        treeBarAc..setTexture(getActiveTexture(), 0, false).setWidth(value * width)
-        treeBarBg.setWidth((1 - value) * width)
+        treeBarAc
+        ..setTexture(getActiveTexture(), 0, false)
+        ..setWidth(max(0.001, value * width))
+        treeBarBg.setWidth(max(0.001, (1 - value) * width))
         if value < 1.0
             treeBarBg..setTexture(getBgTexture(), 0, false)..show()
         else
