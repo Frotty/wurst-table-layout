@@ -356,9 +356,9 @@ public class UIBar
         this.value = value
         treeBarAc.show()
         treeBarAc..setTexture(getActiveTexture(), 0, false).setWidth(value * width)
+        treeBarBg.setWidth((1 - value) * width)
         if value < 1.0
             treeBarBg..setTexture(getBgTexture(), 0, false)..show()
-            treeBarBg.setWidth((1 - value) * width)
         else
             treeBarBg.hide()
 
