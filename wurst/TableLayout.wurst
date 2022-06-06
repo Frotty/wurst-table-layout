@@ -334,7 +334,7 @@ public class UIBar
         treeBarBg = img("bar-bg.dds")..setWidth(width)..setHeight(height)
 
     function create() returns framehandle
-        layout = new TableLayout(width + 0.002, height)
+        layout = new TableLayout(width + 0.002, height, "uibar #" + (this castTo int).toString())
         layout.padding = padding(0, 0, 0, 0)
 
         return layout..row()
