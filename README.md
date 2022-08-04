@@ -122,13 +122,30 @@ As you should have noticed from the previous examples we were using the `p()` fu
 Because you cannot use scaling with the table layout, several presets are provided for common types, similar to html tags:
 
 - Headings `h1`, `h2`, `h3`, `h4`
-- Paragraph `p`
+- Paragraph `p`, `p2`, `p3`
 - Image `img`
 - Button `btn`
 - ImageButton `imgBtn`
+- (Progress-)Bar `UIBar`
 
 ```
-new TableLayout(0.2, 0.25)
+let baseFrame = defaultFrame()
+
+let bar1 = new UIBar(0.075, 0.01)
+
+let nestedTable1 = new TableLayout(0.1, 0.05)
+..row()..center()
+..add(img(Icons.bTNAcolyte))
+..row()..center()
+..add(p("Acolyte"))..padTop(0.01)
+
+let nestedTable2 = new TableLayout(0.1, 0.05)
+..row()..center()
+..add(img(Icons.bTNAbomination))
+..row()..center()
+..add(p("Abomination"))..padTop(0.01)
+
+new TableLayout(0.25, 0.35)
 ..row()
 ..add(h1("h1"))
 ..row()
@@ -140,7 +157,7 @@ new TableLayout(0.2, 0.25)
 ..row()
 ..add(h5("h5"))
 ..row()
-..add(p("p"))
+..add(p("p1"))
 ..row()
 ..add(p2("p2"))
 ..row()
@@ -148,10 +165,15 @@ new TableLayout(0.2, 0.25)
 ..row()
 ..add(img(Icons.bTNAcorn1))
 ..row()
-..add(btn("button")..setWidth(0.125))
+..add(btn("button")..setWidth(0.125)..setHeight(0.02))
 ..row()
 ..add(imgBtn(Icons.bTNHumanBuild))
-..createFrame()
+..row()
+..add(bar1.create())
+..row()
+..add(nestedTable1.createContainer(baseFrame))..padRight(0.0025)
+..add(nestedTable2.createContainer(baseFrame))
+..applyTo(baseFrame)
 ```
 
 ![image](https://user-images.githubusercontent.com/1486037/166264855-d9e000f8-a452-4244-b193-400eb5dea243.png)
@@ -179,6 +201,26 @@ new TableLayout(0.5, 0.25)
 ..row()..center()
 ..add(btn("button")..onClick(() -> print("clicked")))
 ..createFrame()
+```
+
+## Nested Tables
+
+A table can be applied to an arbitrary framehandle and thus be easily inserted into another table. You only need to make sure that the parent fame already exists when creating the child frame.
+
+The `#createContainer` function can be used to create a container framehandle without any visuals which can be added to other tables.
+
+```
+let baseFrame = defaultFrame()
+
+let nestedTable1 = new TableLayout(0.1, 0.05)
+
+let nestedTable2 = new TableLayout(0.1, 0.05)
+
+new TableLayout(0.25, 0.35)
+..row()
+..add(nestedTable1.createContainer(baseFrame))..padRight(0.0025)
+..add(nestedTable2.createContainer(baseFrame))
+..applyTo(baseFrame)
 ```
 
 ## Dynamic changes

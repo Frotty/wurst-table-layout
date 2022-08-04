@@ -282,13 +282,19 @@ public function h5(string text) returns framehandle
     return textframe("h5", text)
 
 public function img(string path) returns framehandle
-    return img(path, 0.025)
+    return img(path, 0.025, false)
 
-public function img(string path, real size) returns framehandle
-    return img(path, size, size)
+public function img(string path, boolean blend) returns framehandle
+    return img(path, 0.025, blend)
+
+public function img(string path, real size, boolean blend) returns framehandle
+    return img(path, size, size, blend)
 
 public function img(string path, real width, real height) returns framehandle
-    return imgframe(path, width, height)
+    return imgframe(path, width, height, false)
+
+public function img(string path, real width, real height, boolean blend) returns framehandle
+    return imgframe(path, width, height, blend)
 
 public function btn(string text) returns framehandle
     return createFrame("button", GAME_UI, 0, 0)..setText(text)..setTextAlignment(TEXT_JUSTIFY_CENTER, TEXT_JUSTIFY_CENTER)
@@ -299,10 +305,10 @@ public function imgBtn(string path) returns framehandle
 function textframe(string typeClass, string text) returns framehandle
     return createFrame(typeClass, GAME_UI, 0, 0)..setText(text)..setTextAlignment(TEXT_JUSTIFY_CENTER, TEXT_JUSTIFY_CENTER)
 
-function imgframe(string path, real width, real height) returns framehandle
+function imgframe(string path, real width, real height, boolean blend) returns framehandle
     return createFrame(FramehandleTypeNames.backdrop, "", GAME_UI, "", 0)
         ..setSize(width, height)
-        ..setTexture(path, 0, false)
+        ..setTexture(path, 0, blend)
 
 function imgBtnFrame(string path, real width, real height) returns framehandle
     let imgButton = createFrame(FramehandleTypeNames.gluebutton, "PickIconButton", GAME_UI, FramehandleNames.iconButtonTemplate, 2)

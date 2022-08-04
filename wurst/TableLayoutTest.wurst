@@ -3,6 +3,7 @@ import ClosureTimers
 import TableLayout
 import Icons
 import GameTimer
+import Textures
 
 
 
@@ -11,15 +12,25 @@ init
     doAfter(1.) ->
 
         let bar1 = new UIBar(0.075, 0.01)
-        let bar2 = new UIBar(0.075, 0.01)
-        let bar3 = new UIBar(0.075, 0.01)
 
         doPeriodically(0.01) cb ->
-            bar1.setValue((1 + Sin(currentTime * 1.)) * 0.5)
-            bar2.setValue((1 + Sin(1 + currentTime * 1.)) * 0.5)
-            bar3.setValue((1 + Sin(2 + currentTime * 1)) * 0.5)
+            bar1.setValue((1 + currentTime.sin()) / 2.)
 
-        new TableLayout(0.2, 0.25)
+        let baseFrame = defaultFrame()
+
+        let nestedTable1 = new TableLayout(0.1, 0.05)
+        ..row()..center()
+        ..add(img(Icons.bTNAcolyte))
+        ..row()..center()
+        ..add(p("Acolyte"))..padTop(0.01)
+
+        let nestedTable2 = new TableLayout(0.1, 0.05)
+        ..row()..center()
+        ..add(img(Icons.bTNAbomination))
+        ..row()..center()
+        ..add(p("Abomination"))..padTop(0.01)
+
+        new TableLayout(0.25, 0.35)
         ..row()
         ..add(h1("h1"))
         ..row()
@@ -37,15 +48,14 @@ init
         ..row()
         ..add(p3("p3"))
         ..row()
-        ..add(img(Icons.bTNAcorn1))
+        ..add(img(Textures.auraRune6, 0.075, true))
         ..row()
-        ..add(btn("button")..setWidth(0.125)..setHeight(0.02))
+        ..add(btn("button")..setWidth(0.125)..setHeight(0.025))
         ..row()
         ..add(imgBtn(Icons.bTNHumanBuild))
         ..row()
         ..add(bar1.create())
         ..row()
-        ..add(bar2.create())
-        ..row()
-        ..add(bar3.create())
-        ..createFrame()
+        ..add(nestedTable1.createContainer(baseFrame))..padRight(0.0025)
+        ..add(nestedTable2.createContainer(baseFrame))
+        ..applyTo(baseFrame)
