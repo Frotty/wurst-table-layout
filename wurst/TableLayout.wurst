@@ -15,6 +15,7 @@ import GameTimer
 
 
 constant DEFAULT_PADDING = 0.0175
+public var tableWarnings = true
 
 public enum Align
     START
@@ -113,7 +114,7 @@ public class TableLayout
             
             let rowPercentage = row.width / availableSpace
             
-            if rowPercentage > 1.
+            if tableWarnings and rowPercentage > 1.
                 Log.warn("Row #" + count.toString() + " width: " + row.width.toString() + " exceeding table " + name + " availableSpace " + availableSpace.toString() + " width: " + width.toString())
                 
             let freeSpace = (1. - rowPercentage) * availableSpace
