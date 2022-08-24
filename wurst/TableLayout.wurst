@@ -288,6 +288,9 @@ public function img(string path) returns framehandle
 public function img(string path, boolean blend) returns framehandle
     return img(path, 0.025, blend)
 
+public function img(string path, real size) returns framehandle
+    return img(path, size, size, false)
+
 public function img(string path, real size, boolean blend) returns framehandle
     return img(path, size, size, blend)
 
