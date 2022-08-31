@@ -2,8 +2,6 @@ package TableLayout
 import public ClosureFrames
 import LinkedList
 import FramehandleNames
-import ClosureTimers
-import GameTimer
 
 /**
  * A table-like layout inspired by the libgdx table and css flex-box.
