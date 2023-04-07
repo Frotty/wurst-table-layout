@@ -126,7 +126,8 @@ Because you cannot use scaling with the table layout, several presets are provid
 - Image `img`
 - Button `btn`
 - ImageButton `imgBtn`
-- (Progress-)Bar `UIBar`
+- Custom (Progress-)Bar `UIBar`
+- Custom Checkbox `UICheckbox`
 
 ```
 let baseFrame = defaultFrame()
