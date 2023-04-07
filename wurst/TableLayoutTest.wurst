@@ -16,6 +16,8 @@ init
         doPeriodically(0.01) cb ->
             bar1.setValue((1 + currentTime.sin()) / 2.)
 
+        let checkbox = new UICheckbox(0.025, 0.025, true)
+
         let baseFrame = defaultFrame()
 
         let nestedTable1 = new TableLayout(0.1, 0.05)
@@ -53,6 +55,8 @@ init
         ..add(btn("button")..setWidth(0.125)..setHeight(0.025))
         ..row()
         ..add(imgBtn(Icons.bTNHumanBuild))
+        ..row()
+        ..add(checkbox.getFrame())
         ..row()
         ..add(bar1.create())
         ..row()

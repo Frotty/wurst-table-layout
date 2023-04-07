@@ -2,6 +2,7 @@ package TableLayout
 import public ClosureFrames
 import LinkedList
 import FramehandleNames
+import ClosureTimers
 
 /**
  * A table-like layout inspired by the libgdx table and css flex-box.
@@ -304,6 +305,10 @@ public function btn(string text) returns framehandle
 public function imgBtn(string path) returns framehandle
     return imgBtnFrame(path, 0.025, 0.025)
 
+public function checkbox(real width, real height) returns framehandle
+    return createFrame("QuestCheckBox2", GAME_UI, 0, 0)
+        ..setSize(width, height)
+
 function textframe(string typeClass, string text) returns framehandle
     return createFrame(typeClass, GAME_UI, 0, 0)..setText(text)..setTextAlignment(TEXT_JUSTIFY_CENTER, TEXT_JUSTIFY_CENTER)
 
@@ -311,6 +316,7 @@ function imgframe(string path, real width, real height, boolean blend) returns f
     return createFrame(FramehandleTypeNames.backdrop, "", GAME_UI, "", 0)
         ..setSize(width, height)
         ..setTexture(path, 0, blend)
+
 
 function imgBtnFrame(string path, real width, real height) returns framehandle
     let imgButton = createFrame(FramehandleTypeNames.gluebutton, "PickIconButton", GAME_UI, FramehandleNames.iconButtonTemplate, 2)
@@ -374,6 +380,39 @@ public class UIBar
 
         if layout != null
             layout.layout()
+
+
+interface CheckboxListener
+    function onChange(boolean checked)
+
+public class UICheckbox
+    private var value = false
+
+    framehandle bg
+    framehandle check
+
+    CheckboxListener listener
+
+    construct(real width, real height, boolean checked)
+        value = checked
+        bg = imgBtn("ui\\widgets\\escmenu\\human\\checkbox-background.dds")..setWidth(width)..setHeight(height)
+        bg..onClick() ->
+            value = not value
+            if value
+                check.show()
+            else
+                check.hide()
+
+            listener.onChange(value)
+                
+        check = img("ui\\widgets\\escmenu\\human\\checkbox-check.dds", true)..setVisible(checked)..setParent(bg)..setAllPoints(bg)..setWidth(width)..setHeight(height)
+
+    function addListener(CheckboxListener listener)
+        this.listener = listener
+
+    function getFrame() returns framehandle
+        return bg
+
 
 init
     loadTOCFile("TableLayout.toc")
