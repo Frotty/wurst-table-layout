@@ -2,7 +2,6 @@ package TableLayout
 import public ClosureFrames
 import LinkedList
 import FramehandleNames
-import ClosureTimers
 
 /**
  * A table-like layout inspired by the libgdx table and css flex-box.
@@ -412,6 +411,13 @@ public class UICheckbox
 
     function getFrame() returns framehandle
         return bg
+
+    function setChecked(boolean value)
+        this.value = value
+        if value
+            check.show()
+        else
+            check.hide()
 
 
 init
