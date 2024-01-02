@@ -12,6 +12,8 @@ import FramehandleNames
  */
 
 
+@configurable public constant DEFAULT_FRAME_PARENT = GAME_UI
+
 constant DEFAULT_PADDING = 0.0175
 public var tableWarnings = true
 
@@ -251,7 +253,7 @@ public function layoutFrame(framehandle parent) returns framehandle
     return createFrame("FRAME", "multiboardFrame", parent, null, 0)
 
 public function defaultFrame() returns framehandle
-    let baseFrame = layoutFrame(GAME_UI)
+    let baseFrame = layoutFrame(DEFAULT_FRAME_PARENT)
         ..setAbsPoint(FRAMEPOINT_TOP, vec2(0.4, 0.515))
     createFrame("HeroPickMenuBackdrop", baseFrame, 0, 0)..setAllPoints(baseFrame)
     return baseFrame
@@ -299,26 +301,26 @@ public function img(string path, real width, real height, boolean blend) returns
     return imgframe(path, width, height, blend)
 
 public function btn(string text) returns framehandle
-    return createFrame("button", GAME_UI, 0, 0)..setText(text)..setTextAlignment(TEXT_JUSTIFY_CENTER, TEXT_JUSTIFY_CENTER)
+    return createFrame("button", DEFAULT_FRAME_PARENT, 0, 0)..setText(text)..setTextAlignment(TEXT_JUSTIFY_CENTER, TEXT_JUSTIFY_CENTER)
 
 public function imgBtn(string path) returns framehandle
     return imgBtnFrame(path, 0.025, 0.025)
 
 public function checkbox(real width, real height) returns framehandle
-    return createFrame("QuestCheckBox2", GAME_UI, 0, 0)
+    return createFrame("QuestCheckBox2", DEFAULT_FRAME_PARENT, 0, 0)
         ..setSize(width, height)
 
 function textframe(string typeClass, string text) returns framehandle
-    return createFrame(typeClass, GAME_UI, 0, 0)..setText(text)..setTextAlignment(TEXT_JUSTIFY_CENTER, TEXT_JUSTIFY_CENTER)
+    return createFrame(typeClass, DEFAULT_FRAME_PARENT, 0, 0)..setText(text)..setTextAlignment(TEXT_JUSTIFY_CENTER, TEXT_JUSTIFY_CENTER)
 
 function imgframe(string path, real width, real height, boolean blend) returns framehandle
-    return createFrame(FramehandleTypeNames.backdrop, "", GAME_UI, "", 0)
+    return createFrame(FramehandleTypeNames.backdrop, "", DEFAULT_FRAME_PARENT, "", 0)
         ..setSize(width, height)
         ..setTexture(path, 0, blend)
 
 
 function imgBtnFrame(string path, real width, real height) returns framehandle
-    let imgButton = createFrame(FramehandleTypeNames.gluebutton, "PickIconButton", GAME_UI, FramehandleNames.iconButtonTemplate, 2)
+    let imgButton = createFrame(FramehandleTypeNames.gluebutton, "PickIconButton", DEFAULT_FRAME_PARENT, FramehandleNames.iconButtonTemplate, 2)
     let imgTexture = createFrame(FramehandleTypeNames.backdrop, "pickIcon", imgButton, "", 2)
 
     imgButton
@@ -353,7 +355,7 @@ public class UIBar
         return layout..row()
         ..add(treeBarAc)
         ..add(treeBarBg)
-        .createContainer(GAME_UI)
+        .createContainer(DEFAULT_FRAME_PARENT)
 
     function getActiveTexture() returns string
         if value <= 0.3
