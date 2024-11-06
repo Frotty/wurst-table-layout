@@ -6,7 +6,7 @@ This library allows you to easily create and align framehandles in a table-ish l
 Table-ish because there are no columns. A table simply consists of rows, which themselves consist of cells which contain a framehandle as content.
 After setting up the layout you can apply it to any framehandle.
 
-> The table layout can not be used with scaling
+> Note: The table layout cannot be used with scaling
 
 ![Diagram](https://user-images.githubusercontent.com/1486037/141851102-390b7136-41b1-4b8f-9197-be286a7a4ba5.png)
 
@@ -18,15 +18,14 @@ Install as dependency via grill:
 
 `grill install https://github.com/Frotty/wurst-table-layout`
 
-Make sure you have the latest wurstscript version with transitive dependencies.
+Ensure you have the latest version of WurstScript with transitive dependencies support.
 
 ## Basics
 
-The layout is applied to a framehandle which becomes the base frame all other framehandles are children of.
-You can either provide your own or use the default escape menu border which is race dependent.
+The layout is applied to a framehandle, which becomes the base frame to which all other framehandles are attached as children. You can either provide your own base frame or use the default escape menu border, which varies in appearance depending on the player's race.
 
 ```
-// Default parent
+// Default base frame
 new TableLayout(0.3, 0.35)
 ..createFrame()
 ```
@@ -34,17 +33,14 @@ new TableLayout(0.3, 0.35)
 ![Photoshop_oXmHmp3h1B](https://user-images.githubusercontent.com/1486037/142065401-1f754d8d-5bf8-4376-baec-e608eef57f83.png)
 
 ```
-// Provide custom parent
+// Provide base frame
 new TableLayout(0.3, 0.35)
 ..applyTo(yourCustomFrame)
 ```
 
 ### Rows and Cells
 
-The API makes heavy use of the cascade operator to apply changes to the root element.
-First create a table layout, passing width and height of relative screen space.
-Then start adding rows and cells via `.row()` and `.add()`.
-The functions will always work on the most recently added row/cell.
+The API extensively uses the cascade operator (`..`) to apply changes to the root element. To get started, create a `TableLayout` by specifying the width and height in relative screen space units. Then, add rows and cells using the `.row()` and `.add()` methods. These methods always operate on the most recently added row or cell.
 
 ```
 new TableLayout(0.2, 0.15)
@@ -63,7 +59,7 @@ new TableLayout(0.2, 0.15)
 
 ### Padding
 
-By default cells have no padding, making them appear right next to each other. We can introduce some space between the cells by adding padding to each of the four sides left, right, top and bottom.
+By default, cells have no padding, making them appear right next to each other. You can introduce space between cells by adding padding to each of the four sides: left, right, top, and bottom.
 
 ```
 new TableLayout(0.2, 0.15)
@@ -82,7 +78,7 @@ new TableLayout(0.2, 0.15)
 
 ### Alignment
 
-By default the alignment in a table is top left. You can adjust horizontal alignment on a per row basis.
+By default, the alignment in a table is top-left. You can adjust horizontal alignment on a per-row basis.
 
 ```
 new TableLayout(0.2, 0.15)
@@ -99,7 +95,7 @@ new TableLayout(0.2, 0.15)
 
 ![Warcraft_III_1R8F91NBJl](https://user-images.githubusercontent.com/1486037/142065499-73aabd15-1da1-4173-b081-ed1c6130ecfb.png)
 
-You can also make certain cells grow horizontally. This can be used to distribute cells evenly.
+You can also make certain cells grow horizontally to distribute them evenly.
 
 ```
 new TableLayout(0.2, 0.15)
@@ -206,9 +202,9 @@ new TableLayout(0.5, 0.25)
 
 ## Nested Tables
 
-A table can be applied to an arbitrary framehandle and thus be easily inserted into another table. You only need to make sure that the parent fame already exists when creating the child frame.
+A table can be applied to any framehandle and thus easily inserted into another table. Ensure that the parent frame already exists when creating the child frame.
 
-The `#createContainer` function can be used to create a container framehandle without any visuals which can be added to other tables.
+The `#createContainer` function can be used to create a container framehandle without any visuals, which can be added to other tables.
 
 ```
 let baseFrame = defaultFrame()
@@ -227,3 +223,16 @@ new TableLayout(0.25, 0.35)
 ## Dynamic changes
 
 There currently is no change detection. If you changed the contained frames and want the table to recognize the change, you have to call `table.layout()` to update the table and its contents.
+
+## Changing the default frame parent
+
+Due to quirks in Warcraft III's handling of frames, frames created by the presets are created as children of `GAME_UI` by default. The parent is then changed to the table's base frame after layouting. However, this can cause problems if you're trying to use a table layout inside an existing frame. To work around this, you can set `defaultFrameParent` to your custom frame so that all new framehandles are created with the correct parent from the start. Make sure to reset the variable afterward to prevent side effects.
+
+```
+defaultFrameParent = getFrame("SimpleInfoPanelUnitDetail", 0)
+
+new TableLayout(...)
+..applyTo(defaultFrameParent)
+
+defaultFrameParent = GAME_UI
+```

@@ -3,7 +3,7 @@ import public ClosureFrames
 import LinkedList
 import FramehandleNames
 
-/**
+/*
  * A table-like layout inspired by the libgdx table and css flex-box.
  * A table consists of rows, which consist of cells, which contain framehandles.
  * There are no columns, if you want your cells to align, you have to set them up that way.
@@ -11,8 +11,12 @@ import FramehandleNames
  * You can nest table layouts to achieve advanced layouts.
  */
 
-
-@configurable public constant DEFAULT_FRAME_PARENT = GAME_UI
+/** 
+ * Change this value to set a custom parent for newly created components.Align
+ * This is mostly useful when using table-layout inside existing frames.
+ * Setting the parent afterwards seems to not work properly in all cases. 
+ */
+public var defaultFrameParent = GAME_UI
 
 constant DEFAULT_PADDING = 0.0175
 public var tableWarnings = true
@@ -253,7 +257,7 @@ public function layoutFrame(framehandle parent) returns framehandle
     return createFrame("FRAME", "multiboardFrame", parent, null, 0)
 
 public function defaultFrame() returns framehandle
-    let baseFrame = layoutFrame(DEFAULT_FRAME_PARENT)
+    let baseFrame = layoutFrame(defaultFrameParent)
         ..setAbsPoint(FRAMEPOINT_TOP, vec2(0.4, 0.515))
     createFrame("HeroPickMenuBackdrop", baseFrame, 0, 0)..setAllPoints(baseFrame)
     return baseFrame
@@ -301,26 +305,26 @@ public function img(string path, real width, real height, boolean blend) returns
     return imgframe(path, width, height, blend)
 
 public function btn(string text) returns framehandle
-    return createFrame("button", DEFAULT_FRAME_PARENT, 0, 0)..setText(text)..setTextAlignment(TEXT_JUSTIFY_CENTER, TEXT_JUSTIFY_CENTER)
+    return createFrame("button", defaultFrameParent, 0, 0)..setText(text)..setTextAlignment(TEXT_JUSTIFY_CENTER, TEXT_JUSTIFY_CENTER)
 
 public function imgBtn(string path) returns framehandle
     return imgBtnFrame(path, 0.025, 0.025)
 
 public function checkbox(real width, real height) returns framehandle
-    return createFrame("QuestCheckBox2", DEFAULT_FRAME_PARENT, 0, 0)
+    return createFrame("QuestCheckBox2", defaultFrameParent, 0, 0)
         ..setSize(width, height)
 
 function textframe(string typeClass, string text) returns framehandle
-    return createFrame(typeClass, DEFAULT_FRAME_PARENT, 0, 0)..setText(text)..setTextAlignment(TEXT_JUSTIFY_CENTER, TEXT_JUSTIFY_CENTER)
+    return createFrame(typeClass, defaultFrameParent, 0, 0)..setText(text)..setTextAlignment(TEXT_JUSTIFY_CENTER, TEXT_JUSTIFY_CENTER)
 
 function imgframe(string path, real width, real height, boolean blend) returns framehandle
-    return createFrame(FramehandleTypeNames.backdrop, "", DEFAULT_FRAME_PARENT, "", 0)
+    return createFrame(FramehandleTypeNames.backdrop, "", defaultFrameParent, "", 0)
         ..setSize(width, height)
         ..setTexture(path, 0, blend)
 
 
 function imgBtnFrame(string path, real width, real height) returns framehandle
-    let imgButton = createFrame(FramehandleTypeNames.gluebutton, "PickIconButton", DEFAULT_FRAME_PARENT, FramehandleNames.iconButtonTemplate, 2)
+    let imgButton = createFrame(FramehandleTypeNames.gluebutton, "PickIconButton", defaultFrameParent, FramehandleNames.iconButtonTemplate, 2)
     let imgTexture = createFrame(FramehandleTypeNames.backdrop, "pickIcon", imgButton, "", 2)
 
     imgButton
@@ -355,7 +359,7 @@ public class UIBar
         return layout..row()
         ..add(treeBarAc)
         ..add(treeBarBg)
-        .createContainer(DEFAULT_FRAME_PARENT)
+        .createContainer(defaultFrameParent)
 
     function getActiveTexture() returns string
         if value <= 0.3
