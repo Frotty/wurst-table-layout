@@ -398,9 +398,15 @@ public class UICheckbox
 
     CheckboxListener listener
 
+    construct(real width, real height, boolean checked, string bgTexture, string checkTexture)
+        setup(width, height, checked, bgTexture, checkTexture)
+        
     construct(real width, real height, boolean checked)
+        setup(width, height, checked, "ui\\widgets\\escmenu\\human\\checkbox-background.dds", "ui\\widgets\\escmenu\\human\\checkbox-check.dds")
+
+    function setup(real width, real height, boolean checked, string bgTexture, string checkTexture)
         value = checked
-        bg = imgBtn("ui\\widgets\\escmenu\\human\\checkbox-background.dds")..setWidth(width)..setHeight(height)
+        bg = imgBtn(bgTexture)..setWidth(width)..setHeight(height)
         bg..onClick() ->
             value = not value
             if value
@@ -410,7 +416,7 @@ public class UICheckbox
 
             listener.onChange(value)
                 
-        check = img("ui\\widgets\\escmenu\\human\\checkbox-check.dds", true)..setVisible(checked)..setParent(bg)..setAllPoints(bg)..setWidth(width)..setHeight(height)
+        check = img(checkTexture, true)..setVisible(checked)..setParent(bg)..setAllPoints(bg)..setWidth(width)..setHeight(height)
 
     function addListener(CheckboxListener listener)
         this.listener = listener
