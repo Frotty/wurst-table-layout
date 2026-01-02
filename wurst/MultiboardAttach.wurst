@@ -1,0 +1,81 @@
+package MultiboardAttach
+import FramehandleNames
+import TableLayout
+
+/*
+	Attach custom content to the existing multiboard UI (reuse maximize/minimize behavior),
+	and recreate the usual multiboard “panel” backdrop behind your content.
+
+    /!\ You must set your multiboard to have an appropriate amount of rows to fit your content height. /!\ 
+
+	Minimal hello-world test using TableLayout (with multiboard-style backdrop):
+    
+    let mb = CreateMultiboard()
+    ..setRowCount(1)
+    ..setColumnCount(1)
+    ..show()
+    ..setTitle("Demo Board")
+
+    attachToMultiboard(mb, "DemoMb", 0.22, 0.08, true,
+        (uiParent, anchor) -> begin
+            let layout = new TableLayout(0.22, 0.1, "DemoMbLayout")
+            layout.padding = padding(0.006, 0.012, 0.006, 0.012)
+            layout
+            ..row()
+            ..add(p("Hello world"))
+            layout.applyTo(anchor)
+            return anchor
+        end
+    )
+*/
+
+public interface MultiboardContentBuilder
+	function build(framehandle uiParent, framehandle anchor) returns framehandle
+
+/**
+    Attach custom content to a multiboard, recreating the usual multiboard backdrop.
+*/
+public function attachToMultiboard(
+	multiboard board,
+	string baseName,
+	real titleBackdropWidth,
+	real contentHeight,
+	boolean hideDefaultMultiboardItems,
+	MultiboardContentBuilder builder
+) returns framehandle
+
+	let titleBackdrop = getFrame(FramehandleDefaultNames.multiboardTitleBackdrop)
+	let backdrop      = getFrame(FramehandleDefaultNames.multiboardBackdrop)
+	let minimizeBtn   = getFrame(FramehandleDefaultNames.multiboardMinimizeButton)
+	let listContainer = getFrame(FramehandleDefaultNames.multiboardListContainer)
+
+	if hideDefaultMultiboardItems
+		MultiboardSetItemsStyle(board, false, false)
+
+	if titleBackdropWidth > 0.
+		titleBackdrop.setWidth(titleBackdropWidth)
+
+	// re-apply when maximized again
+	minimizeBtn.onClick() ->
+		if board.isMaximized()
+			if titleBackdropWidth > 0.
+				titleBackdrop.setWidth(titleBackdropWidth)
+
+	// Anchor container for layouts/anchors (geometry)
+	let contentAnchor = createFrame("FRAME", baseName + "_Anchor", listContainer, "", 0)
+	contentAnchor
+	..setPoint(FRAMEPOINT_TOPLEFT,  backdrop, FRAMEPOINT_TOPLEFT, vec2(0, 0))
+	..setPoint(FRAMEPOINT_TOPRIGHT, backdrop, FRAMEPOINT_TOPRIGHT, vec2(0, 0))
+	..setHeight(contentHeight)
+	..setLevel(1)
+
+	// Recreate the multiboard panel backdrop (HumanBoard pattern)
+	// Note: uses the default multiboard list container as parent, but is sized to the anchor.
+	let panelBackdrop = createFrame("HumanBoardBackdrop", listContainer, 0, 1)
+	panelBackdrop.setAllPoints(contentAnchor)
+
+	// Build content into the anchor (frames are typically parented to listContainer / uiParent)
+	if builder != null
+		builder.build(listContainer, contentAnchor)
+
+	return contentAnchor

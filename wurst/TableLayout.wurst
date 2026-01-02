@@ -308,7 +308,13 @@ public function btn(string text) returns framehandle
     return createFrame("button", defaultFrameParent, 0, 0)..setText(text)..setTextAlignment(TEXT_JUSTIFY_CENTER, TEXT_JUSTIFY_CENTER)
 
 public function imgBtn(string path) returns framehandle
-    return imgBtnFrame(path, 0.025, 0.025)
+    return imgBtn(path, 0.025, 0.025)
+
+public function imgBtn(string path, real size) returns framehandle
+    return imgBtn(path, size, size)
+
+public function imgBtn(string path, real width, real height) returns framehandle
+    return imgBtnFrame(path, width, height)
 
 public function checkbox(real width, real height) returns framehandle
     return createFrame("QuestCheckBox2", defaultFrameParent, 0, 0)
