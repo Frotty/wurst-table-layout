@@ -4,7 +4,7 @@ import TableLayout
 
 /*
 	Attach custom content to the existing multiboard UI (reuse maximize/minimize behavior),
-	and recreate the usual multiboard “panel” backdrop behind your content.
+	and recreate the usual multiboard "panel" backdrop behind your content.
 
     /!\ You must set your multiboard to have an appropriate amount of rows to fit your content height. /!\ 
 

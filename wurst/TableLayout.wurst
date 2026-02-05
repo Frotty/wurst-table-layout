@@ -69,6 +69,8 @@ public class TableLayout
         return row
 
     function add(framehandle frame)
+        if rows.isEmpty()
+            row()
         lastCell = rows.peek().add(frame)
 
     function growX()
@@ -109,14 +111,16 @@ public class TableLayout
 
     function layout()
         var offset = vec2(padding.left, -padding.top)
-        let availableSpace = width - padding.getWidth()
+        var availableSpace = width - padding.getWidth()
+        if availableSpace < 0.
+            availableSpace = 0.
 
         var count = 0
         for row in rows
 
             row.invalidate(availableSpace)
             
-            let rowPercentage = row.width / availableSpace
+            let rowPercentage = availableSpace == 0. ? 1. : row.width / availableSpace
             
             if tableWarnings and rowPercentage > 1.
                 Log.warn("Row #" + count.toString() + " width: " + row.width.toString() + " exceeding table " + name + " availableSpace " + availableSpace.toString() + " width: " + width.toString())
@@ -130,7 +134,7 @@ public class TableLayout
                 case CENTER
                     offset.x = padding.left + (freeSpace / 2.)
                 case END
-                    offset.x = freeSpace
+                    offset.x = padding.left + freeSpace
 
             row.layout(baseFrame, offset)
             offset -= vec2(0, row.height)
@@ -206,6 +210,8 @@ public class Row
 
         if growCells > 0
             growVal = (availableSpace - otherCellWidths) / growCells
+            if growVal < 0.
+                growVal = 0.
             width = availableSpace
 
         for cell in cells
