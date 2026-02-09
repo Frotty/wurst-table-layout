@@ -1,0 +1,33 @@
+package MultiboardAttachTest
+import MultiboardAttach
+import TableLayout
+import ClosureTimers
+
+public function runMultiboardAttachTest()
+    let mb = CreateMultiboard()
+    mb
+    ..setTitle("MultiboardAttach Test")
+    ..setColumnCount(1)
+    ..display(true)
+
+    attachToMultiboard(
+        mb,
+        "DemoMb",
+        0.22,
+        0.06,
+        true,
+        (uiParent, anchor) -> begin
+            let layout = new TableLayout(0.22, 0.06, "DemoMbLayout")
+            layout.padding = padding(0.006, 0.012, 0.006, 0.012)
+            layout
+            ..row()..add(h2("Attach Test"))..padBot(0.004)
+            ..row()..center()..add(img("ReplaceableTextures\\CommandButtons\\BTNSelectHeroOn.blp", 0.028, 0.028))
+            ..row()..add(p("h2 + img attached"))
+            layout.applyTo(anchor) // anchor == itemContainer
+            return anchor
+        end
+    )
+
+init
+    doAfter(.1) ->
+        runMultiboardAttachTest()

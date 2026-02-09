@@ -4,10 +4,6 @@ import TableLayout
 import Icons
 import GameTimer
 import Textures
-import MultiboardAttach
-import FramehandleNames
-
-
 
 init
 
@@ -65,28 +61,3 @@ init
         ..add(nestedTable1.createContainer(baseFrame))..padRight(0.0025)
         ..add(nestedTable2.createContainer(baseFrame))
         ..applyTo(baseFrame)
-
-        let mb = CreateMultiboard()
-        ..setRowCount(1)
-        ..setColumnCount(1)
-        ..show()
-        ..setTitle("Demo Board")
-
-        attachToMultiboard(mb, "DemoMb", 0.22, 0.08, true,
-            (uiParent, anchor) -> begin
-                let layout = new TableLayout(0.22, 0.1, "DemoMbLayout")
-                layout.padding = padding(0.006, 0.012, 0.006, 0.012)
-
-                layout
-                ..row()
-                ..add(p("Hello world"))
-                ..row()
-                ..add(img(Icons.bTNAcidBomb))..center()
-                ..row()
-                ..add(btn("Click me")..setWidth(0.1))..growX()
-                layout.applyTo(anchor)
-                return anchor
-            end
-        )
-
-

@@ -3,12 +3,12 @@ import FramehandleNames
 import TableLayout
 
 /*
-	Attach custom content to the existing multiboard UI (reuse maximize/minimize behavior),
-	and recreate the usual multiboard "panel" backdrop behind your content.
+    Attach custom content to the existing multiboard UI (reuse maximize/minimize behavior),
+    and recreate the usual multiboard "panel" backdrop behind your content.
 
     /!\ You must set your multiboard to have an appropriate amount of rows to fit your content height. /!\ 
 
-	Minimal hello-world test using TableLayout (with multiboard-style backdrop):
+    Minimal hello-world test using TableLayout (with multiboard-style backdrop):
     
     let mb = CreateMultiboard()
     ..setRowCount(1)
@@ -29,53 +29,90 @@ import TableLayout
     )
 */
 
-public interface MultiboardContentBuilder
-	function build(framehandle uiParent, framehandle anchor) returns framehandle
+public var autoRowsEnabled = true
+public var rowHeightEstimate = 0.0125
 
+function rowsNeededFor(real contentHeight) returns int
+    let target = contentHeight
+    return max(1, (target / rowHeightEstimate).ceil())
+
+public interface MultiboardContentBuilder
+    function build(framehandle uiParent, framehandle anchor) returns framehandle
+
+public function fitMultiboardRowsToHeight(multiboard board, real contentHeight)
+    board.setRowCount(rowsNeededFor(contentHeight))
+    
 /**
     Attach custom content to a multiboard, recreating the usual multiboard backdrop.
 */
 public function attachToMultiboard(
-	multiboard board,
-	string baseName,
-	real titleBackdropWidth,
-	real contentHeight,
-	boolean hideDefaultMultiboardItems,
-	MultiboardContentBuilder builder
+    multiboard board,
+    string baseName,
+    real titleBackdropWidth,
+    real contentHeight,
+    boolean hideDefaultMultiboardItems,
+    MultiboardContentBuilder builder
 ) returns framehandle
 
-	let titleBackdrop = getFrame(FramehandleDefaultNames.multiboardTitleBackdrop)
-	let backdrop      = getFrame(FramehandleDefaultNames.multiboardBackdrop)
-	let minimizeBtn   = getFrame(FramehandleDefaultNames.multiboardMinimizeButton)
-	let listContainer = getFrame(FramehandleDefaultNames.multiboardListContainer)
+    let titleBackdrop = getFrame(FramehandleDefaultNames.multiboardTitleBackdrop)
+    let backdrop      = getFrame(FramehandleDefaultNames.multiboardBackdrop)
+    let minimizeBtn   = getFrame(FramehandleDefaultNames.multiboardMinimizeButton)
+    let listContainer = getFrame(FramehandleDefaultNames.multiboardListContainer)
 
-	if hideDefaultMultiboardItems
-		MultiboardSetItemsStyle(board, false, false)
+    if hideDefaultMultiboardItems
+        MultiboardSetItemsStyle(board, false, false)
 
-	if titleBackdropWidth > 0.
-		titleBackdrop.setWidth(titleBackdropWidth)
+    if titleBackdropWidth > 0.
+        titleBackdrop.setWidth(titleBackdropWidth)
 
-	// re-apply when maximized again
-	minimizeBtn.onClick() ->
-		if board.isMaximized()
-			if titleBackdropWidth > 0.
-				titleBackdrop.setWidth(titleBackdropWidth)
+    // HumanBoard parity: dedicated container that owns size/position
+    let itemContainer = createFrame("FRAME", baseName + "_ItemContainer", listContainer, "", 0)
+    itemContainer
+    ..setPoint(FRAMEPOINT_TOPRIGHT, backdrop, FRAMEPOINT_TOPRIGHT, vec2(0, 0))
+    ..setHeight(max(contentHeight, rowHeightEstimate))
+    ..setLevel(1)
 
-	// Anchor container for layouts/anchors (geometry)
-	let contentAnchor = createFrame("FRAME", baseName + "_Anchor", listContainer, "", 0)
-	contentAnchor
-	..setPoint(FRAMEPOINT_TOPLEFT,  backdrop, FRAMEPOINT_TOPLEFT, vec2(0, 0))
-	..setPoint(FRAMEPOINT_TOPRIGHT, backdrop, FRAMEPOINT_TOPRIGHT, vec2(0, 0))
-	..setHeight(contentHeight)
-	..setLevel(1)
+    // Backdrop follows the exact same container
+    let panelBackdrop = createFrame("HumanBoardBackdrop", listContainer, 0, 1)
+    panelBackdrop.setAllPoints(itemContainer)
 
-	// Recreate the multiboard panel backdrop (HumanBoard pattern)
-	// Note: uses the default multiboard list container as parent, but is sized to the anchor.
-	let panelBackdrop = createFrame("HumanBoardBackdrop", listContainer, 0, 1)
-	panelBackdrop.setAllPoints(contentAnchor)
+    // Build content
+    framehandle built = null
+    if builder != null
+        built = builder.build(listContainer, itemContainer)
 
-	// Build content into the anchor (frames are typically parented to listContainer / uiParent)
-	if builder != null
-		builder.build(listContainer, contentAnchor)
+    // Resolve final height once (no timers)
+    var resolvedHeight = contentHeight
+    if built != null
+        let h = built.getHeight()
+        if h > 0.
+            resolvedHeight = h
 
-	return contentAnchor
+    if resolvedHeight <= 0.
+        resolvedHeight = rowHeightEstimate
+
+    // Auto-fit rows from resolved content height
+    if autoRowsEnabled
+        fitMultiboardRowsToHeight(board, resolvedHeight)
+
+    // Keep container/backdrop in sync with resolved height
+    itemContainer.setHeight(resolvedHeight)
+    panelBackdrop.setAllPoints(itemContainer)
+
+    // Re-apply title width + geometry after maximize toggle
+    minimizeBtn.onClick() ->
+        if board.isMaximized()
+            if titleBackdropWidth > 0.
+                titleBackdrop.setWidth(titleBackdropWidth)
+
+            itemContainer
+            ..clearAllPoints()
+            ..setPoint(FRAMEPOINT_TOPRIGHT, backdrop, FRAMEPOINT_TOPRIGHT, vec2(0, 0))
+
+            panelBackdrop.setAllPoints(itemContainer)
+
+    if titleBackdropWidth > 0.
+        titleBackdrop.setWidth(titleBackdropWidth)
+
+    return itemContainer
+
