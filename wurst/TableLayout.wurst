@@ -63,6 +63,7 @@ public class TableLayout
     function row() returns Row
         let row = new Row(this)
         rows.add(row)
+        lastCell = null
         if defaultHalign != UNSET
             row.halign = defaultHalign
 
@@ -73,23 +74,43 @@ public class TableLayout
             row()
         lastCell = rows.peek().add(frame)
 
+    private function getLastCellOrWarn(string action) returns Cell
+        if lastCell == null
+            if tableWarnings
+                Log.warn("Ignoring TableLayout." + action + "() on " + name + " because no cell was added yet. Call add(...) first.")
+            return null
+
+        return lastCell
+
     function growX()
-        lastCell.growX = true
+        let cell = getLastCellOrWarn("growX")
+        if cell != null
+            cell.growX = true
 
     function padTop(real top)
-        lastCell.padding.top = top
+        let cell = getLastCellOrWarn("padTop")
+        if cell != null
+            cell.padding.top = top
 
     function padBot(real bot)
-        lastCell.padding.bot = bot
+        let cell = getLastCellOrWarn("padBot")
+        if cell != null
+            cell.padding.bot = bot
 
     function padLeft(real left)
-        lastCell.padding.left = left
+        let cell = getLastCellOrWarn("padLeft")
+        if cell != null
+            cell.padding.left = left
 
     function padRight(real right)
-        lastCell.padding.right = right
+        let cell = getLastCellOrWarn("padRight")
+        if cell != null
+            cell.padding.right = right
 
     function pad(real top, real right, real bot, real left)
-        lastCell.padding = padding(top, right, bot, left)
+        let cell = getLastCellOrWarn("pad")
+        if cell != null
+            cell.padding = padding(top, right, bot, left)
 
     /** Applies this layout to a newly created default frame with backdrop */
     function createFrame() returns framehandle
@@ -167,6 +188,8 @@ public class TableLayout
     /** Removes a row and invalidates the layout */
     function remove(Row row, boolean destroyFrames)
         this.rows.remove(row)
+        if row.contains(lastCell)
+            lastCell = null
         if destroyFrames
             row.cells.forEach(cell -> cell.frame.remove())
             row.cells.clear()
@@ -193,6 +216,15 @@ public class Row
         let cell = new Cell(frame)
         cells.add(cell)
         return cell
+
+    function contains(Cell candidate) returns boolean
+        if candidate == null
+            return false
+
+        for cell in cells
+            if cell == candidate
+                return true
+        return false
 
     function invalidate(real availableSpace)
         height = 0.
