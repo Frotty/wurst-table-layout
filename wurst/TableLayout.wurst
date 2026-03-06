@@ -70,6 +70,10 @@ public class TableLayout
         return row
 
     function add(framehandle frame)
+        if frame == null
+            if tableWarnings
+                Log.warn("Ignoring TableLayout.add() on " + name + " because the frame is null.")
+            return
         if rows.isEmpty()
             row()
         lastCell = rows.peek().add(frame)
@@ -126,11 +130,21 @@ public class TableLayout
 
     /** Applies this layout to the given base frame */
     function applyTo(framehandle baseFrame)
+        if baseFrame == null
+            if tableWarnings
+                Log.warn("Ignoring TableLayout.applyTo() on " + name + " because the base frame is null.")
+            return
+
         this.baseFrame = baseFrame
         baseFrame..setWidth(width)..setHeight(height)
         layout()
 
     function layout()
+        if baseFrame == null
+            if tableWarnings
+                Log.warn("Ignoring TableLayout.layout() on " + name + " because no base frame was applied yet.")
+            return
+
         var offset = vec2(padding.left, -padding.top)
         var availableSpace = width - padding.getWidth()
         if availableSpace < 0.
@@ -194,7 +208,8 @@ public class TableLayout
             row.cells.forEach(cell -> cell.frame.remove())
             row.cells.clear()
             
-        layout()
+        if baseFrame != null
+            layout()
 
 
 
@@ -213,6 +228,9 @@ public class Row
         this.parent = parent
 
     function add(framehandle frame) returns Cell
+        if frame == null
+            return null
+
         let cell = new Cell(frame)
         cells.add(cell)
         return cell
@@ -458,7 +476,8 @@ public class UICheckbox
             else
                 check.hide()
 
-            listener.onChange(value)
+            if listener != null
+                listener.onChange(value)
                 
         check = img(checkTexture, true)..setVisible(checked)..setParent(bg)..setAllPoints(bg)..setWidth(width)..setHeight(height)
 
