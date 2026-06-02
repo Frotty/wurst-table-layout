@@ -1,12 +1,22 @@
 # wurst-table-layout
 
+[![CI](https://github.com/Frotty/wurst-table-layout/actions/workflows/ci.yml/badge.svg)](https://github.com/Frotty/wurst-table-layout/actions/workflows/ci.yml)
+
 ![chrome_EkMQO3cJuA](https://user-images.githubusercontent.com/1486037/142081152-42348ece-7cfb-47db-a4e2-c9d552537f02.png)
 
-This library allows you to easily create and align framehandles in a table-ish layout inspired by flex-box.
-Table-ish because there are no columns. A table simply consists of rows, which themselves consist of cells which contain a framehandle as content.
-After setting up the layout you can apply it to any framehandle.
+This library lets you create and align Warcraft III framehandles in a table-ish layout inspired by flex-box and the libGDX table. A table consists of rows, which consist of cells, which hold a framehandle. Rows are laid out independently by default; opt into cross-row column alignment with `columns()`. After setting up the layout you apply it to any framehandle.
 
-> Note: The table layout cannot be used with scaling
+> Note: The table layout cannot be used with scaling.
+
+### Features
+
+- Flexbox-style rows and cells with padding, gaps, horizontal and vertical alignment, and `growX`/`growY`.
+- Opt-in column/grid alignment (`columns()`, `uniformColumns()`, `colspan`).
+- HTML-like text presets (`h1`-`h5`, `p`-`p3`) plus image, button, bar and checkbox presets.
+- Higher-level `TableUi` components: panels, cards, tooltips, edit boxes, text areas, dynamic selects, confirm dialogs, stat bars, and icon/label & label/value rows.
+- A consistent spacing scale, sane component minimums, a container hierarchy, and safe-area placement helpers.
+- Frame-independent validation (`checkFits()` / `inspect()`) that catches overflow and unsized cells — at runtime and headless in `grill test`.
+- Ships LLM / agent instructions for smooth, correct UI generation (see [AI readiness](#ai-readiness)).
 
 ![Diagram](https://user-images.githubusercontent.com/1486037/141851102-390b7136-41b1-4b8f-9197-be286a7a4ba5.png)
 
@@ -117,14 +127,12 @@ new TableLayout(0.2, 0.15)
 As you should have noticed from the previous examples we were using the `p()` function, which analagous to html represents a paragraph text element.
 Because you cannot use scaling with the table layout, several presets are provided for common types, similar to html tags:
 
-- Headings `h1`, `h2`, `h3`, `h4`
-- Paragraph `p`, `p2`, `p3`
-- Image `img`
-- Button `btn`
-- ImageButton `imgBtn`
+- Headings `h1`-`h5` and paragraphs `p`, `p2`, `p3`; sized text in one call with `label` (left-aligned) / `value` (right-aligned)
+- Image `img`, Button `btn`, ImageButton `imgBtn`, Checkbox `checkbox` / `UICheckbox`
 - Custom (Progress-)Bar `UIBar`
-- Custom Checkbox `UICheckbox`
-- Higher-level components in `TableUi` such as panels, cards, spacers, separators, icon/label rows, label/value rows, close/X buttons, boxed tooltips, edit boxes, text areas, dynamic selects, confirm dialogs, and stat bars
+- Containers: `panel` (window), `card` (section), `container` / `section` (no backdrop), plus `panelTable` / `cardTable` + `.build()`
+- Higher-level components in `TableUi` such as spacers, separators, icon/label rows, label/value rows, close/X buttons, boxed tooltips, edit boxes, text areas, dynamic selects, confirm dialogs, and stat bars
+- Spacing scale `SPACE_XS`-`SPACE_XL` for use in `gap` / `padding` / `spacer`
 
 ```
 let baseFrame = defaultFrame()
@@ -301,6 +309,24 @@ if not layout.checkFits()
 ```
 
 `checkFits()`/`inspect()` are frame-independent, so they also run headless in unit tests (`grill test`) — build cells with `addSized(w, h)` to model declared sizes. At runtime the library additionally logs a warning (gated by `tableWarnings`) for any zero-size cell and for horizontal/vertical overflow.
+
+## AI readiness
+
+This library is built to be driven by LLM coding agents: the goal is that an agent can produce correct, aligned, non-overflowing Warcraft III UI without hand-rolling frame math.
+
+It ships agent instruction files — point your agent at these first:
+
+- [`AGENTS.md`](AGENTS.md) — project map, key behaviours, and the rules for changing UI.
+- [`AI_USAGE.md`](AI_USAGE.md) — a decision tree and cookbook: which helper to use, copy-pasteable recipes, anti-patterns, and a self-check the agent runs before finishing.
+- [`WC3_FRAMEHANDLE_GUIDE.md`](WC3_FRAMEHANDLE_GUIDE.md) — Warcraft III framehandle, focus and desync rules adapted for this library.
+
+What makes it agent-friendly:
+
+- **A real feedback loop.** `layout.checkFits()` / `inspect()` validate a layout (overflow, zero-size cells) *without a running game*, so the agent can verify its own output — at runtime and headless via `grill test`. Runtime `Log.warn`s flag the common mistakes (unsized text, gap+grow overflow, vertical overflow).
+- **Guard rails and sane defaults.** Zero-size/overflow warnings, component minimums, a consistent spacing scale, a container hierarchy, and opt-in safe-area placement keep generated UI inside the lines.
+- **A streamlined, cascade-friendly API** where the boring choice is the correct choice: nest tables and reuse helpers instead of computing frame points.
+
+When working with an agent, tell it to read `AGENTS.md` and `AI_USAGE.md`, then run `grill test` (or call `checkFits()`) after building UI and fix anything the report flags.
 
 ## Dynamic changes
 
