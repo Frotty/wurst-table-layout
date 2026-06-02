@@ -250,6 +250,24 @@ new TableLayout(0.25, 0.35)
 ..applyTo(baseFrame)
 ```
 
+## Validation
+
+Because Warcraft III cannot measure text and the text presets (`p`, `h1`-`h5`) are FIXEDSIZE, a cell with no size measures `0` and collapses — the most common cause of overlapping/overflowing UI. Size every non-grow cell (`setSize`, `prefSize`/`prefWidth`/`prefHeight`, `fixedWidth`/`minWidth`) or make it `growX()`/`growY()`.
+
+You can sanity-check a layout without launching the game:
+
+```
+let layout = new TableLayout(0.24, 0.16, "SetupPanel")
+..row()..add(p("Name")..setSize(0.06, 0.02))..add(textInput("", 0.12).create())..growX()
+
+if not layout.checkFits()
+    let report = layout.inspect()
+    Log.warn(report.summary)   // e.g. "[row 0 cell 0] zero width; [row 1] width overflow by 0.0040; "
+    destroy report
+```
+
+`checkFits()`/`inspect()` are frame-independent, so they also run headless in unit tests (`grill test`) — build cells with `addSized(w, h)` to model declared sizes. At runtime the library additionally logs a warning (gated by `tableWarnings`) for any zero-size cell and for horizontal/vertical overflow.
+
 ## Dynamic changes
 
 There currently is no change detection. If you changed the contained frames and want the table to recognize the change, you have to call `table.layout()` to update the table and its contents.

@@ -1,0 +1,79 @@
+package TableLayoutValidationTest
+import TableLayout
+
+/*
+ * Frame-independent tests for the layout sanity checker (inspect()/checkFits()).
+ * These run headless via `grill test` because addSized() builds cells that carry only a
+ * declared size and no real framehandle, so the pure layout math can be exercised with no game.
+ */
+
+@Test
+function fitsWhenContentWithinBounds()
+    let t = new TableLayout(0.2, 0.1)
+    t.padding = padding(0, 0, 0, 0)
+    t..row()..addSized(0.08, 0.02)..addSized(0.08, 0.02)
+    t.checkFits().assertTrue()
+    destroy t
+
+@Test
+function detectsRowWidthOverflow()
+    let t = new TableLayout(0.2, 0.1)
+    t.padding = padding(0, 0, 0, 0)
+    t..row()..addSized(0.15, 0.02)..addSized(0.15, 0.02)
+    let report = t.inspect()
+    report.ok.assertFalse()
+    report.rowOverflowCount.assertGreaterThanOrEqual(1)
+    // two 0.15 cells = 0.30 in a 0.20 table -> overflow of 0.10
+    report.worstOverflowX.assertEquals(0.10, 0.0001)
+    destroy report
+    destroy t
+
+@Test
+function detectsZeroSizeCell()
+    let t = new TableLayout(0.2, 0.1)
+    t..row()..addSized(0., 0.)
+    let report = t.inspect()
+    report.ok.assertFalse()
+    report.zeroSizeCount.assertGreaterThanOrEqual(1)
+    destroy report
+    destroy t
+
+@Test
+function gapIsReservedInOverflowCheck()
+    // two 0.09 cells = 0.18 fit in 0.20 with no gap, but a 0.03 gap pushes the row to 0.21 -> overflow
+    let t = new TableLayout(0.2, 0.1)
+    t.padding = padding(0, 0, 0, 0)
+    t.gap(0.03, 0.)
+    t..row()..addSized(0.09, 0.02)..addSized(0.09, 0.02)
+    t.checkFits().assertFalse()
+    // legacy gap math ignores the inter-cell gap, so it would (wrongly) report fitting
+    legacyGapMath = true
+    t.checkFits().assertTrue()
+    legacyGapMath = false
+    destroy t
+
+@Test
+function detectsVerticalOverflow()
+    let t = new TableLayout(0.2, 0.05)
+    t.padding = padding(0, 0, 0, 0)
+    t..row()..addSized(0.05, 0.03)
+    t..row()..addSized(0.05, 0.03)
+    t..row()..addSized(0.05, 0.03)
+    // 3 rows * 0.03 = 0.09 > 0.05 table height
+    let report = t.inspect()
+    report.verticalOverflow.assertTrue()
+    destroy report
+    destroy t
+
+@Test
+function growCellNotFlaggedAsZeroWidth()
+    let t = new TableLayout(0.2, 0.05)
+    t.padding = padding(0, 0, 0, 0)
+    t..row()..addSized(0.05, 0.02)
+    // a grow cell with zero declared width must NOT be flagged: it fills the remaining space
+    t..addSized(0., 0.02)..growX()
+    let report = t.inspect()
+    report.zeroSizeCount.assertEquals(0)
+    report.ok.assertTrue()
+    destroy report
+    destroy t
