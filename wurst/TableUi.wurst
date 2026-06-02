@@ -26,10 +26,48 @@ public function panel(real width, real height) returns framehandle
 public function card(real width, real height) returns framehandle
     return decoratedFrame("TableUiCardBackdrop", width, height)
 
+// --- Container hierarchy -----------------------------------------------------
+// Tier 1 panel (window, heavy border) > tier 2 card (section, light box, use sparingly,
+// max one level deep) > tier 3 container/section (NO backdrop, the default for nesting).
+// Do not nest backdrops more than one level; use container()/section() to structure content.
+
+/** An invisible sized container for structural nesting (no backdrop). The default way to group content. */
+public function container(real width, real height) returns framehandle
+    return layoutFrame(defaultFrameParent)..setSize(width, height)
+
+/** A borderless section header: a heading plus a separator, no backdrop. */
+public function section(string title, real width) returns framehandle
+    return section(title, width, 0.022)
+
+public function section(string title, real width, real headerHeight) returns framehandle
+    let totalHeight = headerHeight + SPACE_XS + 0.0015
+    let root = layoutFrame(defaultFrameParent)..setSize(width, totalHeight)
+    let layout = new TableLayout(width, totalHeight, "Section")
+    layout.padding = padding(0, 0, 0, 0)
+    layout.gap(0, SPACE_XS)
+    layout
+    ..row()..add(h4(title)..setSize(width, headerHeight)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
+    ..row()..add(separator(width))
+    layout.applyTo(root)
+    root.disable()
+    return root
+
+/** Creates a panel backdrop and a TableLayout bound to it; finish the chain with .build(). */
+public function panelTable(real width, real height, string name) returns TableLayout
+    return new TableLayout(width, height, name).withRoot(panel(width, height))
+
+/** Creates a card backdrop and a TableLayout bound to it; finish the chain with .build(). */
+public function cardTable(real width, real height, string name) returns TableLayout
+    return new TableLayout(width, height, name).withRoot(card(width, height))
+
 public function spacer(real width, real height) returns framehandle
     return layoutFrame(defaultFrameParent)
         ..setSize(width, height)
         ..disable()
+
+/** A square spacer of the given size (use a SPACE_* token). */
+public function spacer(real size) returns framehandle
+    return spacer(size, size)
 
 public function separator(real width) returns framehandle
     return separator(width, 0.0015)
@@ -43,13 +81,13 @@ public function vSeparator(real height) returns framehandle
 
 public function textButton(string text, real width, real height) returns framehandle
     return btn(text)
-        ..setSize(width, height)
+        ..setSize(max(MIN_BUTTON_WIDTH, width), max(MIN_BUTTON_HEIGHT, height))
 
 public function iconButton(string path, real size) returns framehandle
-    return imgBtn(path, size, size)
+    return iconButton(path, size, size)
 
 public function iconButton(string path, real width, real height) returns framehandle
-    return imgBtn(path, width, height)
+    return imgBtn(path, max(MIN_ICON_SIZE, width), max(MIN_ICON_SIZE, height))
 
 public function closeButton(framehandle target) returns framehandle
     return closeButton(target, 0.018)

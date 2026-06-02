@@ -230,6 +230,52 @@ Safe opt-in layout tools:
 - `prefWidth`, `prefHeight`, `prefSize` for a fallback size used when the frame measures 0 (e.g. text)
 - `valign(Align)`, and per-row `top()` / `middle()` / `bottom()` for vertical alignment within a row
 - `defaultValign(Align)` to set the vertical alignment of every new row
+- `columns()` / `uniformColumns()` for grid alignment (cells line up into columns across rows), with `colspan(n)` for spanning cells. Prefer this over computing per-column offsets by hand. `growX()` is ignored in grid mode — size cells instead.
+
+### Composition: nest by default, columns only for alignment
+
+Nested `TableLayout`s are the default way to build any non-trivial layout — compose small tables inside cells. Only reach for `columns()` when cells in *different rows* must line up into the *same* columns (forms, stat tables, rosters). For everything else, nest.
+
+### Spacing scale
+
+Use the spacing tokens instead of magic numbers — in `gap`, `padding`/`pad` and `spacer`:
+`SPACE_XS` 0.004 · `SPACE_S` 0.008 · `SPACE_M` 0.014 · `SPACE_L` 0.022 · `SPACE_XL` 0.034.
+e.g. `..gap(SPACE_S, SPACE_S)`, `layout.padding = padding(SPACE_M, SPACE_M, SPACE_M, SPACE_M)`, `add(spacer(SPACE_M))`.
+
+### Minimum sizes
+
+`textButton`, `iconButton` and `checkbox` clamp to `MIN_BUTTON_WIDTH` / `MIN_BUTTON_HEIGHT` / `MIN_ICON_SIZE`, so a control can't be created too small to render. Don't hand-size buttons below ~0.022 height.
+
+### Container hierarchy (consistent visual feel)
+
+Pick the lightest container that does the job, and **never nest backdrops more than one level deep**:
+- `panel(w, h)` — the window/dialog surface. One per UI.
+- `card(w, h)` — a visually distinct section inside a panel. Use sparingly; never a card inside a card.
+- `container(w, h)` / `section(title, w)` — **no backdrop**. The default for structural nesting and grouping (`section` is a heading + separator). Box things with these, not `card`.
+
+### Safe placement
+
+Don't `setAbsPoint` a root at arbitrary coordinates — it can land on the command card or resource bar. Use `frame.placeSafe(vec2(x, y), w, h)` (clamps into `SAFE_AREA_MIN`..`SAFE_AREA_MAX` and warns when it moves the frame), or keep panels in the central band x ∈ [0.07, 0.73], y ∈ [0.16, 0.56].
+
+### Flatter setup
+
+- `panelTable(w, h, name)` / `cardTable(w, h, name)` create the backdrop and a bound table in one call; finish the chain with `.build()` (applies the layout and returns the root frame) — no duplicated dimensions, no separate root variable.
+- `label(text, w)` (left-aligned) / `value(text, w)` (right-aligned) — sized text in one call, instead of `p(text)..setSize(w, h)..setTextAlignment(...)`.
+- `gap(all)` sets both axes at once.
+
+```wurst
+import TableLayout
+import TableUi
+
+let panel = panelTable(0.24, 0.12, "Setup")
+..gap(SPACE_S)
+..row()..add(h2("Setup")..setSize(0.12, 0.02))
+..row()..add(label("Name", 0.07))..add(textInput("", 0.12).create())..growX()
+..row()..add(textButton("Start", 0.08, 0.024))
+..build()
+
+panel.placeSafe(vec2(0.5, 0.5), 0.24, 0.12)
+```
 
 If a requested layout needs new behavior, add it behind an explicit method. Existing layouts should render the same after upgrading the dependency.
 

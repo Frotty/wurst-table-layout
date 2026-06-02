@@ -77,3 +77,82 @@ function growCellNotFlaggedAsZeroWidth()
     report.ok.assertTrue()
     destroy report
     destroy t
+
+@Test
+function gridAlignsColumnsToWidestCell()
+    let t = new TableLayout(0.3, 0.2, "Grid")
+    t.padding = padding(0, 0, 0, 0)
+    t..columns()
+    t..row()..addSized(0.05, 0.02)..addSized(0.08, 0.02)
+    t..row()..addSized(0.09, 0.02)..addSized(0.04, 0.02)
+    t.columnCount().assertEquals(2)
+    // column 0 = max(0.05, 0.09) = 0.09 ; column 1 = max(0.08, 0.04) = 0.08
+    t.columnWidthAt(0).assertEquals(0.09, 0.0001)
+    t.columnWidthAt(1).assertEquals(0.08, 0.0001)
+    destroy t
+
+@Test
+function uniformColumnsTakeGlobalMax()
+    let t = new TableLayout(0.3, 0.2, "UniGrid")
+    t.padding = padding(0, 0, 0, 0)
+    t..uniformColumns()
+    t..row()..addSized(0.05, 0.02)..addSized(0.08, 0.02)
+    t..row()..addSized(0.09, 0.02)..addSized(0.04, 0.02)
+    t.columnWidthAt(0).assertEquals(0.09, 0.0001)
+    t.columnWidthAt(1).assertEquals(0.09, 0.0001)
+    destroy t
+
+@Test
+function gridWidthAccountsForGaps()
+    let t = new TableLayout(0.3, 0.2, "GridGap")
+    t.padding = padding(0, 0, 0, 0)
+    t..columns()
+    t.gap(0.01, 0.)
+    t..row()..addSized(0.05, 0.02)..addSized(0.08, 0.02)
+    t.recomputeColumns()
+    // 0.05 + 0.08 + one 0.01 inter-column gap = 0.14
+    t.gridTotalWidth().assertEquals(0.14, 0.0001)
+    t.checkFits().assertTrue()
+    destroy t
+
+@Test
+function colspanSkipsSpannedColumns()
+    let t = new TableLayout(0.3, 0.2, "GridSpan")
+    t.padding = padding(0, 0, 0, 0)
+    t..columns()
+    // a header spanning 2 columns must not size those columns; the data row defines them
+    t..row()..addSized(0.10, 0.02)..colspan(2)
+    t..row()..addSized(0.04, 0.02)..addSized(0.06, 0.02)
+    t.columnCount().assertEquals(2)
+    t.columnWidthAt(0).assertEquals(0.04, 0.0001)
+    t.columnWidthAt(1).assertEquals(0.06, 0.0001)
+    destroy t
+
+@Test
+function gridDetectsOverflow()
+    let t = new TableLayout(0.1, 0.2, "GridOverflow")
+    t.padding = padding(0, 0, 0, 0)
+    t..columns()
+    t..row()..addSized(0.08, 0.02)..addSized(0.08, 0.02)
+    // 0.08 + 0.08 = 0.16 > 0.1 table width
+    t.checkFits().assertFalse()
+    destroy t
+
+@Test
+function safeAreaClampPullsPanelIntoBand()
+    // a panel shoved into the bottom-left HUD is clamped up and right into the safe band
+    let p = vec2(0.0, 0.05).clampToSafeArea(0.2, 0.1)
+    p.x.assertGreaterThanOrEqual(SAFE_AREA_MIN.x - 0.00001)
+    p.y.assertGreaterThanOrEqual(SAFE_AREA_MIN.y + 0.1 - 0.00001)
+
+@Test
+function safeAreaClampRespectsRightAndTopEdges()
+    let p = vec2(0.7, 0.9).clampToSafeArea(0.2, 0.05)
+    (p.x + 0.2).assertLessThanOrEqual(SAFE_AREA_MAX.x + 0.00001)
+    p.y.assertLessThanOrEqual(SAFE_AREA_MAX.y + 0.00001)
+
+@Test
+function safeAreaLeavesGoodPositionUnchanged()
+    let got = vec2(0.2, 0.5).clampToSafeArea(0.2, 0.1)
+    got.x.assertEquals(0.2, 0.00001)
+    got.y.assertEquals(0.5, 0.00001)
