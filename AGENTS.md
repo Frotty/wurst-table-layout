@@ -39,8 +39,19 @@ end)
 ## Important Behaviors
 - Call `row()` before the first `add(...)`. `add` uses the last row.
 - Cell sizes come from the frame size at layout time. Set widths/heights before `applyTo`.
+- Text presets (`p`/`p2`/`p3`/`h1`-`h5`) are FIXEDSIZE and measure `0` until sized. Size every non-grow cell (`setSize`/`prefSize`/`fixedWidth`/`minWidth`) or use `growX`/`growY`, or it collapses and siblings overlap.
+- Validate before shipping: `layout.checkFits()` returns a boolean; `layout.inspect()` returns a detailed `LayoutReport`. Both are frame-independent and run headless in `@Test`/`grill test` (build cells with `addSized(w, h)`). At runtime, `Log.warn`s fire for zero-size cells and horizontal/vertical overflow (gated by `tableWarnings`).
 - `growX()` only affects the most recently added cell.
+- `gap(x, y)` is now reserved correctly in grow distribution, row width, and alignment. Set `legacyGapMath = true` to restore the old (overflowing) behaviour.
+- Vertical alignment within a row: `valign(Align)` per cell, `top()`/`middle()`/`bottom()` per row, `defaultValign(Align)` per table.
+- Column alignment: `columns()` / `uniformColumns()` makes cells line up into columns across rows (opt-in; `growX` ignored in grid mode); `colspan(n)` spans columns. Use it for forms/rosters instead of manual offsets. Otherwise nest tables (the default composition tool).
+- Spacing scale: use `SPACE_XS`/`SPACE_S`/`SPACE_M`/`SPACE_L`/`SPACE_XL` in `gap`/`padding`/`spacer` instead of magic numbers. `gap(all)` and `spacer(size)` take one value.
+- Minimum sizes: `textButton`/`iconButton`/`checkbox` clamp to `MIN_BUTTON_WIDTH`/`MIN_BUTTON_HEIGHT`/`MIN_ICON_SIZE` so controls can't render broken.
+- Container hierarchy: `panel` (window) > `card` (section, sparingly) > `container`/`section` (no backdrop, default nesting). Never nest backdrops more than one level — box with `container`/`section`, not `card`.
+- Safe placement: use `frame.placeSafe(vec2, w, h)` (clamps into `SAFE_AREA_MIN`..`SAFE_AREA_MAX`) instead of raw `setAbsPoint`, to avoid the melee HUD.
+- Flatter setup: `panelTable`/`cardTable` + `.build()` (no duplicated dimensions); `label(text,w)`/`value(text,w)` for sized text.
 - If content size changes later, call `layout()` again to recompute positions.
+- Free transient layouts with `destroy layout` (frees Row/Cell wrappers and lists; does not destroy the shared framehandles).
 - `defaultFrameParent` controls the parent for new frames created by helpers.
 
 ## Agent Guidance

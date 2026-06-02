@@ -230,6 +230,40 @@ new TableLayout(0.24, 0.16, "SetupPanel")
 
 Layout additions such as `gap`, `growY`, `minWidth`, `minHeight`, `fixedWidth`, `fixedHeight`, and `fixedSize` are opt-in and do not alter existing layouts unless called.
 
+## Columns (grid mode)
+
+By default a table has no columns — each row is laid out independently, so cells in different rows do not line up. Call `columns()` to opt into grid alignment: every cell lines up into a column sized to the widest cell in that column index, which is what you want for forms, rosters and stat tables. `uniformColumns()` makes every column take the single widest column width, and `colspan(n)` lets a cell (e.g. a header) span several columns.
+
+```
+let p = panel(0.2, 0.13)
+new TableLayout(0.2, 0.13, "Roster")
+..columns()
+..gap(0.006, 0.004)
+..row()..add(h4("Roster")..setSize(0.12, 0.016))..colspan(2)
+..row()..add(iconLabel(Icons.bTNAcolyte, "Acolyte", 0.11))..add(p("x12")..setSize(0.03, 0.014))
+..row()..add(iconLabel(Icons.bTNAbomination, "Abomination", 0.11))..add(p("x3")..setSize(0.03, 0.014))
+..applyTo(p)
+```
+
+Grid mode is opt-in and back-compatible (tables render exactly as before unless you call `columns()`). `growX()` is ignored in grid mode — size cells, and the columns do the aligning. A `colspan` cell does not size the columns it spans, so make sure other rows define those columns.
+
+## Spacing, containers and safe placement
+
+Use the spacing scale — `SPACE_XS`, `SPACE_S`, `SPACE_M`, `SPACE_L`, `SPACE_XL` — in `gap`, `padding` and `spacer` instead of magic numbers. Buttons, icon buttons and checkboxes clamp to sane minimums (`MIN_BUTTON_WIDTH`/`MIN_BUTTON_HEIGHT`/`MIN_ICON_SIZE`) so they cannot be created too small to render.
+
+Pick the lightest container and never nest backdrops more than one level: a `panel` (window) holds `card`s (distinct sections, used sparingly), and everything else nests in `container`/`section` (no border).
+
+Position roots with `placeSafe` to keep them inside the central band that is clear of the melee HUD (command card, resource bar, hero bar, minimap) rather than raw `setAbsPoint`. `panelTable`/`cardTable` + `.build()` create a backdrop and its table in one chain, and `label`/`value` size text in one call:
+
+```
+let p = panelTable(0.24, 0.12, "Setup")
+..gap(SPACE_S)
+..row()..add(h2("Setup")..setSize(0.12, 0.02))
+..row()..add(label("Name", 0.07))..add(textInput("", 0.12).create())..growX()
+..build()
+p.placeSafe(vec2(0.5, 0.5), 0.24, 0.12)
+```
+
 ## Nested Tables
 
 A table can be applied to any framehandle and thus easily inserted into another table. Ensure that the parent frame already exists when creating the child frame.
@@ -249,6 +283,24 @@ new TableLayout(0.25, 0.35)
 ..add(nestedTable2.createContainer(baseFrame))
 ..applyTo(baseFrame)
 ```
+
+## Validation
+
+Because Warcraft III cannot measure text and the text presets (`p`, `h1`-`h5`) are FIXEDSIZE, a cell with no size measures `0` and collapses — the most common cause of overlapping/overflowing UI. Size every non-grow cell (`setSize`, `prefSize`/`prefWidth`/`prefHeight`, `fixedWidth`/`minWidth`) or make it `growX()`/`growY()`.
+
+You can sanity-check a layout without launching the game:
+
+```
+let layout = new TableLayout(0.24, 0.16, "SetupPanel")
+..row()..add(p("Name")..setSize(0.06, 0.02))..add(textInput("", 0.12).create())..growX()
+
+if not layout.checkFits()
+    let report = layout.inspect()
+    Log.warn(report.summary)   // e.g. "[row 0 cell 0] zero width; [row 1] width overflow by 0.0040; "
+    destroy report
+```
+
+`checkFits()`/`inspect()` are frame-independent, so they also run headless in unit tests (`grill test`) — build cells with `addSized(w, h)` to model declared sizes. At runtime the library additionally logs a warning (gated by `tableWarnings`) for any zero-size cell and for horizontal/vertical overflow.
 
 ## Dynamic changes
 

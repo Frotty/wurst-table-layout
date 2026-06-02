@@ -1,2 +1,8 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# WC3 frame-definition files: force CRLF in the working tree on every platform.
+# The TOC ending is fragile - BlzLoadTOCFile requires a trailing empty line - so the
+# line ending must be deterministic regardless of who checks the repo out.
+*.toc text eol=crlf
+*.fdf text eol=crlf

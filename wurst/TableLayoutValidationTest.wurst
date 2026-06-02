@@ -1,0 +1,158 @@
+package TableLayoutValidationTest
+import TableLayout
+
+/*
+ * Frame-independent tests for the layout sanity checker (inspect()/checkFits()).
+ * These run headless via `grill test` because addSized() builds cells that carry only a
+ * declared size and no real framehandle, so the pure layout math can be exercised with no game.
+ */
+
+@Test
+function fitsWhenContentWithinBounds()
+    let t = new TableLayout(0.2, 0.1)
+    t.padding = padding(0, 0, 0, 0)
+    t..row()..addSized(0.08, 0.02)..addSized(0.08, 0.02)
+    t.checkFits().assertTrue()
+    destroy t
+
+@Test
+function detectsRowWidthOverflow()
+    let t = new TableLayout(0.2, 0.1)
+    t.padding = padding(0, 0, 0, 0)
+    t..row()..addSized(0.15, 0.02)..addSized(0.15, 0.02)
+    let report = t.inspect()
+    report.ok.assertFalse()
+    report.rowOverflowCount.assertGreaterThanOrEqual(1)
+    // two 0.15 cells = 0.30 in a 0.20 table -> overflow of 0.10
+    report.worstOverflowX.assertEquals(0.10, 0.0001)
+    destroy report
+    destroy t
+
+@Test
+function detectsZeroSizeCell()
+    let t = new TableLayout(0.2, 0.1)
+    t..row()..addSized(0., 0.)
+    let report = t.inspect()
+    report.ok.assertFalse()
+    report.zeroSizeCount.assertGreaterThanOrEqual(1)
+    destroy report
+    destroy t
+
+@Test
+function gapIsReservedInOverflowCheck()
+    // two 0.09 cells = 0.18 fit in 0.20 with no gap, but a 0.03 gap pushes the row to 0.21 -> overflow
+    let t = new TableLayout(0.2, 0.1)
+    t.padding = padding(0, 0, 0, 0)
+    t.gap(0.03, 0.)
+    t..row()..addSized(0.09, 0.02)..addSized(0.09, 0.02)
+    t.checkFits().assertFalse()
+    // legacy gap math ignores the inter-cell gap, so it would (wrongly) report fitting
+    legacyGapMath = true
+    t.checkFits().assertTrue()
+    legacyGapMath = false
+    destroy t
+
+@Test
+function detectsVerticalOverflow()
+    let t = new TableLayout(0.2, 0.05)
+    t.padding = padding(0, 0, 0, 0)
+    t..row()..addSized(0.05, 0.03)
+    t..row()..addSized(0.05, 0.03)
+    t..row()..addSized(0.05, 0.03)
+    // 3 rows * 0.03 = 0.09 > 0.05 table height
+    let report = t.inspect()
+    report.verticalOverflow.assertTrue()
+    destroy report
+    destroy t
+
+@Test
+function growCellNotFlaggedAsZeroWidth()
+    let t = new TableLayout(0.2, 0.05)
+    t.padding = padding(0, 0, 0, 0)
+    t..row()..addSized(0.05, 0.02)
+    // a grow cell with zero declared width must NOT be flagged: it fills the remaining space
+    t..addSized(0., 0.02)..growX()
+    let report = t.inspect()
+    report.zeroSizeCount.assertEquals(0)
+    report.ok.assertTrue()
+    destroy report
+    destroy t
+
+@Test
+function gridAlignsColumnsToWidestCell()
+    let t = new TableLayout(0.3, 0.2, "Grid")
+    t.padding = padding(0, 0, 0, 0)
+    t..columns()
+    t..row()..addSized(0.05, 0.02)..addSized(0.08, 0.02)
+    t..row()..addSized(0.09, 0.02)..addSized(0.04, 0.02)
+    t.columnCount().assertEquals(2)
+    // column 0 = max(0.05, 0.09) = 0.09 ; column 1 = max(0.08, 0.04) = 0.08
+    t.columnWidthAt(0).assertEquals(0.09, 0.0001)
+    t.columnWidthAt(1).assertEquals(0.08, 0.0001)
+    destroy t
+
+@Test
+function uniformColumnsTakeGlobalMax()
+    let t = new TableLayout(0.3, 0.2, "UniGrid")
+    t.padding = padding(0, 0, 0, 0)
+    t..uniformColumns()
+    t..row()..addSized(0.05, 0.02)..addSized(0.08, 0.02)
+    t..row()..addSized(0.09, 0.02)..addSized(0.04, 0.02)
+    t.columnWidthAt(0).assertEquals(0.09, 0.0001)
+    t.columnWidthAt(1).assertEquals(0.09, 0.0001)
+    destroy t
+
+@Test
+function gridWidthAccountsForGaps()
+    let t = new TableLayout(0.3, 0.2, "GridGap")
+    t.padding = padding(0, 0, 0, 0)
+    t..columns()
+    t.gap(0.01, 0.)
+    t..row()..addSized(0.05, 0.02)..addSized(0.08, 0.02)
+    t.recomputeColumns()
+    // 0.05 + 0.08 + one 0.01 inter-column gap = 0.14
+    t.gridTotalWidth().assertEquals(0.14, 0.0001)
+    t.checkFits().assertTrue()
+    destroy t
+
+@Test
+function colspanSkipsSpannedColumns()
+    let t = new TableLayout(0.3, 0.2, "GridSpan")
+    t.padding = padding(0, 0, 0, 0)
+    t..columns()
+    // a header spanning 2 columns must not size those columns; the data row defines them
+    t..row()..addSized(0.10, 0.02)..colspan(2)
+    t..row()..addSized(0.04, 0.02)..addSized(0.06, 0.02)
+    t.columnCount().assertEquals(2)
+    t.columnWidthAt(0).assertEquals(0.04, 0.0001)
+    t.columnWidthAt(1).assertEquals(0.06, 0.0001)
+    destroy t
+
+@Test
+function gridDetectsOverflow()
+    let t = new TableLayout(0.1, 0.2, "GridOverflow")
+    t.padding = padding(0, 0, 0, 0)
+    t..columns()
+    t..row()..addSized(0.08, 0.02)..addSized(0.08, 0.02)
+    // 0.08 + 0.08 = 0.16 > 0.1 table width
+    t.checkFits().assertFalse()
+    destroy t
+
+@Test
+function safeAreaClampPullsPanelIntoBand()
+    // a panel shoved into the bottom-left HUD is clamped up and right into the safe band
+    let p = vec2(0.0, 0.05).clampToSafeArea(0.2, 0.1)
+    p.x.assertGreaterThanOrEqual(SAFE_AREA_MIN.x - 0.00001)
+    p.y.assertGreaterThanOrEqual(SAFE_AREA_MIN.y + 0.1 - 0.00001)
+
+@Test
+function safeAreaClampRespectsRightAndTopEdges()
+    let p = vec2(0.7, 0.9).clampToSafeArea(0.2, 0.05)
+    (p.x + 0.2).assertLessThanOrEqual(SAFE_AREA_MAX.x + 0.00001)
+    p.y.assertLessThanOrEqual(SAFE_AREA_MAX.y + 0.00001)
+
+@Test
+function safeAreaLeavesGoodPositionUnchanged()
+    let got = vec2(0.2, 0.5).clampToSafeArea(0.2, 0.1)
+    got.x.assertEquals(0.2, 0.00001)
+    got.y.assertEquals(0.5, 0.00001)

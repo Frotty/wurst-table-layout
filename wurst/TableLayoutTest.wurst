@@ -146,3 +146,15 @@ init
         ..add(componentColumn)
         ..add(legacyColumn)
         ..applyTo(uiPanel)
+
+        // Grid mode demo: columns() auto-aligns cells into columns across rows (no manual offsets).
+        let gridPanel = panel(0.2, 0.13)
+        gridPanel.clearAndSetAbsPoint(FRAMEPOINT_TOPLEFT, vec2(0.5, 0.565))
+        new TableLayout(0.2, 0.13, "GridDemo")
+        ..columns()
+        ..gap(0.006, 0.004)
+        ..row()..add(h4("Roster")..setSize(0.12, 0.016))..colspan(2)
+        ..row()..add(iconLabel(Icons.bTNAcolyte, "Acolyte", 0.11))..add(p("x12")..setSize(0.03, 0.014))
+        ..row()..add(iconLabel(Icons.bTNAbomination, "Abomination", 0.11))..add(p("x3")..setSize(0.03, 0.014))
+        ..row()..add(iconLabel(Icons.bTNHumanBuild, "Peasant", 0.11))..add(p("x8")..setSize(0.03, 0.014))
+        ..applyTo(gridPanel)

@@ -20,6 +20,33 @@ public var defaultFrameParent = GAME_UI
 
 constant DEFAULT_PADDING = 0.0175
 public var tableWarnings = true
+/** Set true to restore the legacy gap math, which does not reserve inter-cell gaps in the
+    grow distribution / row width / alignment, causing gapped grow/center/end rows to overflow
+    by (cellCount-1)*gapX. Default false applies the corrected, gap-aware math. */
+public var legacyGapMath = false
+
+// --- Spacing scale -----------------------------------------------------------
+// A small, consistent set of free-space tokens, sized to sit in line with the text
+// presets. Use these for gap(), padding and spacer() instead of ad-hoc magic numbers.
+public constant SPACE_XS = 0.004
+public constant SPACE_S  = 0.008
+public constant SPACE_M  = 0.014
+public constant SPACE_L  = 0.022
+public constant SPACE_XL = 0.034
+
+// --- Sane component minimums -------------------------------------------------
+// Helpers clamp to these so a control can never be created too small to render
+// correctly. Tunable per map.
+public var MIN_BUTTON_WIDTH  = 0.04
+public var MIN_BUTTON_HEIGHT = 0.022
+public var MIN_ICON_SIZE     = 0.012
+
+// --- Safe area ---------------------------------------------------------------
+// The central band of the 4:3 UI box that stays clear of the default melee HUD
+// (bottom console, resource bar, hero bar, minimap). Exact occupancy varies with
+// multiboard / leaderboard / aspect ratio, so this is a sensible default, not a guarantee.
+public constant SAFE_AREA_MIN = vec2(0.07, 0.16)   // bottom-left of the safe band
+public constant SAFE_AREA_MAX = vec2(0.73, 0.56)   // top-right of the safe band
 
 public enum Align
     START
@@ -38,12 +65,17 @@ public function padding.getHeight() returns real
 public class TableLayout
     private Cell lastCell = null
     private constant rows = new LinkedList<Row>()
-    
+    private constant columnWidths = new LinkedList<real>()
+
     var padding = padding(DEFAULT_PADDING, DEFAULT_PADDING, DEFAULT_PADDING, DEFAULT_PADDING)
 
     framehandle baseFrame = null
+    private framehandle ownedRoot = null
 
     var defaultHalign = Align.UNSET
+    var defaultValign = Align.UNSET
+    var gridMode = false
+    var uniformColumns = false
     var gapX = 0.
     var gapY = 0.
 
@@ -68,6 +100,8 @@ public class TableLayout
         lastCell = null
         if defaultHalign != UNSET
             row.halign = defaultHalign
+        if defaultValign != UNSET
+            row.valign = defaultValign
 
         return row
 
@@ -130,6 +164,96 @@ public class TableLayout
             cell.fixedWidth = width
             cell.fixedHeight = height
 
+    /** Declares a preferred width used when the frame measures 0 (e.g. unsized text presets).
+        Unlike fixedWidth it is a fallback, not an override, so it only applies when the frame has no size.
+        It is also the size used by the frame-independent inspect()/checkFits() validation. */
+    function prefWidth(real width)
+        let cell = getLastCellOrWarn("prefWidth")
+        if cell != null
+            cell.prefWidth = width
+
+    /** Declares a preferred height used when the frame measures 0 (e.g. unsized text presets). */
+    function prefHeight(real height)
+        let cell = getLastCellOrWarn("prefHeight")
+        if cell != null
+            cell.prefHeight = height
+
+    /** Declares a preferred width and height used when the frame measures 0. */
+    function prefSize(real width, real height)
+        let cell = getLastCellOrWarn("prefSize")
+        if cell != null
+            cell.prefWidth = width
+            cell.prefHeight = height
+
+    /** Opt-in column alignment: cells line up into columns sized to the widest cell per column index,
+        so grids/forms align without manual offsets. growX is ignored in grid mode (size cells instead). */
+    function columns() returns TableLayout
+        gridMode = true
+        return this
+
+    /** Like columns(), but every column takes the single global maximum column width. */
+    function uniformColumns() returns TableLayout
+        gridMode = true
+        uniformColumns = true
+        return this
+
+    /** Makes the latest cell span the given number of columns (grid mode only).
+        A spanning cell does not size its spanned columns; ensure other rows define those columns. */
+    function colspan(int span)
+        let cell = getLastCellOrWarn("colspan")
+        if cell != null
+            cell.colspan = max(1, span)
+
+    /** Recomputes per-column widths from the current declared cell sizes. Frame-independent. */
+    function recomputeColumns()
+        columnWidths.clear()
+        for row in rows
+            var col = 0
+            for cell in row.cells
+                let w = cell.declaredWidth() + cell.padding.getWidth()
+                if cell.colspan <= 1
+                    while columnWidths.size() <= col
+                        columnWidths.add(0.)
+                    if w > columnWidths.get(col)
+                        columnWidths.set(col, w)
+                    col++
+                else
+                    while columnWidths.size() < col + cell.colspan
+                        columnWidths.add(0.)
+                    col += cell.colspan
+        if uniformColumns and not columnWidths.isEmpty()
+            var mx = 0.
+            for w in columnWidths
+                if w > mx
+                    mx = w
+            for i = 0 to columnWidths.size() - 1
+                columnWidths.set(i, mx)
+
+    /** Total grid width: the sum of column widths plus the inter-column gaps. */
+    function gridTotalWidth() returns real
+        var total = 0.
+        for w in columnWidths
+            total += w
+        return total + max(0, columnWidths.size() - 1).toReal() * gapX
+
+    /** Width of the slot spanning [startCol, startCol + span) columns, including the spanned gaps. */
+    function columnSlotWidth(int startCol, int span) returns real
+        var total = 0.
+        for i = startCol to startCol + span - 1
+            if i >= 0 and i < columnWidths.size()
+                total += columnWidths.get(i)
+        return total + max(0, span - 1).toReal() * gapX
+
+    /** Number of columns; recomputed from the current cells (grid mode). */
+    function columnCount() returns int
+        recomputeColumns()
+        return columnWidths.size()
+
+    /** Width of column i; recomputed from the current cells (grid mode). */
+    function columnWidthAt(int i) returns real
+        recomputeColumns()
+        return i >= 0 and i < columnWidths.size() ? columnWidths.get(i) : 0.
+
     function padTop(real top)
         let cell = getLastCellOrWarn("padTop")
         if cell != null
@@ -159,6 +283,11 @@ public class TableLayout
         gapX = x
         gapY = y
 
+    /** Sets the same gap on both axes (use a SPACE_* token). */
+    function gap(real both)
+        gapX = both
+        gapY = both
+
     /** Applies this layout to a newly created default frame with backdrop */
     function createFrame() returns framehandle
         let fhandle = defaultFrame()
@@ -182,6 +311,20 @@ public class TableLayout
         baseFrame..setWidth(width)..setHeight(height)
         layout()
 
+    /** Binds a root frame so build() can apply to it. Used by panelTable()/cardTable(). Returns this. */
+    function withRoot(framehandle root) returns thistype
+        this.ownedRoot = root
+        return this
+
+    /** Applies this layout to its owned root (from panelTable/cardTable) and returns that root frame. */
+    function build() returns framehandle
+        if ownedRoot == null
+            if tableWarnings
+                Log.warn("TableLayout.build() on " + name + " has no owned root; use applyTo(frame), or create it via panelTable()/cardTable().")
+            return null
+        applyTo(ownedRoot)
+        return ownedRoot
+
     function layout()
         if baseFrame == null
             if tableWarnings
@@ -204,6 +347,12 @@ public class TableLayout
                 growRows++
             count++
 
+        if gridMode
+            recomputeColumns()
+            let gridWidth = gridTotalWidth()
+            for row in rows
+                row.width = gridWidth
+
         let rowGapTotal = max(0, count - 1).toReal() * gapY
         let remainingHeight = height - padding.getHeight() - contentHeight - rowGapTotal
         if growRows > 0 and remainingHeight > 0.
@@ -211,6 +360,9 @@ public class TableLayout
             for row in rows
                 if row.hasGrowY()
                     row.height += growHeight
+
+        if tableWarnings and remainingHeight < 0.
+            Log.warn("Table " + name + " vertical overflow: content height " + (contentHeight + rowGapTotal).toString() + " exceeds available height " + (height - padding.getHeight()).toString())
 
         count = 0
         for row in rows
@@ -254,22 +406,120 @@ public class TableLayout
         if not rows.isEmpty()
             rows.peek().halign = Align.END
 
+    /** Top (vertical START) alignment of the latest row */
+    function top()
+        if not rows.isEmpty()
+            rows.peek().valign = Align.START
+
+    /** Vertical CENTER alignment of the latest row */
+    function middle()
+        if not rows.isEmpty()
+            rows.peek().valign = Align.CENTER
+
+    /** Bottom (vertical END) alignment of the latest row */
+    function bottom()
+        if not rows.isEmpty()
+            rows.peek().valign = Align.END
+
+    /** Vertical alignment of the latest cell, overriding the row's valign */
+    function valign(Align align)
+        let cell = getLastCellOrWarn("valign")
+        if cell != null
+            cell.valign = align
+
+    /** Default vertical alignment applied to every new row (UNSET keeps the per-row default) */
+    function defaultValign(Align align)
+        defaultValign = align
+
+
+    /** Adds a frame-independent cell with a declared size, for inspect()/checkFits() and tests.
+        Builds a row first if none exists, mirroring add(). */
+    function addSized(real width, real height) returns Cell
+        if rows.isEmpty()
+            row()
+        lastCell = rows.peek().addSized(width, height)
+        return lastCell
+
+    /** Runs the layout math WITHOUT touching any frame and reports overflow / zero-size problems.
+        Safe before applyTo and in @Test / @compiletime (uses declared/preferred/min sizes).
+        The caller owns the returned report and must destroy it (checkFits/validateAndWarn do this). */
+    function inspect() returns LayoutReport
+        let report = new LayoutReport()
+        let avail = max(0., width - padding.getWidth())
+        var contentHeight = 0.
+        var rowIndex = 0
+        for row in rows
+            var fixedPortion = 0.
+            var rowHeight = 0.
+            var cellIndex = 0
+            let gapBudget = legacyGapMath ? 0. : max(0, row.cells.size() - 1).toReal() * gapX
+            for cell in row.cells
+                let cw = cell.declaredWidth()
+                let ch = cell.declaredHeight()
+                if cw <= 0. and not cell.growX
+                    report.reportZeroSize(rowIndex, cellIndex, true)
+                if ch <= 0. and not cell.growY
+                    report.reportZeroSize(rowIndex, cellIndex, false)
+                if cell.growX and not gridMode
+                    fixedPortion += cell.padding.getWidth()
+                else
+                    fixedPortion += cw + cell.padding.getWidth()
+                rowHeight = max(rowHeight, ch + cell.padding.getHeight())
+                cellIndex++
+            fixedPortion += gapBudget
+            if not gridMode and fixedPortion > avail + 0.0001
+                report.reportRowOverflow(rowIndex, fixedPortion - avail)
+            contentHeight += rowHeight
+            rowIndex++
+        if gridMode
+            recomputeColumns()
+            let gridWidth = gridTotalWidth()
+            if gridWidth > avail + 0.0001
+                report.reportRowOverflow(-1, gridWidth - avail)
+        contentHeight += max(0, rows.size() - 1).toReal() * gapY
+        let availHeight = height - padding.getHeight()
+        if contentHeight > availHeight + 0.0001
+            report.reportVerticalOverflow(contentHeight - availHeight)
+        return report
+
+    /** True when inspect() finds no overflow or zero-size problems. Leak-free; ideal for assertions. */
+    function checkFits() returns boolean
+        let report = inspect()
+        let ok = report.ok
+        destroy report
+        return ok
+
+    /** Runtime helper: logs any inspect() problems (gated by tableWarnings) without aborting layout. */
+    function validateAndWarn()
+        let report = inspect()
+        if not report.ok and tableWarnings
+            Log.warn("TableLayout " + name + " has layout issues: " + report.summary)
+        destroy report
 
     /** Removes a row and invalidates the layout */
     function remove(Row row)
         remove(row, false)
 
-    /** Removes a row and invalidates the layout */
+    /** Removes a row and invalidates the layout.
+        With destroyFrames the contained framehandles are destroyed (unsafe in MP; prefer hide/reuse).
+        The Row and its Cell wrappers are always freed via ondestroy, so removal does not leak. */
     function remove(Row row, boolean destroyFrames)
         this.rows.remove(row)
         if row.contains(lastCell)
             lastCell = null
         if destroyFrames
             row.cells.forEach(cell -> cell.frame.destroyUnsafe())
-            row.cells.clear()
-            
+        destroy row
         if baseFrame != null
             layout()
+
+    // Frees the layout and all of its Row/Cell wrappers and lists. Does NOT destroy the contained
+    // framehandles (they are shared and MP-sensitive); hide them first if needed.
+    ondestroy
+        for row in rows
+            destroy row
+        destroy rows
+        destroy columnWidths
 
 
 
@@ -292,6 +542,12 @@ public class Row
             return null
 
         let cell = new Cell(frame)
+        cells.add(cell)
+        return cell
+
+    /** Adds a frame-independent cell carrying only a declared size (for validation / unit tests). */
+    function addSized(real prefWidth, real prefHeight) returns Cell
+        let cell = new Cell(prefWidth, prefHeight)
         cells.add(cell)
         return cell
 
@@ -318,20 +574,27 @@ public class Row
         var otherCellWidths = 0.
         for cell in cells
             cell.invalidate()
-            if cell.growX
+            if tableWarnings and not cell.warnedEmpty and cell.frame != null and ((not cell.growX and cell.fixedWidth < 0. and cell.width <= 0.) or (not cell.growY and cell.fixedHeight < 0. and cell.height <= 0.))
+                cell.warnedEmpty = true
+                Log.warn("TableLayout " + parent.name + ": a cell has 0 measured size. Text presets (p/p2/p3/h1-h5) are FIXEDSIZE and report 0 until sized - set a size via prefSize/setSize/fixedWidth/minWidth, or use growX/growY.")
+            // A growX cell that also has a fixedWidth is resolved to that fixed width, so it must be
+            // treated as a fixed (non-distributed) cell here, otherwise sibling grow cells are mis-sized (#4).
+            // grow is also ignored in grid mode, where columns drive widths.
+            if cell.growX and cell.fixedWidth < 0. and not parent.gridMode
                 growCells++
                 otherCellWidths += cell.padding.getWidth()
             else
                 otherCellWidths += cell.width + cell.padding.getWidth()
 
+        let gapBudget = legacyGapMath ? 0. : max(0, cells.size() - 1).toReal() * parent.gapX
         if growCells > 0
-            growVal = (availableSpace - otherCellWidths) / growCells
+            growVal = (availableSpace - otherCellWidths - gapBudget) / growCells
             if growVal < 0.
                 growVal = 0.
             width = availableSpace
 
         for cell in cells
-            if cell.growX
+            if cell.growX and cell.fixedWidth < 0. and cell.frame != null and not parent.gridMode
                 cell.frame.setWidth(growVal)
 
             cell.invalidate()
@@ -341,19 +604,46 @@ public class Row
             if growCells == 0
                 width += cell.width + cell.padding.getWidth()
 
+        // Reserve the inter-cell gaps in row width too, so the overflow warning and CENTER/END
+        // alignment (which derive freeSpace from row.width) account for gaps (#2, #3).
+        if growCells == 0
+            width += gapBudget
+
 
                 
 
     function layout(framehandle baseFrame, vec2 offset)
         var celloffset = offset
+        var col = 0
         for cell in cells
             celloffset.y = offset.y
             celloffset += vec2(cell.padding.left, -cell.padding.top)
             if cell.growY
                 cell.frame.setHeight(max(0., height - cell.padding.getHeight()))
                 cell.invalidate()
+            else
+                // Vertical alignment within a taller row (y decreases downward, so push DOWN = subtract).
+                let slack = height - (cell.height + cell.padding.getHeight())
+                if slack > 0.
+                    let eff = cell.valign != Align.UNSET ? cell.valign : valign
+                    if eff == Align.CENTER
+                        celloffset.y = celloffset.y - (slack / 2.)
+                    else if eff == Align.END
+                        celloffset.y = celloffset.y - slack
             cell.layout(baseFrame, celloffset)
-            celloffset += vec2(cell.width + cell.padding.right + parent.gapX, 0)
+            if parent.gridMode
+                // Advance by the column slot so cells line up into columns (left-aligned within the slot).
+                let slot = parent.columnSlotWidth(col, cell.colspan)
+                celloffset += vec2(slot - cell.padding.left + parent.gapX, 0)
+                col += cell.colspan
+            else
+                celloffset += vec2(cell.width + cell.padding.right + parent.gapX, 0)
+
+    // Frees this row and its Cell wrappers. Does not destroy the shared framehandles.
+    ondestroy
+        for cell in cells
+            destroy cell
+        destroy cells
 
 
 public class Cell
@@ -368,15 +658,56 @@ public class Cell
     var minHeight = 0.
     var fixedWidth = -1.
     var fixedHeight = -1.
+    var prefWidth = -1.
+    var prefHeight = -1.
+    var warnedEmpty = false
+    var valign = Align.UNSET
+    var colspan = 1
 
     var padding = padding(0, 0, 0, 0)
 
     construct(framehandle frame)
         this.frame = frame
 
+    /** Frame-independent cell for inspect()/checkFits() validation and unit tests (no real frame). */
+    construct(real prefWidth, real prefHeight)
+        this.frame = null
+        this.prefWidth = prefWidth
+        this.prefHeight = prefHeight
+
+    /** The width used by validation; never touches a frame when one is absent. */
+    function declaredWidth() returns real
+        var w = fixedWidth >= 0. ? fixedWidth : (prefWidth >= 0. ? prefWidth : (frame != null ? frame.getWidth() : 0.))
+        if w < minWidth
+            w = minWidth
+        return w
+
+    /** The height used by validation; never touches a frame when one is absent. */
+    function declaredHeight() returns real
+        var h = fixedHeight >= 0. ? fixedHeight : (prefHeight >= 0. ? prefHeight : (frame != null ? frame.getHeight() : 0.))
+        if h < minHeight
+            h = minHeight
+        return h
+
     function invalidate()
+        if frame == null
+            width = fixedWidth >= 0. ? fixedWidth : max(prefWidth, 0.)
+            height = fixedHeight >= 0. ? fixedHeight : max(prefHeight, 0.)
+            if width < minWidth
+                width = minWidth
+            if height < minHeight
+                height = minHeight
+            return
+
         width = frame.getWidth()
         height = frame.getHeight()
+        // Fall back to a declared preferred size when the frame measures 0 (e.g. unsized text).
+        if width <= 0. and prefWidth >= 0.
+            width = prefWidth
+            frame.setWidth(width)
+        if height <= 0. and prefHeight >= 0.
+            height = prefHeight
+            frame.setHeight(height)
         if fixedWidth >= 0.
             width = fixedWidth
             frame.setWidth(width)
@@ -392,9 +723,37 @@ public class Cell
             frame.setHeight(height)
 
     function layout(framehandle baseFrame, vec2 offset)
+        if frame == null
+            return
         frame.setParent(baseFrame)
         frame.setPoint(FRAMEPOINT_TOPLEFT, baseFrame, FRAMEPOINT_TOPLEFT, offset)
 
+
+/** Structured result of TableLayout.inspect(): a frame-independent layout sanity check. */
+public class LayoutReport
+    var ok = true
+    var zeroSizeCount = 0
+    var rowOverflowCount = 0
+    var verticalOverflow = false
+    var worstOverflowX = 0.
+    var summary = ""
+
+    function reportZeroSize(int rowIndex, int cellIndex, boolean widthAxis)
+        ok = false
+        zeroSizeCount++
+        summary += "[row " + rowIndex.toString() + " cell " + cellIndex.toString() + "] zero " + (widthAxis ? "width" : "height") + "; "
+
+    function reportRowOverflow(int rowIndex, real amount)
+        ok = false
+        rowOverflowCount++
+        if amount > worstOverflowX
+            worstOverflowX = amount
+        summary += "[row " + rowIndex.toString() + "] width overflow by " + amount.toString() + "; "
+
+    function reportVerticalOverflow(real amount)
+        ok = false
+        verticalOverflow = true
+        summary += "content height overflow by " + amount.toString() + "; "
 
 public function layoutFrame(framehandle parent) returns framehandle
     return createFrame("FRAME", "multiboardFrame", parent, null, 0)
@@ -404,6 +763,24 @@ public function defaultFrame() returns framehandle
         ..setAbsPoint(FRAMEPOINT_TOP, vec2(0.4, 0.515))
     createFrame("HeroPickMenuBackdrop", baseFrame, 0, 0)..setAllPoints(baseFrame)
     return baseFrame
+
+/** Treats this as a desired TOPLEFT and clamps it so a width x height panel stays inside the
+    safe area (clear of the melee HUD and the 4:3 edges). */
+public function vec2.clampToSafeArea(real width, real height) returns vec2
+    let minX = SAFE_AREA_MIN.x
+    let maxX = max(minX, SAFE_AREA_MAX.x - width)
+    let minY = SAFE_AREA_MIN.y + height
+    let maxY = max(minY, SAFE_AREA_MAX.y)
+    return vec2(max(minX, min(maxX, this.x)), max(minY, min(maxY, this.y)))
+
+/** Places a frame's TOPLEFT inside the safe area, warning (tableWarnings) if it had to move it
+    out of the melee HUD / off the 4:3 box. */
+public function framehandle.placeSafe(vec2 desiredTopLeft, real width, real height)
+    let safe = desiredTopLeft.clampToSafeArea(width, height)
+    if tableWarnings and (safe.x != desiredTopLeft.x or safe.y != desiredTopLeft.y)
+        Log.warn("placeSafe: requested (" + desiredTopLeft.x.toString() + ", " + desiredTopLeft.y.toString()
+            + ") overlaps the melee HUD / 4:3 edge; clamped to (" + safe.x.toString() + ", " + safe.y.toString() + ").")
+    this.clearAndSetAbsPoint(FRAMEPOINT_TOPLEFT, safe)
 
 public function p(string text) returns framehandle
     return textframe("p", text)
@@ -428,6 +805,20 @@ public function h4(string text) returns framehandle
 
 public function h5(string text) returns framehandle
     return textframe("h5", text)
+
+/** Left-aligned paragraph text, sized in one call (flattens p()..setSize()..setTextAlignment()). */
+public function label(string text, real width) returns framehandle
+    return label(text, width, SPACE_M)
+
+public function label(string text, real width, real height) returns framehandle
+    return p(text)..setSize(width, height)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT)
+
+/** Right-aligned paragraph text, sized in one call (handy for the value column of a row). */
+public function value(string text, real width) returns framehandle
+    return value(text, width, SPACE_M)
+
+public function value(string text, real width, real height) returns framehandle
+    return p(text)..setSize(width, height)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_RIGHT)
 
 public function img(string path) returns framehandle
     return img(path, 0.025, false)
@@ -461,7 +852,7 @@ public function imgBtn(string path, real width, real height) returns framehandle
 
 public function checkbox(real width, real height) returns framehandle
     return createFrame("QuestCheckBox2", defaultFrameParent, 0, 0)
-        ..setSize(width, height)
+        ..setSize(max(MIN_ICON_SIZE, width), max(MIN_ICON_SIZE, height))
 
 function textframe(string typeClass, string text) returns framehandle
     return createFrame(typeClass, defaultFrameParent, 0, 0)..setText(text)..setTextAlignment(TEXT_JUSTIFY_CENTER, TEXT_JUSTIFY_CENTER)
@@ -512,10 +903,10 @@ public class UIBar
 
     function getActiveTexture() returns string
         if value <= 0.3
-            return "bar-low"
+            return "bar-low.dds"
         if value <= 0.6
-            return "bar-mid"
-        return "bar-active"
+            return "bar-mid.dds"
+        return "bar-active.dds"
 
     function getBgTexture() returns string
         return "bar-bg.dds"

@@ -7,8 +7,10 @@ The goal is to make the boring choice the correct choice: use the existing layou
 
 Before creating any UI, follow this order:
 
+0. Size every non-grow cell. Text presets (`p`, `p2`, `p3`, `h1`-`h5`) are FIXEDSIZE and report a measured size of `0` until sized, so an unsized text cell collapses to nothing and neighbouring cells overlap at the same point. Give each non-grow cell a size via `setSize`, `prefSize`/`prefWidth`/`prefHeight`, `fixedWidth`/`minWidth`, or make it `growX()`/`growY()`. Then confirm with `layout.checkFits()` (see "Validation" below) before you ship.
+
 1. Need to position several things?
-   Use `TableLayout`. Do not manually calculate frame points for ordinary rows, labels, buttons, icons, forms, or panels.
+   Use `TableLayout`. Do not manually calculate frame points for ordinary rows, labels, buttons, icons, forms, or panels. Aligning siblings with `setPoint`/`setAbsPoint` is the wrong tool — nest a `TableLayout` instead. (`setAbsPoint` on a root container is fine.)
 
 2. Need text, images, buttons, checkboxes, or bars?
    Use `TableLayout` helpers: `p`, `p2`, `p3`, `h1`-`h5`, `img`, `btn`, `imgBtn`, `checkbox`, `UIBar`, `UICheckbox`.
@@ -108,11 +110,12 @@ let difficulty = select("Difficulty", 0.12)
 
 new TableLayout(0.26, 0.16, "SettingsForm")
 ..gap(0.004, 0.004)
-..row()..add(h2("Settings"))
-..row()..add(p("Select"))..add(difficulty.create())..growX()
-..row()..add(p("Name"))..add(textInput("", 0.12).create())..growX()
+..row()..add(h2("Settings"))..growX()
+..row()..add(p("Select")..setSize(0.06, 0.024))..add(difficulty.create())..growX()
+..row()..add(p("Name")..setSize(0.06, 0.024))..add(textInput("", 0.12).create())..growX()
 ..row()..add(textButton("Apply", 0.08, 0.024).withTooltip("Apply these settings."))
 ..applyTo(root)
+// label cells are sized (0.06 wide); the controls take the rest via growX
 ```
 
 ### Icon Button Row
@@ -203,8 +206,8 @@ attachToMultiboard(mb, "ScoreMb", 0.22, 0.08, true, (uiParent, anchor) -> begin
     let layout = new TableLayout(0.22, 0.08, "ScoreLayout")
     layout.padding = padding(0.006, 0.012, 0.006, 0.012)
     layout
-    ..row()..add(h3("Score"))
-    ..row()..add(p("Player"))..add(p("10"))..growX()
+    ..row()..add(h3("Score"))..growX()
+    ..row()..add(p("Player")..setSize(0.12, 0.012))..add(p("10")..setSize(0.04, 0.012))..growX()
     layout.applyTo(anchor)
     return anchor
 end)
@@ -218,12 +221,61 @@ Do not change old layout behavior by default.
 
 Safe opt-in layout tools:
 
-- `gap(x, y)` for spacing between cells/rows
+- `gap(x, y)` for spacing between cells/rows (now correctly reserved in grow/width/alignment maths)
 - `growX()` for horizontal expansion of the latest cell
 - `growY()` for vertical expansion of the latest cell
 - `grow()` for both axes
 - `minWidth`, `minHeight`
 - `fixedWidth`, `fixedHeight`, `fixedSize`
+- `prefWidth`, `prefHeight`, `prefSize` for a fallback size used when the frame measures 0 (e.g. text)
+- `valign(Align)`, and per-row `top()` / `middle()` / `bottom()` for vertical alignment within a row
+- `defaultValign(Align)` to set the vertical alignment of every new row
+- `columns()` / `uniformColumns()` for grid alignment (cells line up into columns across rows), with `colspan(n)` for spanning cells. Prefer this over computing per-column offsets by hand. `growX()` is ignored in grid mode — size cells instead.
+
+### Composition: nest by default, columns only for alignment
+
+Nested `TableLayout`s are the default way to build any non-trivial layout — compose small tables inside cells. Only reach for `columns()` when cells in *different rows* must line up into the *same* columns (forms, stat tables, rosters). For everything else, nest.
+
+### Spacing scale
+
+Use the spacing tokens instead of magic numbers — in `gap`, `padding`/`pad` and `spacer`:
+`SPACE_XS` 0.004 · `SPACE_S` 0.008 · `SPACE_M` 0.014 · `SPACE_L` 0.022 · `SPACE_XL` 0.034.
+e.g. `..gap(SPACE_S, SPACE_S)`, `layout.padding = padding(SPACE_M, SPACE_M, SPACE_M, SPACE_M)`, `add(spacer(SPACE_M))`.
+
+### Minimum sizes
+
+`textButton`, `iconButton` and `checkbox` clamp to `MIN_BUTTON_WIDTH` / `MIN_BUTTON_HEIGHT` / `MIN_ICON_SIZE`, so a control can't be created too small to render. Don't hand-size buttons below ~0.022 height.
+
+### Container hierarchy (consistent visual feel)
+
+Pick the lightest container that does the job, and **never nest backdrops more than one level deep**:
+- `panel(w, h)` — the window/dialog surface. One per UI.
+- `card(w, h)` — a visually distinct section inside a panel. Use sparingly; never a card inside a card.
+- `container(w, h)` / `section(title, w)` — **no backdrop**. The default for structural nesting and grouping (`section` is a heading + separator). Box things with these, not `card`.
+
+### Safe placement
+
+Don't `setAbsPoint` a root at arbitrary coordinates — it can land on the command card or resource bar. Use `frame.placeSafe(vec2(x, y), w, h)` (clamps into `SAFE_AREA_MIN`..`SAFE_AREA_MAX` and warns when it moves the frame), or keep panels in the central band x ∈ [0.07, 0.73], y ∈ [0.16, 0.56].
+
+### Flatter setup
+
+- `panelTable(w, h, name)` / `cardTable(w, h, name)` create the backdrop and a bound table in one call; finish the chain with `.build()` (applies the layout and returns the root frame) — no duplicated dimensions, no separate root variable.
+- `label(text, w)` (left-aligned) / `value(text, w)` (right-aligned) — sized text in one call, instead of `p(text)..setSize(w, h)..setTextAlignment(...)`.
+- `gap(all)` sets both axes at once.
+
+```wurst
+import TableLayout
+import TableUi
+
+let panel = panelTable(0.24, 0.12, "Setup")
+..gap(SPACE_S)
+..row()..add(h2("Setup")..setSize(0.12, 0.02))
+..row()..add(label("Name", 0.07))..add(textInput("", 0.12).create())..growX()
+..row()..add(textButton("Start", 0.08, 0.024))
+..build()
+
+panel.placeSafe(vec2(0.5, 0.5), 0.24, 0.12)
+```
 
 If a requested layout needs new behavior, add it behind an explicit method. Existing layouts should render the same after upgrading the dependency.
 
@@ -237,12 +289,38 @@ If a requested layout needs new behavior, add it behind an explicit method. Exis
 - Put FDF templates in `imports/TableLayout.fdf`.
 - Expose FDF names through helpers; do not make map code know template strings.
 
+## Validation
+
+The library can sanity-check a layout WITHOUT a running game, so you (and CI) catch overflow and unsized cells before ever launching WC3.
+
+- `layout.checkFits() returns boolean` — true when nothing overflows and every non-grow cell has a size. Leak-free; ideal for assertions.
+- `layout.inspect() returns LayoutReport` — the detailed report (`ok`, `zeroSizeCount`, `rowOverflowCount`, `verticalOverflow`, `worstOverflowX`, `summary`). Destroy the report when done.
+- `layout.validateAndWarn()` — at runtime, logs any problems via `Log.warn` (gated by `tableWarnings`) without aborting layout.
+
+Self-check pattern — runs headless via `grill test` (no frames needed). Use `addSized(w, h)` to model declared cell sizes:
+
+```wurst
+package MyUiTest
+import TableLayout
+
+@Test
+function setupPanelFits()
+    let t = new TableLayout(0.24, 0.16, "SetupPanel")
+    t..row()..addSized(0.06, 0.02)..addSized(0.12, 0.02)..growX()
+    t.checkFits().assertTrue()
+    destroy t
+```
+
+At runtime the library also warns automatically: a `Log.warn` fires once per cell that measures `0`, and on horizontal/vertical overflow (all gated by `tableWarnings`). If you see "a cell has 0 measured size", size that cell.
+
 ## Checklist Before Finishing
 
 - Does the code use `TableLayout` for ordinary layout?
 - Did it reuse `TableLayout`/`TableUi` helpers before raw frame code?
 - Are any new raw frames wrapped in a reusable helper?
 - Are new layout behaviors opt-in?
+- Is every non-grow cell sized (no bare unsized text presets in multi-cell rows)?
+- Does `layout.checkFits()` pass (no overflow, no zero-size cells)?
 - Are tooltips created through `withTooltip` or `boxedTooltip`?
 - Are buttons releasing keyboard focus?
 - If multiboard code changed, was minimize/maximize considered?
