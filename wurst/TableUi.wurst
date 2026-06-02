@@ -1,0 +1,504 @@
+package TableUi
+import TableLayout
+import HashMap
+import LinkedList
+
+constant tooltipByOwner = new HashMap<framehandle, UITooltip>
+var nextCreateContext = 1000
+
+public function nextUiContext() returns int
+    nextCreateContext++
+    return nextCreateContext
+
+function decoratedFrame(string backdropTemplate, real width, real height) returns framehandle
+    let context = nextUiContext()
+    let root = layoutFrame(defaultFrameParent)
+        ..setSize(width, height)
+        ..setAbsPoint(FRAMEPOINT_TOP, vec2(0.4, 0.515))
+    createFrame(backdropTemplate, root, 0, context)
+        ..setAllPoints(root)
+        ..disable()
+    return root
+
+public function panel(real width, real height) returns framehandle
+    return decoratedFrame("TableUiPanelBackdrop", width, height)
+
+public function card(real width, real height) returns framehandle
+    return decoratedFrame("TableUiCardBackdrop", width, height)
+
+public function spacer(real width, real height) returns framehandle
+    return layoutFrame(defaultFrameParent)
+        ..setSize(width, height)
+        ..disable()
+
+public function separator(real width) returns framehandle
+    return separator(width, 0.0015)
+
+public function separator(real width, real height) returns framehandle
+    return img("ReplaceableTextures\\TeamColor\\TeamColor27.blp", width, height, true)
+        ..disable()
+
+public function vSeparator(real height) returns framehandle
+    return separator(0.0015, height)
+
+public function textButton(string text, real width, real height) returns framehandle
+    return btn(text)
+        ..setSize(width, height)
+
+public function iconButton(string path, real size) returns framehandle
+    return imgBtn(path, size, size)
+
+public function iconButton(string path, real width, real height) returns framehandle
+    return imgBtn(path, width, height)
+
+public function closeButton(framehandle target) returns framehandle
+    return closeButton(target, 0.018)
+
+public function closeButton(framehandle target, real size) returns framehandle
+    let closeFrame = textButton("X", size, size)
+    closeFrame.onClick() ->
+        closeFrame.releaseKeyboardFocus(GetTriggerPlayer())
+        if target != null
+            target.hide()
+    return closeFrame
+
+public function iconLabel(string path, string text, real width) returns framehandle
+    return iconLabel(path, text, width, 0.022)
+
+public function iconLabel(string path, string text, real width, real height) returns framehandle
+    let root = layoutFrame(defaultFrameParent)
+        ..setSize(width, height)
+    let label = p(text)
+        ..setSize(max(0.001, width - height - 0.004), height)
+        ..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT)
+
+    let layout = new TableLayout(width, height, "IconLabel")
+    layout.padding = padding(0, 0, 0, 0)
+    layout.gap(0.004, 0)
+    layout
+    ..row()
+    ..add(img(path, height, height))
+    ..add(label)..growX()
+    layout.applyTo(root)
+    root.disable()
+    return root
+
+public function labelValue(string label, string value, real width) returns framehandle
+    return labelValue(label, value, width, 0.018)
+
+public function labelValue(string label, string value, real width, real height) returns framehandle
+    let root = layoutFrame(defaultFrameParent)
+        ..setSize(width, height)
+    let labelFrame = p(label)
+        ..setSize(width * 0.56, height)
+        ..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT)
+    let valueFrame = p(value)
+        ..setSize(width * 0.40, height)
+        ..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_RIGHT)
+
+    let layout = new TableLayout(width, height, "LabelValue")
+    layout.padding = padding(0, 0, 0, 0)
+    layout.gap(0.004, 0)
+    layout
+    ..row()
+    ..add(labelFrame)..growX()
+    ..add(valueFrame)
+    layout.applyTo(root)
+    root.disable()
+    return root
+
+public class UITooltip
+    framehandle owner
+    framehandle box
+    framehandle textFrame
+    real width
+
+    construct(framehandle owner, string text, real width)
+        this.owner = owner
+        this.width = width
+        let context = nextUiContext()
+        box = createFrame("TableUiTooltipBackdrop", defaultFrameParent, 0, context)
+        textFrame = createTextFrame("TableUiTooltipText", box, context)
+        textFrame
+        ..setSize(width, 0.)
+        ..setText(text)
+        ..disable()
+
+        box
+        ..setPoint(FRAMEPOINT_BOTTOMLEFT, textFrame, FRAMEPOINT_BOTTOMLEFT, vec2(-0.008, -0.006))
+        ..setPoint(FRAMEPOINT_TOPRIGHT, textFrame, FRAMEPOINT_TOPRIGHT, vec2(0.008, 0.006))
+
+        textFrame.setPoint(FRAMEPOINT_BOTTOM, owner, FRAMEPOINT_TOP, vec2(0, 0.008))
+        owner.setTooltip(box)
+
+    function setText(string text)
+        textFrame.setText(text)
+        textFrame.setSize(width, 0.)
+
+    function getFrame() returns framehandle
+        return box
+
+public function boxedTooltip(framehandle owner, string text) returns framehandle
+    return boxedTooltip(owner, text, 0.18)
+
+public function boxedTooltip(framehandle owner, string text, real width) returns framehandle
+    if owner == null
+        return null
+
+    var tooltip = tooltipByOwner.get(owner)
+    if tooltip == null
+        tooltip = new UITooltip(owner, text, width)
+        tooltipByOwner.put(owner, tooltip)
+    else
+        tooltip.setText(text)
+
+    return tooltip.getFrame()
+
+public function framehandle.withTooltip(string text) returns framehandle
+    boxedTooltip(this, text)
+    return this
+
+public function framehandle.withTooltip(string text, real width) returns framehandle
+    boxedTooltip(this, text, width)
+    return this
+
+public interface TextInputListener
+    function onSubmit(player p, string text)
+
+public class UIEditBox
+    framehandle frame = null
+    TextInputListener listener = null
+    string initialText = ""
+    real width = 0.
+    real height = 0.026
+    int textLimit = 255
+
+    construct(string initialText, real width)
+        this.initialText = initialText
+        this.width = width
+
+    construct(string initialText, real width, real height)
+        this.initialText = initialText
+        this.width = width
+        this.height = height
+
+    function create() returns framehandle
+        if frame != null
+            return frame
+
+        frame = createFrame("TableUiEditBox", defaultFrameParent, 0, nextUiContext())
+            ..setSize(width, height)
+            ..setText(initialText)
+            ..setTextSizeLimit(textLimit)
+
+        frame.onEditboxEnter() ->
+            if listener != null
+                listener.onSubmit(GetTriggerPlayer(), BlzGetTriggerFrameText())
+            frame.releaseKeyboardFocus(GetTriggerPlayer())
+
+        return frame
+
+    function onSubmit(TextInputListener listener) returns thistype
+        this.listener = listener
+        return this
+
+    function setTextLimit(int limit) returns thistype
+        textLimit = limit
+        if frame != null
+            frame.setTextSizeLimit(limit)
+        return this
+
+    function getFrame() returns framehandle
+        return create()
+
+public function textInput(string initialText, real width) returns UIEditBox
+    return new UIEditBox(initialText, width)
+
+public function textInput(string initialText, real width, real height) returns UIEditBox
+    return new UIEditBox(initialText, width, height)
+
+public function textArea(string text, real width, real height) returns framehandle
+    let frame = createFrame("TableUiTextArea", defaultFrameParent, 0, nextUiContext())
+        ..setSize(width, max(0.03, height))
+        ..setText(text)
+    return frame
+
+public interface ConfirmDialogListener
+    function onAccept(player p)
+    function onCancel(player p)
+
+public class UIConfirmDialog
+    string title = ""
+    string message = ""
+    string acceptText = "Yes"
+    string cancelText = "No"
+    real width = 0.24
+    real height = 0.13
+    framehandle frame = null
+    ConfirmDialogListener listener = null
+
+    construct(string title, string message)
+        this.title = title
+        this.message = message
+
+    construct(string title, string message, real width, real height)
+        this.title = title
+        this.message = message
+        this.width = width
+        this.height = height
+
+    function setButtons(string acceptText, string cancelText) returns thistype
+        this.acceptText = acceptText
+        this.cancelText = cancelText
+        return this
+
+    function onResult(ConfirmDialogListener listener) returns thistype
+        this.listener = listener
+        return this
+
+    function create() returns framehandle
+        if frame != null
+            return frame
+
+        frame = panel(width, height)
+            ..hide()
+
+        let accept = textButton(acceptText, 0.07, 0.024)
+        let cancel = textButton(cancelText, 0.07, 0.024)
+
+        accept.onClick() ->
+            accept.releaseKeyboardFocus(GetTriggerPlayer())
+            hide()
+            if listener != null
+                listener.onAccept(GetTriggerPlayer())
+
+        cancel.onClick() ->
+            cancel.releaseKeyboardFocus(GetTriggerPlayer())
+            hide()
+            if listener != null
+                listener.onCancel(GetTriggerPlayer())
+
+        let layout = new TableLayout(width, height, "ConfirmDialog")
+        layout.padding = padding(0.008, 0.010, 0.008, 0.010)
+        layout.gap(0.004, 0.006)
+        layout
+        ..row()..add(h3(title))..growX()
+        ..row()..add(p(message)..setSize(width - 0.020, 0.040))..growX()
+        ..row()..end_()
+        ..add(cancel)
+        ..add(accept)
+        layout.applyTo(frame)
+        return frame
+
+    function show() returns thistype
+        create().show()
+        return this
+
+    function hide() returns thistype
+        if frame != null
+            frame.hide()
+        return this
+
+    function getFrame() returns framehandle
+        return create()
+
+public function confirmDialog(string title, string message) returns UIConfirmDialog
+    return new UIConfirmDialog(title, message)
+
+public function confirmDialog(string title, string message, real width, real height) returns UIConfirmDialog
+    return new UIConfirmDialog(title, message, width, height)
+
+public class UIStatBar
+    string label = ""
+    string valueText = ""
+    real width = 0.
+    real value = 0.
+    framehandle frame = null
+    framehandle valueFrame = null
+    UIBar bar = null
+
+    construct(string label, real width)
+        this.label = label
+        this.width = width
+
+    function create() returns framehandle
+        if frame != null
+            return frame
+
+        frame = layoutFrame(defaultFrameParent)
+            ..setSize(width, 0.032)
+        valueFrame = p(valueText)
+            ..setSize(width * 0.34, 0.014)
+            ..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_RIGHT)
+        bar = new UIBar(width, 0.008)
+
+        let layout = new TableLayout(width, 0.032, "StatBar")
+        layout.padding = padding(0, 0, 0, 0)
+        layout.gap(0, 0.002)
+        layout
+        ..row()
+        ..add(p(label)..setSize(width * 0.62, 0.014)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))..growX()
+        ..add(valueFrame)
+        ..row()
+        ..add(bar.create())..growX()
+        layout.applyTo(frame)
+        bar.setValue(value)
+        frame.disable()
+        return frame
+
+    function setValue(real value) returns thistype
+        this.value = max(0., min(1., value))
+        if bar != null
+            bar.setValue(this.value)
+        return this
+
+    function setValueText(string valueText) returns thistype
+        this.valueText = valueText
+        if valueFrame != null
+            valueFrame.setText(valueText)
+        return this
+
+    function getFrame() returns framehandle
+        return create()
+
+public function statBar(string label, real width) returns UIStatBar
+    return new UIStatBar(label, width)
+
+public interface SelectListener
+    function onSelect(int index, string value)
+
+public class UISelect
+    static constant OVERLAY_LEVEL = 20
+
+    string placeholder = ""
+    real width = 0.
+    real optionHeight = 0.024
+    bool open = false
+    int selectedIndex = -1
+
+    framehandle root = null
+    framehandle toggleButton = null
+    framehandle menu = null
+    framehandle menuBackdrop = null
+
+    SelectListener listener = null
+    constant options = new LinkedList<string>()
+    constant optionFrames = new LinkedList<framehandle>()
+
+    construct(string placeholder, real width)
+        this.placeholder = placeholder
+        this.width = width
+
+    construct(string placeholder, real width, real optionHeight)
+        this.placeholder = placeholder
+        this.width = width
+        this.optionHeight = optionHeight
+
+    function addOption(string value) returns thistype
+        options.add(value)
+        return this
+
+    function onSelect(SelectListener listener) returns thistype
+        this.listener = listener
+        return this
+
+    function selectedText() returns string
+        if selectedIndex >= 0 and selectedIndex < options.size()
+            return options.get(selectedIndex)
+        return placeholder
+
+    function create() returns framehandle
+        if root != null
+            return root
+
+        root = layoutFrame(defaultFrameParent)
+            ..setSize(width, optionHeight)
+
+        toggleButton = textButton(selectedText(), width, optionHeight)
+            ..setParent(root)
+            ..setAllPoints(root)
+        toggleButton.onClick() ->
+            toggleButton.releaseKeyboardFocus(GetTriggerPlayer())
+            toggle()
+
+        let menuHeight = optionHeight * options.size().toReal()
+        menu = layoutFrame(root)
+            ..setSize(width, menuHeight)
+            ..setLevel(8)
+            ..hide()
+        menu.clearAndSetPoint(FRAMEPOINT_TOP, root, FRAMEPOINT_BOTTOM, vec2(0, -0.001))
+
+        menuBackdrop = createFrame("TableUiSelectMenuBackdrop", menu, 0, nextUiContext())
+            ..setAllPoints(menu)
+            ..disable()
+
+        let menuLayout = new TableLayout(width, menuHeight, "SelectMenu")
+        menuLayout.padding = padding(0.003, 0.003, 0.003, 0.003)
+        menuLayout.gap(0, 0.001)
+
+        for i = 0 to options.size() - 1
+            let index = i
+            let option = textButton(options.get(i), width - 0.006, optionHeight)
+                ..hide()
+            option.onClick() ->
+                option.releaseKeyboardFocus(GetTriggerPlayer())
+                selectOption(index)
+            optionFrames.add(option)
+            menuLayout..row()..add(option)
+
+        menuLayout.applyTo(menu)
+        return root
+
+    function getFrame() returns framehandle
+        return create()
+
+    function toggle()
+        setOpen(not open)
+
+    function syncMenuOverlay()
+        let parent = root.getParent()
+        if parent != null
+            menu.setParent(parent)
+        menu
+        ..clearAndSetPoint(FRAMEPOINT_TOP, root, FRAMEPOINT_BOTTOM, vec2(0, -0.001))
+        ..setLevel(OVERLAY_LEVEL)
+        menuBackdrop.setLevel(OVERLAY_LEVEL)
+        optionFrames.forEach(option -> option.setLevel(OVERLAY_LEVEL + 1))
+
+    function setOpen(bool flag)
+        create()
+        if flag == open
+            return
+        open = flag
+        if open
+            syncMenuOverlay()
+            menu.show()
+            menu.setHeight(optionHeight * options.size().toReal())
+            menuBackdrop.setAllPoints(menu)
+            optionFrames.forEach(option -> option.show())
+        else
+            optionFrames.forEach(option -> option.hide())
+            menu.hide()
+            menuBackdrop.setAllPoints(menu)
+
+    function selectOption(int index)
+        if index < 0 or index >= options.size()
+            return
+        selectedIndex = index
+        let value = options.get(index)
+        toggleButton.setText(value)
+        setOpen(false)
+        if listener != null
+            listener.onSelect(index, value)
+
+public function select(string placeholder, real width) returns UISelect
+    return new UISelect(placeholder, width)
+
+public function select(string placeholder, real width, real optionHeight) returns UISelect
+    return new UISelect(placeholder, width, optionHeight)
+
+public function dropdown(string placeholder, real width) returns UISelect
+    return select(placeholder, width)
+
+public function dropdown(string placeholder, real width, real optionHeight) returns UISelect
+    return select(placeholder, width, optionHeight)

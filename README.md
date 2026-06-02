@@ -124,6 +124,7 @@ Because you cannot use scaling with the table layout, several presets are provid
 - ImageButton `imgBtn`
 - Custom (Progress-)Bar `UIBar`
 - Custom Checkbox `UICheckbox`
+- Higher-level components in `TableUi` such as panels, cards, spacers, separators, icon/label rows, label/value rows, close/X buttons, boxed tooltips, edit boxes, text areas, dynamic selects, confirm dialogs, and stat bars
 
 ```
 let baseFrame = defaultFrame()
@@ -199,6 +200,35 @@ new TableLayout(0.5, 0.25)
 ..add(btn("button")..onClick(() -> print("clicked")))
 ..createFrame()
 ```
+
+## Higher-level UI helpers
+
+For common UI, import `TableUi` and use its small component helpers on top of `TableLayout`.
+See [`AI_USAGE.md`](AI_USAGE.md) for a decision tree and cookbook-style examples that help agents choose existing components instead of hand-rolling frames.
+
+```
+import TableUi
+
+let root = panel(0.24, 0.16)
+
+let difficulty = select("Difficulty", 0.12)
+..addOption("Practice")
+..addOption("Normal")
+..addOption("Hard")
+
+new TableLayout(0.24, 0.16, "SetupPanel")
+..gap(0.004, 0.004)
+..row()..add(h2("Setup"))..growX()..add(closeButton(root))
+..row()..add(separator(0.21))
+..row()..add(p("Select"))..add(difficulty.create())..growX()
+..row()..add(labelValue("Status", "Ready", 0.18))
+..row()..add(textButton("Start", 0.08, 0.024).withTooltip("Begin the selected mode."))
+..applyTo(root)
+```
+
+`select` is implemented as a custom code-driven list of buttons so options can be generated in code. Native `POPUPMENU` is still useful for fixed FDF-defined menus, but its options are not dynamic.
+
+Layout additions such as `gap`, `growY`, `minWidth`, `minHeight`, `fixedWidth`, `fixedHeight`, and `fixedSize` are opt-in and do not alter existing layouts unless called.
 
 ## Nested Tables
 

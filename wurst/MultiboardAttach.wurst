@@ -1,6 +1,7 @@
 package MultiboardAttach
 import FramehandleNames
 import TableLayout
+import ClosureTimers
 
 /*
     Attach custom content to the existing multiboard UI (reuse maximize/minimize behavior),
@@ -101,14 +102,25 @@ public function attachToMultiboard(
 
     // Re-apply title width + geometry after maximize toggle
     minimizeBtn.onClick() ->
-        if board.isMaximized()
+        // Apply after the native multiboard toggle pass has settled.
+        doAfter(0.0) ->
             if titleBackdropWidth > 0.
                 titleBackdrop.setWidth(titleBackdropWidth)
 
             itemContainer
             ..clearAllPoints()
+            ..setHeight(resolvedHeight)
             ..setPoint(FRAMEPOINT_TOPRIGHT, backdrop, FRAMEPOINT_TOPRIGHT, vec2(0, 0))
+            panelBackdrop.setAllPoints(itemContainer)
 
+        doAfter(0.03) ->
+            if titleBackdropWidth > 0.
+                titleBackdrop.setWidth(titleBackdropWidth)
+
+            itemContainer
+            ..clearAllPoints()
+            ..setHeight(resolvedHeight)
+            ..setPoint(FRAMEPOINT_TOPRIGHT, backdrop, FRAMEPOINT_TOPRIGHT, vec2(0, 0))
             panelBackdrop.setAllPoints(itemContainer)
 
     if titleBackdropWidth > 0.

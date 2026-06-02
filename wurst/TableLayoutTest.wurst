@@ -1,6 +1,7 @@
 package TableLayoutTest
 import ClosureTimers
 import TableLayout
+import TableUi
 import Icons
 import GameTimer
 import Textures
@@ -9,14 +10,12 @@ init
 
     doAfter(.1) ->
 
-        let bar1 = new UIBar(0.075, 0.01)
+        let legacyBar = new UIBar(0.10, 0.01)
 
         doPeriodically(0.01) cb ->
-            bar1.setValue((1 + currentTime.sin()) / 2.)
+            legacyBar.setValue((1 + currentTime.cos()) / 2.)
 
         let checkbox = new UICheckbox(0.025, 0.025, true)
-
-        let baseFrame = defaultFrame()
 
         let nestedTable1 = new TableLayout(0.1, 0.05)
         ..row()..center()
@@ -30,7 +29,82 @@ init
         ..row()..center()
         ..add(p("Abomination"))..padTop(0.01)
 
-        new TableLayout(0.25, 0.35)
+        let uiPanel = panel(0.42, 0.40)
+        uiPanel.clearAndSetAbsPoint(FRAMEPOINT_TOPLEFT, vec2(0.055, 0.565))
+
+        let selectField = select("Select", 0.13)
+        ..addOption("Practice")
+        ..addOption("Normal")
+        ..addOption("Hard")
+
+        let stat = statBar("Power", 0.20)
+        ..setValue(0.5)
+        ..setValueText("animated")
+
+        doPeriodically(0.03) cb ->
+            stat.setValue((1 + (currentTime + 1.57).sin()) / 2.)
+
+        let confirm = confirmDialog("Confirm", "This dialog is made from TableUi helpers.", 0.20, 0.105)
+        ..setButtons("OK", "Cancel")
+        let confirmFrame = confirm.getFrame()
+        confirmFrame.clearAndSetAbsPoint(FRAMEPOINT_CENTER, vec2(0.4, 0.32))
+
+        let dialogButton = textButton("Dialog", 0.07, 0.024)
+        ..withTooltip("Open a simple code-driven confirm dialog.")
+        dialogButton.onClick() ->
+            dialogButton.releaseKeyboardFocus(GetTriggerPlayer())
+            confirm.show()
+
+        let componentColumn = layoutFrame(defaultFrameParent)
+            ..setSize(0.23, 0.33)
+
+        let componentLayout = new TableLayout(0.23, 0.33, "ComponentColumn")
+        componentLayout.padding = padding(0, 0, 0, 0)
+        componentLayout
+        ..gap(0.004, 0.004)
+        ..row()
+        ..add(h4("Components"))..growX()
+        ..row()
+        ..add(iconLabel(Icons.bTNHumanBuild, "Icon label", 0.18))
+        ..row()
+        ..add(labelValue("State", "Ready", 0.20))
+        ..row()
+        ..add(p("Select")..setSize(0.045, 0.024)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
+        ..add(selectField.create())..growX()
+        ..row()
+        ..add(p("Input")..setSize(0.045, 0.026)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
+        ..add(textInput("type", 0.13).create())..growX()
+        ..row()
+        ..add(stat.create())
+        ..row()
+        ..add(textArea("Textarea line 1|nTextarea line 2", 0.20, 0.075))
+        ..row()
+        ..add(dialogButton)
+        ..add(spacer(0.008, 0.024))
+        ..add(iconButton(Icons.bTNHumanBuild, 0.024).withTooltip("Icon button"))
+        ..add(spacer(0.008, 0.024))
+        ..add(checkbox.getFrame())
+        componentLayout.applyTo(componentColumn)
+
+        let legacyColumn = layoutFrame(defaultFrameParent)
+            ..setSize(0.15, 0.33)
+
+        let nestedContainer = layoutFrame(defaultFrameParent)
+            ..setSize(0.145, 0.055)
+
+        new TableLayout(0.145, 0.055, "NestedExamples")
+        ..gap(0.004, 0)
+        ..row()
+        ..add(nestedTable1.createContainer(nestedContainer))..growX()
+        ..add(nestedTable2.createContainer(nestedContainer))..growX()
+        ..applyTo(nestedContainer)
+
+        let legacyLayout = new TableLayout(0.15, 0.33, "LegacyColumn")
+        legacyLayout.padding = padding(0, 0, 0, 0)
+        legacyLayout
+        ..gap(0.003, 0.0025)
+        ..row()
+        ..add(h4("Typography"))..growX()
         ..row()
         ..add(h1("h1"))
         ..row()
@@ -48,16 +122,27 @@ init
         ..row()
         ..add(p3("p3"))
         ..row()
-        ..add(img(Textures.auraRune6, 0.075, true))
+        ..add(separator(0.13))
         ..row()
-        ..add(btn("button")..setWidth(0.125)..setHeight(0.025))
+        ..add(img(Textures.auraRune6, 0.05, true))
+        ..row()
+        ..add(btn("button")..setWidth(0.11)..setHeight(0.024))
         ..row()
         ..add(imgBtn(Icons.bTNHumanBuild))
         ..row()
-        ..add(checkbox.getFrame())
+        ..add(legacyBar.create())
         ..row()
-        ..add(bar1.create())
+        ..add(nestedContainer)
+        legacyLayout.applyTo(legacyColumn)
+
+        new TableLayout(0.42, 0.40, "TableUiTest")
+        ..gap(0.004, 0.004)
         ..row()
-        ..add(nestedTable1.createContainer(baseFrame))..padRight(0.0025)
-        ..add(nestedTable2.createContainer(baseFrame))
-        ..applyTo(baseFrame)
+        ..add(h2("TableUi"))..growX()
+        ..add(closeButton(uiPanel))
+        ..row()
+        ..add(separator(0.38))
+        ..row()
+        ..add(componentColumn)
+        ..add(legacyColumn)
+        ..applyTo(uiPanel)

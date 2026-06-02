@@ -44,6 +44,8 @@ public class TableLayout
     framehandle baseFrame = null
 
     var defaultHalign = Align.UNSET
+    var gapX = 0.
+    var gapY = 0.
 
     var width = 0.
     var height = 0.
@@ -91,6 +93,43 @@ public class TableLayout
         if cell != null
             cell.growX = true
 
+    function growY()
+        let cell = getLastCellOrWarn("growY")
+        if cell != null
+            cell.growY = true
+
+    function grow()
+        let cell = getLastCellOrWarn("grow")
+        if cell != null
+            cell.growX = true
+            cell.growY = true
+
+    function minWidth(real width)
+        let cell = getLastCellOrWarn("minWidth")
+        if cell != null
+            cell.minWidth = width
+
+    function minHeight(real height)
+        let cell = getLastCellOrWarn("minHeight")
+        if cell != null
+            cell.minHeight = height
+
+    function fixedWidth(real width)
+        let cell = getLastCellOrWarn("fixedWidth")
+        if cell != null
+            cell.fixedWidth = width
+
+    function fixedHeight(real height)
+        let cell = getLastCellOrWarn("fixedHeight")
+        if cell != null
+            cell.fixedHeight = height
+
+    function fixedSize(real width, real height)
+        let cell = getLastCellOrWarn("fixedSize")
+        if cell != null
+            cell.fixedWidth = width
+            cell.fixedHeight = height
+
     function padTop(real top)
         let cell = getLastCellOrWarn("padTop")
         if cell != null
@@ -115,6 +154,10 @@ public class TableLayout
         let cell = getLastCellOrWarn("pad")
         if cell != null
             cell.padding = padding(top, right, bot, left)
+
+    function gap(real x, real y)
+        gapX = x
+        gapY = y
 
     /** Applies this layout to a newly created default frame with backdrop */
     function createFrame() returns framehandle
@@ -150,10 +193,27 @@ public class TableLayout
         if availableSpace < 0.
             availableSpace = 0.
 
+        var contentHeight = 0.
+        var growRows = 0
         var count = 0
         for row in rows
 
             row.invalidate(availableSpace)
+            contentHeight += row.height
+            if row.hasGrowY()
+                growRows++
+            count++
+
+        let rowGapTotal = max(0, count - 1).toReal() * gapY
+        let remainingHeight = height - padding.getHeight() - contentHeight - rowGapTotal
+        if growRows > 0 and remainingHeight > 0.
+            let growHeight = remainingHeight / growRows.toReal()
+            for row in rows
+                if row.hasGrowY()
+                    row.height += growHeight
+
+        count = 0
+        for row in rows
             
             let rowPercentage = availableSpace == 0. ? 1. : row.width / availableSpace
             
@@ -172,7 +232,7 @@ public class TableLayout
                     offset.x = padding.left + freeSpace
 
             row.layout(baseFrame, offset)
-            offset -= vec2(0, row.height)
+            offset -= vec2(0, row.height + gapY)
 
             count++
 
@@ -205,7 +265,7 @@ public class TableLayout
         if row.contains(lastCell)
             lastCell = null
         if destroyFrames
-            row.cells.forEach(cell -> cell.frame.remove())
+            row.cells.forEach(cell -> cell.frame.destroyUnsafe())
             row.cells.clear()
             
         if baseFrame != null
@@ -241,6 +301,12 @@ public class Row
 
         for cell in cells
             if cell == candidate
+                return true
+        return false
+
+    function hasGrowY() returns boolean
+        for cell in cells
+            if cell.growY
                 return true
         return false
 
@@ -283,8 +349,11 @@ public class Row
         for cell in cells
             celloffset.y = offset.y
             celloffset += vec2(cell.padding.left, -cell.padding.top)
+            if cell.growY
+                cell.frame.setHeight(max(0., height - cell.padding.getHeight()))
+                cell.invalidate()
             cell.layout(baseFrame, celloffset)
-            celloffset += vec2(cell.width + cell.padding.right, 0)
+            celloffset += vec2(cell.width + cell.padding.right + parent.gapX, 0)
 
 
 public class Cell
@@ -294,6 +363,11 @@ public class Cell
     framehandle frame
 
     var growX = false
+    var growY = false
+    var minWidth = 0.
+    var minHeight = 0.
+    var fixedWidth = -1.
+    var fixedHeight = -1.
 
     var padding = padding(0, 0, 0, 0)
 
@@ -303,6 +377,19 @@ public class Cell
     function invalidate()
         width = frame.getWidth()
         height = frame.getHeight()
+        if fixedWidth >= 0.
+            width = fixedWidth
+            frame.setWidth(width)
+        else if width < minWidth
+            width = minWidth
+            frame.setWidth(width)
+
+        if fixedHeight >= 0.
+            height = fixedHeight
+            frame.setHeight(height)
+        else if height < minHeight
+            height = minHeight
+            frame.setHeight(height)
 
     function layout(framehandle baseFrame, vec2 offset)
         frame.setParent(baseFrame)
