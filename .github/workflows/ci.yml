@@ -1,0 +1,20 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container: frotty/wurstscript
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install WurstScript compiler
+        run: grill install wurstscript
+
+      - name: Install dependencies
+        run: grill install
+
+      - name: Run tests
+        run: grill test
