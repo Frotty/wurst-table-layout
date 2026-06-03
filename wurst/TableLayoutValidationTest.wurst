@@ -156,3 +156,59 @@ function safeAreaLeavesGoodPositionUnchanged()
     let got = vec2(0.2, 0.5).clampToSafeArea(0.2, 0.1)
     got.x.assertEquals(0.2, 0.00001)
     got.y.assertEquals(0.5, 0.00001)
+
+@Test
+function selectMenuHeightMustIncludePaddingAndGaps()
+    // Mirrors UISelect's dropdown: the menu must be tall enough for the options PLUS its padding and
+    // inter-option gaps, or the last option overflows the bottom (the reported bug).
+    let optionHeight = 0.024
+    let pad = 0.003
+    let gapY = 0.001
+    let n = 3
+    let width = 0.13
+
+    // Correct height (options + gaps + padding) fits.
+    let correctHeight = n.toReal() * optionHeight + (n - 1).toReal() * gapY + 2. * pad
+    let fits = new TableLayout(width, correctHeight)
+    fits.padding = padding(pad, pad, pad, pad)
+    fits.gap(0, gapY)
+    for i = 0 to n - 1
+        fits..row()..addSized(width - 2. * pad, optionHeight)
+    fits.checkFits().assertTrue()
+    destroy fits
+
+    // Counting only the options (the old sizing) overflows: the third option spills out.
+    let tooShort = new TableLayout(width, n.toReal() * optionHeight)
+    tooShort.padding = padding(pad, pad, pad, pad)
+    tooShort.gap(0, gapY)
+    for i = 0 to n - 1
+        tooShort..row()..addSized(width - 2. * pad, optionHeight)
+    tooShort.checkFits().assertFalse()
+    destroy tooShort
+
+@Test
+function confirmDialogRowsFitOnlyWithRoomForBorderPadding()
+    // Mirrors UIConfirmDialog's rows: title 0.018, message 0.040, buttons 0.024; gapY 0.006; the border
+    // inset padding (PANEL_BORDER_INSET default) that keeps content off the ornate EscMenu border.
+    let inset = 0.014
+    let gapY = 0.006
+
+    // Default 0.24 x 0.13 fits the padded rows.
+    let big = new TableLayout(0.24, 0.13)
+    big.padding = padding(inset, inset, inset, inset)
+    big.gap(0.004, gapY)
+    big..row()..addSized(0.24 - 2. * inset, 0.018)
+    big..row()..addSized(0.24 - 2. * inset, 0.040)
+    big..row()..addSized(0.07, 0.024)..addSized(0.07, 0.024)
+    big.checkFits().assertTrue()
+    destroy big
+
+    // The old 0.20 x 0.105 cannot fit the rows once the border inset padding is applied -> overflow.
+    let small = new TableLayout(0.20, 0.105)
+    small.padding = padding(inset, inset, inset, inset)
+    small.gap(0.004, gapY)
+    small..row()..addSized(0.20 - 2. * inset, 0.018)
+    small..row()..addSized(0.20 - 2. * inset, 0.040)
+    small..row()..addSized(0.07, 0.024)..addSized(0.07, 0.024)
+    small.checkFits().assertFalse()
+    destroy small

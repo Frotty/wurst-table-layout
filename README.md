@@ -304,6 +304,8 @@ let p = panelTable(0.24, 0.12, "Setup")
 p.placeSafe(vec2(0.5, 0.5), 0.24, 0.12)
 ```
 
+For z-order, parent into the right layer rather than fighting `setLevel` (which only orders siblings within one parent). WC3 has no global z-index, and of the origin frames `GAME_UI` (the default parent) renders on top, above the HUD console and the other bands. So on-top UI uses two `GAME_UI` child layers raised with `setLevel`: `Layer.DIALOG` for modal dialogs and `Layer.OVERLAY` (above it) for dropdowns, menus and tooltips; ordinary panels stay in `Layer.CONTENT` (`GAME_UI`). Create frames in their layer with `inLayer(Layer.DIALOG) -> ...` rather than reparenting later, since a post-creation `setParent` can desync a frame's hit area. `confirmDialog` uses `DIALOG` and `select` uses `OVERLAY`.
+
 ## Nested Tables
 
 A table can be applied to any framehandle and thus easily inserted into another table. Ensure that the parent frame already exists when creating the child frame.

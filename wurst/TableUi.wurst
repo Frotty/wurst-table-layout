@@ -6,6 +6,11 @@ import LinkedList
 constant tooltipByOwner = new HashMap<framehandle, UITooltip>
 var nextCreateContext = 1000
 
+/** Content inset that clears the ornate EscMenu / HeroPick border used by panel() and confirmDialog
+    (the decorated border eats more than its BackdropBackgroundInsets suggest). Layouts placed on a
+    panel() backdrop should pad by at least this so content does not sit on top of the border. Tunable. */
+public var PANEL_BORDER_INSET = 0.014
+
 public function nextUiContext() returns int
     nextCreateContext++
     return nextCreateContext
@@ -298,8 +303,16 @@ public class UIConfirmDialog
         if frame != null
             return frame
 
+        let prevParent = defaultFrameParent
+        // The dialog lives in the DIALOG layer (a GAME_UI child held above ordinary content) so it
+        // renders on top of panels without reparenting. Dropdowns sit one layer higher (OVERLAY).
+        defaultFrameParent = Layer.DIALOG.getFrame()
         frame = panel(width, height)
             ..hide()
+
+        // Create the buttons + text UNDER the dialog frame so TableLayout's setParent is a no-op.
+        // Reparenting after creation desyncs a frame's clickable area from its visual in WC3.
+        defaultFrameParent = frame
 
         let accept = textButton(acceptText, 0.07, 0.024)
         let cancel = textButton(cancelText, 0.07, 0.024)
@@ -316,16 +329,20 @@ public class UIConfirmDialog
             if listener != null
                 listener.onCancel(GetTriggerPlayer())
 
+        // Pad by the ornate border inset so the title / message / buttons clear the decorated border.
+        let inset = PANEL_BORDER_INSET
+        let innerWidth = width - 2. * inset
         let layout = new TableLayout(width, height, "ConfirmDialog")
-        layout.padding = padding(0.008, 0.010, 0.008, 0.010)
+        layout.padding = padding(inset, inset, inset, inset)
         layout.gap(0.004, 0.006)
         layout
-        ..row()..add(h3(title))..growX()
-        ..row()..add(p(message)..setSize(width - 0.020, 0.040))..growX()
+        ..row()..add(h3(title)..setSize(innerWidth, 0.018))..growX()
+        ..row()..add(p(message)..setSize(innerWidth, 0.040))..growX()
         ..row()..end_()
         ..add(cancel)
         ..add(accept)
         layout.applyTo(frame)
+        defaultFrameParent = prevParent
         return frame
 
     function show() returns thistype
@@ -449,20 +466,31 @@ public class UISelect
         if root != null
             return root
 
+        let prevParent = defaultFrameParent
+
         root = layoutFrame(defaultFrameParent)
             ..setSize(width, optionHeight)
 
+        // Toggle button created UNDER root so it is never reparented (which desyncs hit areas).
+        defaultFrameParent = root
         toggleButton = textButton(selectedText(), width, optionHeight)
-            ..setParent(root)
             ..setAllPoints(root)
         toggleButton.onClick() ->
             toggleButton.releaseKeyboardFocus(GetTriggerPlayer())
             toggle()
 
-        let menuHeight = optionHeight * options.size().toReal()
-        menu = layoutFrame(root)
+        // The dropdown lives in the OVERLAY band so it floats above content and the HUD; it is anchored
+        // to the toggle by point, so it needs no shared parent with root. The menu must be tall enough
+        // for every option PLUS the layout padding and inter-option gaps, or the last option overflows.
+        let menuPad = 0.003
+        let menuGapY = 0.001
+        let optionCount = options.size()
+        let menuHeight = optionCount.toReal() * optionHeight
+            + max(0, optionCount - 1).toReal() * menuGapY
+            + 2. * menuPad
+        menu = layoutFrame(Layer.OVERLAY.getFrame())
             ..setSize(width, menuHeight)
-            ..setLevel(8)
+            ..setLevel(OVERLAY_LEVEL)
             ..hide()
         menu.clearAndSetPoint(FRAMEPOINT_TOP, root, FRAMEPOINT_BOTTOM, vec2(0, -0.001))
 
@@ -471,12 +499,14 @@ public class UISelect
             ..disable()
 
         let menuLayout = new TableLayout(width, menuHeight, "SelectMenu")
-        menuLayout.padding = padding(0.003, 0.003, 0.003, 0.003)
-        menuLayout.gap(0, 0.001)
+        menuLayout.padding = padding(menuPad, menuPad, menuPad, menuPad)
+        menuLayout.gap(0, menuGapY)
 
-        for i = 0 to options.size() - 1
+        // Options created UNDER menu (no reparent), so they share the OVERLAY band.
+        defaultFrameParent = menu
+        for i = 0 to optionCount - 1
             let index = i
-            let option = textButton(options.get(i), width - 0.006, optionHeight)
+            let option = textButton(options.get(i), width - 2. * menuPad, optionHeight)
                 ..hide()
             option.onClick() ->
                 option.releaseKeyboardFocus(GetTriggerPlayer())
@@ -485,6 +515,7 @@ public class UISelect
             menuLayout..row()..add(option)
 
         menuLayout.applyTo(menu)
+        defaultFrameParent = prevParent
         return root
 
     function getFrame() returns framehandle
@@ -494,9 +525,8 @@ public class UISelect
         setOpen(not open)
 
     function syncMenuOverlay()
-        let parent = root.getParent()
-        if parent != null
-            menu.setParent(parent)
+        // menu is created in the OVERLAY band, so on open we only re-anchor it to the toggle and
+        // refresh levels: no reparenting (which would desync the option buttons' hit areas).
         menu
         ..clearAndSetPoint(FRAMEPOINT_TOP, root, FRAMEPOINT_BOTTOM, vec2(0, -0.001))
         ..setLevel(OVERLAY_LEVEL)
@@ -511,8 +541,6 @@ public class UISelect
         if open
             syncMenuOverlay()
             menu.show()
-            menu.setHeight(optionHeight * options.size().toReal())
-            menuBackdrop.setAllPoints(menu)
             optionFrames.forEach(option -> option.show())
         else
             optionFrames.forEach(option -> option.hide())

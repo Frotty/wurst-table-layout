@@ -255,7 +255,18 @@ Pick the lightest container that does the job, and **never nest backdrops more t
 
 ### Safe placement
 
-Don't `setAbsPoint` a root at arbitrary coordinates: it can land on the command card, the resource bar or the day/night clock. Use `frame.placeSafe(vec2(x, y), w, h)` (clamps into `SAFE_AREA_MIN`..`SAFE_AREA_MAX` and warns when it moves the frame), or keep panels in the central band x ∈ [0.07, 0.73], y ∈ [0.16, 0.52].
+Don't `setAbsPoint` a root at arbitrary coordinates: it can land on the command card, the resource bar or the day/night clock. Use `frame.placeSafe(vec2(x, y), w, h)` (clamps into `SAFE_AREA_MIN`..`SAFE_AREA_MAX` and warns when it moves the frame), or keep panels in the central band x ∈ [0.05, 0.78], y ∈ [0.17, 0.56].
+
+### Layering (z-order)
+
+WC3 stacking follows the frame tree, with no global z-index; `setLevel` orders siblings within one parent. Verified in-game: of the origin frames `GAME_UI` (the default parent) renders on top — above the HUD console, `WORLD_UI` and `CONSOLE_UI`. So custom UI lives in `GAME_UI`, and "on top of other custom UI" uses two `GAME_UI` child layers raised by `setLevel`:
+
+- `Layer.CONTENT` (`GAME_UI`, default): ordinary panels.
+- `Layer.DIALOG` (`GAME_UI` child, above content): modal dialogs.
+- `Layer.OVERLAY` (`GAME_UI` child, above dialogs): dropdowns, menus, tooltips.
+- `Layer.BACKGROUND` (`WORLD_UI`): behind the melee HUD.
+
+Create frames in their layer with `inLayer(Layer.DIALOG) -> ...` rather than reparenting an existing frame (a post-creation `setParent` can desync the clickable area from the visual). `confirmDialog` uses `DIALOG`, `select` uses `OVERLAY`.
 
 ### Flatter setup
 

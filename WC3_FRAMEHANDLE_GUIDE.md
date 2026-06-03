@@ -100,6 +100,39 @@ frameA.setPoint(FRAMEPOINT_TOP, frameB, FRAMEPOINT_BOTTOM, vec2(0, 0))
 frameA.setPoint(FRAMEPOINT_BOTTOM, frameB, FRAMEPOINT_TOP, vec2(0, 0))
 ```
 
+## Z-order and layering
+
+WC3 has no global z-index. Stacking follows the frame tree: a child draws above its parent, siblings draw in creation order, and `setLevel` (`BlzFrameSetLevel`) only reorders siblings *within the same parent*. You cannot lift a deeply nested frame above an unrelated branch just by raising its level.
+
+What decides z-order is the parent you choose. Verified in-game (`LayerProbeTest`): of the three origin frames, `GAME_UI` renders on top — above the HUD console and above `WORLD_UI` and `CONSOLE_UI`.
+
+| `Layer` | Frame | Renders |
+|---------|-------|---------|
+| `BACKGROUND` | `WORLD_UI` | behind the melee HUD |
+| `CONTENT` | `GAME_UI` (default parent) | the top origin band: above the HUD console, `WORLD_UI` and `CONSOLE_UI` |
+| `DIALOG` | a `GAME_UI` child raised by `setLevel` | above ordinary content; modal dialogs |
+| `OVERLAY` | a `GAME_UI` child raised higher | above `DIALOG`; dropdowns, menus, tooltips |
+
+Because custom `GAME_UI` content already sits on top of the HUD and the other bands, "on top of other custom UI" is handled *within* `GAME_UI`: two invisible child frames are held above ordinary content with `setLevel`. A dialog or dropdown is created straight into the relevant child, so it renders above panels with no reparenting, and the default parent stays `GAME_UI`. `setLevel` orders siblings within one parent, so the child layers stay on top no matter when later content is added.
+
+These layer frames are deliberately **tiny corner frames, not full-screen**: a full-screen transparent frame blocks mouse interaction with everything beneath it. WC3 does not clip children to a parent's bounds, so the dialog/dropdown content overflows the small frame and renders at its absolute position regardless.
+
+Create frames in their band; do not reparent into it afterwards. `BlzFrameSetParent` after creation is unreliable and can leave a frame's clickable area desynced from its visual. Set the band as the parent from the start:
+
+```wurst
+// scoped: everything created inside is parented into OVERLAY
+inLayer(Layer.OVERLAY) ->
+    let dialog = panelTable(0.24, 0.12, "MyDialog")
+        ..row()..add(h3("Confirm"))
+        .build()
+    dialog.placeSafe(vec2(0.4, 0.4), 0.24, 0.12)
+
+// or move an existing frame (last resort; may desync the hit area)
+myFrame.setLayer(Layer.OVERLAY)
+```
+
+`confirmDialog` and `select` already create themselves in `OVERLAY`, so they render above content and the HUD with correctly aligned hit areas with no extra work.
+
 ## TableLayout Patterns
 
 `TableLayout` is the preferred abstraction here. It lays out rows and cells by reading each child frame's size at layout time.

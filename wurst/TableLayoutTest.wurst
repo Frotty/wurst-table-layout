@@ -44,7 +44,7 @@ init
         doPeriodically(0.03) cb ->
             stat.setValue((1 + (currentTime + 1.57).sin()) / 2.)
 
-        let confirm = confirmDialog("Confirm", "This dialog is made from TableUi helpers.", 0.20, 0.105)
+        let confirm = confirmDialog("Confirm", "This dialog is made from TableUi helpers.", 0.24, 0.13)
         ..setButtons("OK", "Cancel")
         let confirmFrame = confirm.getFrame()
         confirmFrame.clearAndSetAbsPoint(FRAMEPOINT_CENTER, vec2(0.4, 0.32))
@@ -158,3 +158,58 @@ init
         ..row()..add(iconLabel(Icons.bTNAbomination, "Abomination", 0.11))..add(p("x3")..setSize(0.03, 0.014))
         ..row()..add(iconLabel(Icons.bTNHumanBuild, "Peasant", 0.11))..add(p("x8")..setSize(0.03, 0.014))
         ..applyTo(gridPanel)
+
+        // --- Safe-area probe grid (diagnostic, for tuning SAFE_AREA_MIN/MAX) -----
+        // Tiny markers sweep the screen height (y: 0.00 .. 0.60) at the left edge,
+        // centre and right edge, each labelled with its y. Run the map and read off
+        // where the melee HUD starts covering the markers: the top resource bar +
+        // day/night clock eat into high y, the bottom console into low y, the hero
+        // bar into the left column. That boundary is the true safe area. The red
+        // rectangle is the CURRENT guessed safe area (SAFE_AREA_MIN..MAX) drawn for
+        // direct comparison. Created last so the markers render on top of the demo.
+        for i = 0 to 30
+            let y = i.toReal() * 0.02
+            probeMarker(0.012, y, true)   // left edge: hero bar / left console
+            probeMarker(0.400, y, true)   // centre: resource bar (top), command card (bottom)
+            probeMarker(0.792, y, false)  // right edge: day/night clock / right console
+        drawSafeArea()
+
+// Solid teamcolor textures reused as visible markers (same trick as separator()).
+constant PROBE_DOT  = "ReplaceableTextures\\TeamColor\\TeamColor27.blp"  // teal: probe dots
+constant SAFE_LINE  = "ReplaceableTextures\\TeamColor\\TeamColor00.blp"  // red: guessed box
+
+/** A small marker dot at (x, y) with a p3 label of its height (y). Label sits to
+    the right of the dot when labelRight, otherwise to the left (for the right edge). */
+function probeMarker(real x, real y, boolean labelRight)
+    img(PROBE_DOT, 0.005)
+        ..clearAndSetAbsPoint(FRAMEPOINT_CENTER, vec2(x, y))
+    let lbl = p3(y.toString(2))
+        ..setSize(0.045, 0.013)
+    if labelRight
+        lbl..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT)
+           ..clearAndSetAbsPoint(FRAMEPOINT_LEFT, vec2(x + 0.005, y))
+    else
+        lbl..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_RIGHT)
+           ..clearAndSetAbsPoint(FRAMEPOINT_RIGHT, vec2(x - 0.005, y))
+
+/** Outlines the current guessed SAFE_AREA box (red) with labelled corners so the
+    guess can be compared against where the markers actually disappear behind the HUD. */
+function drawSafeArea()
+    let w = SAFE_AREA_MAX.x - SAFE_AREA_MIN.x
+    let h = SAFE_AREA_MAX.y - SAFE_AREA_MIN.y
+    img(SAFE_LINE, w, 0.0015, true)
+        ..clearAndSetAbsPoint(FRAMEPOINT_BOTTOMLEFT, SAFE_AREA_MIN)                              // bottom
+    img(SAFE_LINE, w, 0.0015, true)
+        ..clearAndSetAbsPoint(FRAMEPOINT_BOTTOMLEFT, vec2(SAFE_AREA_MIN.x, SAFE_AREA_MAX.y))     // top
+    img(SAFE_LINE, 0.0015, h, true)
+        ..clearAndSetAbsPoint(FRAMEPOINT_BOTTOMLEFT, SAFE_AREA_MIN)                              // left
+    img(SAFE_LINE, 0.0015, h, true)
+        ..clearAndSetAbsPoint(FRAMEPOINT_BOTTOMLEFT, vec2(SAFE_AREA_MAX.x, SAFE_AREA_MIN.y))     // right
+    p3("SAFE_MIN " + SAFE_AREA_MIN.x.toString(2) + "," + SAFE_AREA_MIN.y.toString(2))
+        ..setSize(0.14, 0.013)
+        ..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT)
+        ..clearAndSetAbsPoint(FRAMEPOINT_BOTTOMLEFT, vec2(SAFE_AREA_MIN.x + 0.002, SAFE_AREA_MIN.y + 0.002))
+    p3("SAFE_MAX " + SAFE_AREA_MAX.x.toString(2) + "," + SAFE_AREA_MAX.y.toString(2))
+        ..setSize(0.14, 0.013)
+        ..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_RIGHT)
+        ..clearAndSetAbsPoint(FRAMEPOINT_TOPRIGHT, vec2(SAFE_AREA_MAX.x - 0.002, SAFE_AREA_MAX.y - 0.002))

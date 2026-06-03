@@ -18,6 +18,79 @@ import FramehandleNames
  */
 public var defaultFrameParent = GAME_UI
 
+// --- UI layers (z-bands) -----------------------------------------------------
+// WC3 has no global z-index: stacking follows the frame tree. Verified in-game (LayerProbeTest): of the
+// origin frames, GAME_UI renders ON TOP, above the HUD console AND above WORLD_UI and CONSOLE_UI; WORLD_UI
+// sits behind the melee HUD and CONSOLE_UI sits below GAME_UI. So custom UI belongs in GAME_UI, and
+// "on top of other custom UI" is achieved WITHIN GAME_UI: two tiny corner child layers (DIALOG, OVERLAY)
+// are held above ordinary content with setLevel, so a dialog or dropdown created in them renders above
+// panels with no reparenting. They are tiny (not full-screen) because a full-screen transparent frame
+// blocks mouse input to everything below it; content overflows the small frame. The default parent stays
+// GAME_UI (CONTENT); setLevel orders siblings within a parent, so the layers stay on top regardless of
+// when later content is added.
+public enum Layer
+    BACKGROUND   // WORLD_UI: behind the melee HUD
+    CONTENT      // GAME_UI (default parent): the top origin band for custom UI
+    DIALOG       // GAME_UI child, held above CONTENT (modal dialogs)
+    OVERLAY      // GAME_UI child, held above DIALOG (dropdowns, menus, tooltips)
+
+constant LAYER_DIALOG_LEVEL  = 10
+constant LAYER_OVERLAY_LEVEL = 20
+framehandle dialogLayer = null
+framehandle overlayLayer = null
+
+// A layer frame is a TINY corner frame, never full-screen: a full-screen transparent frame blocks mouse
+// interaction with everything beneath it. Its children are positioned absolutely and overflow this frame
+// (WC3 does not clip children to parent bounds), so the frame's own size only governs the tiny area it
+// would block for input, not where its content renders. setLevel keeps it above ordinary GAME_UI content.
+function makeLayer(int level) returns framehandle
+    return layoutFrame(GAME_UI)
+        ..setAbsPoint(FRAMEPOINT_BOTTOMLEFT, vec2(0., 0.))
+        ..setSize(0.001, 0.001)
+        ..setLevel(level)
+
+/** GAME_UI child raised above ordinary content; modal dialogs are created here. */
+function getDialogLayer() returns framehandle
+    if dialogLayer == null
+        dialogLayer = makeLayer(LAYER_DIALOG_LEVEL)
+    return dialogLayer
+
+/** GAME_UI child raised above the dialog layer; dropdowns / tooltips go here. */
+function getOverlayLayer() returns framehandle
+    if overlayLayer == null
+        overlayLayer = makeLayer(LAYER_OVERLAY_LEVEL)
+    return overlayLayer
+
+public function Layer.getFrame() returns framehandle
+    framehandle result
+    switch this
+        case BACKGROUND
+            result = WORLD_UI
+        case CONTENT
+            result = GAME_UI
+        case DIALOG
+            result = getDialogLayer()
+        case OVERLAY
+            result = getOverlayLayer()
+    return result
+
+public interface LayerScope
+    function run()
+
+/** Runs `body` with defaultFrameParent set to `layer`'s frame, so helpers CREATE their frames in
+    that band. Preferred over reparenting later, which can desync a frame's hit area from its visual
+    in WC3. Restores the previous parent afterwards. Usage: inLayer(Layer.OVERLAY) -> buildMyDialog(). */
+public function inLayer(Layer layer, LayerScope body)
+    let previous = defaultFrameParent
+    defaultFrameParent = layer.getFrame()
+    body.run()
+    defaultFrameParent = previous
+
+/** Moves an already-created frame into a z-band. Prefer creating in the band (inLayer / the
+    layer-aware helpers): reparenting after creation can desync a frame's clickable area in WC3. */
+public function framehandle.setLayer(Layer layer)
+    this.setParent(layer.getFrame())
+
 constant DEFAULT_PADDING = 0.0175
 public var tableWarnings = true
 /** Set true to restore the legacy gap math, which does not reserve inter-cell gaps in the
@@ -56,8 +129,9 @@ public var MIN_ICON_SIZE     = 0.012
 // and at the top the resource bar (gold/lumber/food) and the day/night clock.
 // Exact occupancy varies with multiboard / leaderboard / aspect ratio, so this is
 // a sensible default, not a guarantee.
-public constant SAFE_AREA_MIN = vec2(0.07, 0.16)   // bottom-left of the safe band
-public constant SAFE_AREA_MAX = vec2(0.73, 0.52)   // top-right (kept below the resource bar + clock)
+// Measured in-game with the TableLayoutTest probe grid against the default melee HUD.
+public constant SAFE_AREA_MIN = vec2(0.05, 0.17)   // bottom-left: clears the console top edge (0.16), 0.17 for margin
+public constant SAFE_AREA_MAX = vec2(0.78, 0.56)   // top-right: stays just below the resource bar / day-night clock
 
 public enum Align
     START

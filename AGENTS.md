@@ -49,13 +49,23 @@ end)
 - Minimum sizes: `textButton`/`iconButton`/`checkbox` clamp to `MIN_BUTTON_WIDTH`/`MIN_BUTTON_HEIGHT`/`MIN_ICON_SIZE` so controls can't render broken.
 - Container hierarchy: `panel` (window) > `card` (section, sparingly) > `container`/`section` (no backdrop, default nesting). Never nest backdrops more than one level: box with `container`/`section`, not `card`.
 - Safe placement: use `frame.placeSafe(vec2, w, h)` (clamps into `SAFE_AREA_MIN`..`SAFE_AREA_MAX`) instead of raw `setAbsPoint`, to avoid the melee HUD.
+- Layering / z-order: WC3 stacking follows the frame tree (no global z-index); `setLevel` orders siblings within one parent. Verified in-game: `GAME_UI` (the default parent) renders on top of the HUD console, `WORLD_UI` and `CONSOLE_UI`. So custom UI lives in `GAME_UI`, and on-top UI uses two `GAME_UI` child layers raised by `setLevel`: `Layer.DIALOG` (modal dialogs) and `Layer.OVERLAY` (dropdowns/menus/tooltips, above dialogs). Create into the layer (`inLayer(Layer.DIALOG) -> ...`) rather than reparenting later (`setParent` after creation can desync hit areas). `defaultFrameParent` stays `GAME_UI` (`Layer.CONTENT`). `confirmDialog` uses `DIALOG`, `select` uses `OVERLAY`.
 - Keyboard focus: library clickables auto-release focus on click (`autoReleaseFocus`, default true) so Enter still opens chat and can't re-fire a button; no manual `unfocus()` needed. For foreign frames call `onClickReleaseFocus()`; for decorative frames `disable()`. There is no FDF "unfocusable" flag and no `GetFocus`/focus event, so focus is handled at creation/click, not globally.
 - Flatter setup: `panelTable`/`cardTable` + `.build()` (no duplicated dimensions); `label(text,w)`/`value(text,w)` for sized text.
 - If content size changes later, call `layout()` again to recompute positions.
 - Free transient layouts with `destroy layout` (frees Row/Cell wrappers and lists; does not destroy the shared framehandles).
 - `defaultFrameParent` controls the parent for new frames created by helpers.
 
+## Build, Typecheck & Test
+Run everything through `grill` (it locates the bundled WurstScript compiler and JRE; the system `java` may be too old to run the compiler jar directly). Run `grill help` for the full command list.
+- `grill typecheck` Typecheck the whole project without building a map. This is the fast inner-loop check: run it after every edit. Add `--quiet` to print only errors and the final result (`grill typecheck --quiet`).
+- `grill test [filter]` Run the `@Test` unit suite. The optional filter is a substring matched against each test's `Package.function` name, e.g. `grill test safeArea` runs the three safe-area tests in `TableLayoutValidationTest`. The suite is frame-independent (build cells with `addSized(w, h)`, assert via `checkFits()`/`inspect()`), so it runs headless without Warcraft III.
+- `grill build ExampleMap.w3x` Compile the project into a runnable map.
+- `grill install` / `grill outdated` Install/update dependencies (also `grill install wurstscript`, `grill install grill`).
+- Global flags: `--quiet` (errors + result only), `--debug` (full stack traces). Build/run compiler flags live in `wurst_run.args` (toggle by adding/removing the leading `-`).
+
 ## Agent Guidance
+- After any code change, run `grill typecheck --quiet`, and `grill test` if you touched layout/validation logic, before reporting done.
 - Read `AI_USAGE.md` before creating new UI. Follow its decision tree and recipes.
 - Read `WC3_FRAMEHANDLE_GUIDE.md` before adding or changing Warcraft III UI/framehandle behavior.
 - Prefer editing or extending `wurst/TableLayout.wurst` for new layout features.
@@ -69,4 +79,5 @@ end)
 - Keep layout behavior backward-compatible. New spacing/sizing behavior should be opt-in.
 
 ## Tests and Demos
-- `wurst/TableLayoutTest.wurst` is the current demo and manual test. Keep it updated when you add features.
+- `wurst/TableLayoutValidationTest.wurst` is the headless `@Test` suite (layout fit, overflow, grid, safe-area clamp). Run it with `grill test`; add cases here for new layout/validation behaviour.
+- `wurst/TableLayoutTest.wurst` is the manual/visual demo: it builds on-screen frames, so it needs a real map run (`grill build ExampleMap.w3x`, then launch in WC3), not `grill test`. Keep it updated when you add features.
