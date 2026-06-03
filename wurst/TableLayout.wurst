@@ -28,7 +28,7 @@ public var legacyGapMath = false
 // --- Focus -------------------------------------------------------------------
 // When true (default), clickable presets (btn / imgBtn / iconButton / textButton /
 // checkbox, and components built on them) release keyboard focus on click. Otherwise a
-// focused control swallows the Enter key — blocking chat, or re-firing the button on Enter,
+// focused control swallows the Enter key, blocking chat or re-firing the button on Enter,
 // which can be destructive. Opt out project-wide by setting this false, or per-component by
 // creating that component while it is false. For frames the library did not create, call
 // frame.onClickReleaseFocus() yourself, or disable() purely decorative frames so they never grab focus.

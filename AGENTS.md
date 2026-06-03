@@ -1,8 +1,8 @@
 # AGENTS.md
 
 ## Project Summary
-This repo provides a flexbox-inspired table layout library for WurstScript UI frames.
-Core concepts: a TableLayout has rows, rows contain cells, cells contain framehandles.
+This repo is a UI toolkit for WurstScript Warcraft III frames: a flexbox-inspired table layout engine PLUS a library of ready-made components (panels/cards, buttons, inputs, selects, dialogs, bars, tooltips, etc.), with sane defaults, auto focus-release, and frame-independent validation. It is no longer layout-only.
+Core layout concept: a TableLayout has rows, rows contain cells, cells contain framehandles.
 
 ## Key Files
 - `wurst/TableLayout.wurst` Core layout engine and UI helpers (text, image, button, checkbox, bar).
@@ -47,7 +47,7 @@ end)
 - Column alignment: `columns()` / `uniformColumns()` makes cells line up into columns across rows (opt-in; `growX` ignored in grid mode); `colspan(n)` spans columns. Use it for forms/rosters instead of manual offsets. Otherwise nest tables (the default composition tool).
 - Spacing scale: use `SPACE_XS`/`SPACE_S`/`SPACE_M`/`SPACE_L`/`SPACE_XL` in `gap`/`padding`/`spacer` instead of magic numbers. `gap(all)` and `spacer(size)` take one value.
 - Minimum sizes: `textButton`/`iconButton`/`checkbox` clamp to `MIN_BUTTON_WIDTH`/`MIN_BUTTON_HEIGHT`/`MIN_ICON_SIZE` so controls can't render broken.
-- Container hierarchy: `panel` (window) > `card` (section, sparingly) > `container`/`section` (no backdrop, default nesting). Never nest backdrops more than one level — box with `container`/`section`, not `card`.
+- Container hierarchy: `panel` (window) > `card` (section, sparingly) > `container`/`section` (no backdrop, default nesting). Never nest backdrops more than one level: box with `container`/`section`, not `card`.
 - Safe placement: use `frame.placeSafe(vec2, w, h)` (clamps into `SAFE_AREA_MIN`..`SAFE_AREA_MAX`) instead of raw `setAbsPoint`, to avoid the melee HUD.
 - Keyboard focus: library clickables auto-release focus on click (`autoReleaseFocus`, default true) so Enter still opens chat and can't re-fire a button; no manual `unfocus()` needed. For foreign frames call `onClickReleaseFocus()`; for decorative frames `disable()`. There is no FDF "unfocusable" flag and no `GetFocus`/focus event, so focus is handled at creation/click, not globally.
 - Flatter setup: `panelTable`/`cardTable` + `.build()` (no duplicated dimensions); `label(text,w)`/`value(text,w)` for sized text.

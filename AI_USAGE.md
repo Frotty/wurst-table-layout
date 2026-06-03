@@ -10,7 +10,7 @@ Before creating any UI, follow this order:
 0. Size every non-grow cell. Text presets (`p`, `p2`, `p3`, `h1`-`h5`) are FIXEDSIZE and report a measured size of `0` until sized, so an unsized text cell collapses to nothing and neighbouring cells overlap at the same point. Give each non-grow cell a size via `setSize`, `prefSize`/`prefWidth`/`prefHeight`, `fixedWidth`/`minWidth`, or make it `growX()`/`growY()`. Then confirm with `layout.checkFits()` (see "Validation" below) before you ship.
 
 1. Need to position several things?
-   Use `TableLayout`. Do not manually calculate frame points for ordinary rows, labels, buttons, icons, forms, or panels. Aligning siblings with `setPoint`/`setAbsPoint` is the wrong tool — nest a `TableLayout` instead. (`setAbsPoint` on a root container is fine.)
+   Use `TableLayout`. Do not manually calculate frame points for ordinary rows, labels, buttons, icons, forms, or panels. Aligning siblings with `setPoint`/`setAbsPoint` is the wrong tool: nest a `TableLayout` instead. (`setAbsPoint` on a root container is fine.)
 
 2. Need text, images, buttons, checkboxes, or bars?
    Use `TableLayout` helpers: `p`, `p2`, `p3`, `h1`-`h5`, `img`, `btn`, `imgBtn`, `checkbox`, `UIBar`, `UICheckbox`.
@@ -230,15 +230,15 @@ Safe opt-in layout tools:
 - `prefWidth`, `prefHeight`, `prefSize` for a fallback size used when the frame measures 0 (e.g. text)
 - `valign(Align)`, and per-row `top()` / `middle()` / `bottom()` for vertical alignment within a row
 - `defaultValign(Align)` to set the vertical alignment of every new row
-- `columns()` / `uniformColumns()` for grid alignment (cells line up into columns across rows), with `colspan(n)` for spanning cells. Prefer this over computing per-column offsets by hand. `growX()` is ignored in grid mode — size cells instead.
+- `columns()` / `uniformColumns()` for grid alignment (cells line up into columns across rows), with `colspan(n)` for spanning cells. Prefer this over computing per-column offsets by hand. `growX()` is ignored in grid mode: size cells instead.
 
 ### Composition: nest by default, columns only for alignment
 
-Nested `TableLayout`s are the default way to build any non-trivial layout — compose small tables inside cells. Only reach for `columns()` when cells in *different rows* must line up into the *same* columns (forms, stat tables, rosters). For everything else, nest.
+Nested `TableLayout`s are the default way to build any non-trivial layout: compose small tables inside cells. Only reach for `columns()` when cells in *different rows* must line up into the *same* columns (forms, stat tables, rosters). For everything else, nest.
 
 ### Spacing scale
 
-Use the spacing tokens instead of magic numbers — in `gap`, `padding`/`pad` and `spacer`:
+Use the spacing tokens instead of magic numbers, in `gap`, `padding`/`pad` and `spacer`:
 `SPACE_XS` 0.004 · `SPACE_S` 0.008 · `SPACE_M` 0.014 · `SPACE_L` 0.022 · `SPACE_XL` 0.034.
 e.g. `..gap(SPACE_S, SPACE_S)`, `layout.padding = padding(SPACE_M, SPACE_M, SPACE_M, SPACE_M)`, `add(spacer(SPACE_M))`.
 
@@ -249,18 +249,18 @@ e.g. `..gap(SPACE_S, SPACE_S)`, `layout.padding = padding(SPACE_M, SPACE_M, SPAC
 ### Container hierarchy (consistent visual feel)
 
 Pick the lightest container that does the job, and **never nest backdrops more than one level deep**:
-- `panel(w, h)` — the window/dialog surface. One per UI.
-- `card(w, h)` — a visually distinct section inside a panel. Use sparingly; never a card inside a card.
-- `container(w, h)` / `section(title, w)` — **no backdrop**. The default for structural nesting and grouping (`section` is a heading + separator). Box things with these, not `card`.
+- `panel(w, h)`: the window/dialog surface. One per UI.
+- `card(w, h)`: a visually distinct section inside a panel. Use sparingly; never a card inside a card.
+- `container(w, h)` / `section(title, w)`: **no backdrop**. The default for structural nesting and grouping (`section` is a heading + separator). Box things with these, not `card`.
 
 ### Safe placement
 
-Don't `setAbsPoint` a root at arbitrary coordinates — it can land on the command card, the resource bar or the day/night clock. Use `frame.placeSafe(vec2(x, y), w, h)` (clamps into `SAFE_AREA_MIN`..`SAFE_AREA_MAX` and warns when it moves the frame), or keep panels in the central band x ∈ [0.07, 0.73], y ∈ [0.16, 0.52].
+Don't `setAbsPoint` a root at arbitrary coordinates: it can land on the command card, the resource bar or the day/night clock. Use `frame.placeSafe(vec2(x, y), w, h)` (clamps into `SAFE_AREA_MIN`..`SAFE_AREA_MAX` and warns when it moves the frame), or keep panels in the central band x ∈ [0.07, 0.73], y ∈ [0.16, 0.52].
 
 ### Flatter setup
 
-- `panelTable(w, h, name)` / `cardTable(w, h, name)` create the backdrop and a bound table in one call; finish the chain with `.build()` (applies the layout and returns the root frame) — no duplicated dimensions, no separate root variable.
-- `label(text, w)` (left-aligned) / `value(text, w)` (right-aligned) — sized text in one call, instead of `p(text)..setSize(w, h)..setTextAlignment(...)`.
+- `panelTable(w, h, name)` / `cardTable(w, h, name)` create the backdrop and a bound table in one call; finish the chain with `.build()` (applies the layout and returns the root frame): no duplicated dimensions, no separate root variable.
+- `label(text, w)` (left-aligned) / `value(text, w)` (right-aligned): sized text in one call, instead of `p(text)..setSize(w, h)..setTextAlignment(...)`.
 - `gap(all)` sets both axes at once.
 
 ```wurst
@@ -293,11 +293,11 @@ If a requested layout needs new behavior, add it behind an explicit method. Exis
 
 The library can sanity-check a layout WITHOUT a running game, so you (and CI) catch overflow and unsized cells before ever launching WC3.
 
-- `layout.checkFits() returns boolean` — true when nothing overflows and every non-grow cell has a size. Leak-free; ideal for assertions.
-- `layout.inspect() returns LayoutReport` — the detailed report (`ok`, `zeroSizeCount`, `rowOverflowCount`, `verticalOverflow`, `worstOverflowX`, `summary`). Destroy the report when done.
-- `layout.validateAndWarn()` — at runtime, logs any problems via `Log.warn` (gated by `tableWarnings`) without aborting layout.
+- `layout.checkFits() returns boolean`: true when nothing overflows and every non-grow cell has a size. Leak-free; ideal for assertions.
+- `layout.inspect() returns LayoutReport`: the detailed report (`ok`, `zeroSizeCount`, `rowOverflowCount`, `verticalOverflow`, `worstOverflowX`, `summary`). Destroy the report when done.
+- `layout.validateAndWarn()`: at runtime, logs any problems via `Log.warn` (gated by `tableWarnings`) without aborting layout.
 
-Self-check pattern — runs headless via `grill test` (no frames needed). Use `addSized(w, h)` to model declared cell sizes:
+Self-check pattern: runs headless via `grill test` (no frames needed). Use `addSized(w, h)` to model declared cell sizes:
 
 ```wurst
 package MyUiTest

@@ -1,24 +1,56 @@
-# wurst-table-layout
+<img width="582" height="113" alt="Screenshot 2026-06-03 125518" src="https://github.com/user-attachments/assets/2b004018-4283-41ad-a65e-f1100978d1be" />
+
 
 [![CI](https://github.com/Frotty/wurst-table-layout/actions/workflows/ci.yml/badge.svg)](https://github.com/Frotty/wurst-table-layout/actions/workflows/ci.yml)
 
+# wurst-table-layout
+
+**A batteries-included UI toolkit for WurstScript**: a flexbox-style layout engine *plus* a library of ready-made, EscMenu-styled components, sane defaults and built-in validation. Add elegant Warcraft III frame UI to your map in minutes, without hand-rolling frame maths.
+
 ![chrome_EkMQO3cJuA](https://user-images.githubusercontent.com/1486037/142081152-42348ece-7cfb-47db-a4e2-c9d552537f02.png)
 
-This library lets you create and align Warcraft III framehandles in a table-ish layout inspired by flex-box and the libGDX table. A table consists of rows, which consist of cells, which hold a framehandle. Rows are laid out independently by default; opt into cross-row column alignment with `columns()`. After setting up the layout you apply it to any framehandle.
+It began as a table/flexbox layout (rows → cells → framehandles, with optional column alignment) and now ships a full component set on top, so most UIs are a few cascade lines instead of raw `BlzCreateFrame` calls. Build a layout, drop in components, apply it to any framehandle.
 
 > Note: The table layout cannot be used with scaling.
 
-### Features
+### What you get
 
-- Flexbox-style rows and cells with padding, gaps, horizontal and vertical alignment, and `growX`/`growY`.
-- Opt-in column/grid alignment (`columns()`, `uniformColumns()`, `colspan`).
-- HTML-like text presets (`h1`-`h5`, `p`-`p3`) plus image, button, bar and checkbox presets.
-- Higher-level `TableUi` components: panels, cards, tooltips, edit boxes, text areas, dynamic selects, confirm dialogs, stat bars, and icon/label & label/value rows.
-- A consistent spacing scale, sane component minimums, a container hierarchy, and safe-area placement helpers.
-- Frame-independent validation (`checkFits()` / `inspect()`) that catches overflow and unsized cells — at runtime and headless in `grill test`.
-- Ships LLM / agent instructions for smooth, correct UI generation (see [AI readiness](#ai-readiness)).
+- **Ready-made components**: panels & cards, buttons, icon buttons, checkboxes, dropdowns/selects, edit boxes, text areas, tooltips, confirm dialogs, progress & stat bars, icon-label and label-value rows, separators and spacers.
+- **A layout engine**: flexbox-style rows and cells with padding, gaps, horizontal & vertical alignment and `grow`, plus opt-in column/grid alignment (`columns()`, `colspan`).
+- **Text presets**: `h1`-`h5`, `p`-`p3`, and sized `label` / `value` helpers.
+- **Sane defaults**: a spacing scale (`SPACE_*`), automatic component minimums, automatic keyboard-focus release, a container hierarchy, and safe-area placement that keeps panels clear of the melee HUD.
+- **Built-in validation**: `checkFits()` / `inspect()` catch overflow and unsized cells, at runtime and headless in `grill test`.
+- **AI-ready**: ships agent instructions so an LLM can generate correct UI fast (see [AI readiness](#ai-readiness)).
 
 ![Diagram](https://user-images.githubusercontent.com/1486037/141851102-390b7136-41b1-4b8f-9197-be286a7a4ba5.png)
+
+# Quick start
+
+A complete, styled settings panel (layout, components, spacing and safe placement) in a handful of lines:
+
+```wurst
+package MyUi
+import ClosureTimers
+import TableLayout
+import TableUi
+
+init
+    doAfter(0.) ->
+        let difficulty = select("Difficulty", 0.12)
+            ..addOption("Easy")..addOption("Normal")..addOption("Hard")
+
+        let setup = panelTable(0.26, 0.15, "Setup")
+        setup
+        ..gap(SPACE_S)
+        ..row()..add(h2("New Game")..setSize(0.16, 0.022))
+        ..row()..add(label("Difficulty", 0.08))..add(difficulty.create())..growX()
+        ..row()..add(label("Name", 0.08))..add(textInput("", 0.12).create())..growX()
+        ..row()..add(textButton("Start", 0.10, 0.026))
+
+        setup.build().placeSafe(vec2(0.5, 0.5), 0.26, 0.15)
+```
+
+No frame maths, no manual point anchoring, no focus boilerplate: `panelTable` makes the backdrop, the components size themselves, buttons release focus on click automatically, and `placeSafe` keeps the panel clear of the melee HUD.
 
 # Documentation
 
@@ -240,7 +272,7 @@ Layout additions such as `gap`, `growY`, `minWidth`, `minHeight`, `fixedWidth`, 
 
 ## Columns (grid mode)
 
-By default a table has no columns — each row is laid out independently, so cells in different rows do not line up. Call `columns()` to opt into grid alignment: every cell lines up into a column sized to the widest cell in that column index, which is what you want for forms, rosters and stat tables. `uniformColumns()` makes every column take the single widest column width, and `colspan(n)` lets a cell (e.g. a header) span several columns.
+By default a table has no columns: each row is laid out independently, so cells in different rows do not line up. Call `columns()` to opt into grid alignment: every cell lines up into a column sized to the widest cell in that column index, which is what you want for forms, rosters and stat tables. `uniformColumns()` makes every column take the single widest column width, and `colspan(n)` lets a cell (e.g. a header) span several columns.
 
 ```
 let p = panel(0.2, 0.13)
@@ -253,11 +285,11 @@ new TableLayout(0.2, 0.13, "Roster")
 ..applyTo(p)
 ```
 
-Grid mode is opt-in and back-compatible (tables render exactly as before unless you call `columns()`). `growX()` is ignored in grid mode — size cells, and the columns do the aligning. A `colspan` cell does not size the columns it spans, so make sure other rows define those columns.
+Grid mode is opt-in and back-compatible (tables render exactly as before unless you call `columns()`). `growX()` is ignored in grid mode: size cells, and the columns do the aligning. A `colspan` cell does not size the columns it spans, so make sure other rows define those columns.
 
 ## Spacing, containers and safe placement
 
-Use the spacing scale — `SPACE_XS`, `SPACE_S`, `SPACE_M`, `SPACE_L`, `SPACE_XL` — in `gap`, `padding` and `spacer` instead of magic numbers. Buttons, icon buttons and checkboxes clamp to sane minimums (`MIN_BUTTON_WIDTH`/`MIN_BUTTON_HEIGHT`/`MIN_ICON_SIZE`) so they cannot be created too small to render.
+Use the spacing scale (`SPACE_XS`, `SPACE_S`, `SPACE_M`, `SPACE_L`, `SPACE_XL`) in `gap`, `padding` and `spacer` instead of magic numbers. Buttons, icon buttons and checkboxes clamp to sane minimums (`MIN_BUTTON_WIDTH`/`MIN_BUTTON_HEIGHT`/`MIN_ICON_SIZE`) so they cannot be created too small to render.
 
 Pick the lightest container and never nest backdrops more than one level: a `panel` (window) holds `card`s (distinct sections, used sparingly), and everything else nests in `container`/`section` (no border).
 
@@ -294,7 +326,7 @@ new TableLayout(0.25, 0.35)
 
 ## Validation
 
-Because Warcraft III cannot measure text and the text presets (`p`, `h1`-`h5`) are FIXEDSIZE, a cell with no size measures `0` and collapses — the most common cause of overlapping/overflowing UI. Size every non-grow cell (`setSize`, `prefSize`/`prefWidth`/`prefHeight`, `fixedWidth`/`minWidth`) or make it `growX()`/`growY()`.
+Because Warcraft III cannot measure text and the text presets (`p`, `h1`-`h5`) are FIXEDSIZE, a cell with no size measures `0` and collapses: the most common cause of overlapping/overflowing UI. Size every non-grow cell (`setSize`, `prefSize`/`prefWidth`/`prefHeight`, `fixedWidth`/`minWidth`) or make it `growX()`/`growY()`.
 
 You can sanity-check a layout without launching the game:
 
@@ -308,21 +340,21 @@ if not layout.checkFits()
     destroy report
 ```
 
-`checkFits()`/`inspect()` are frame-independent, so they also run headless in unit tests (`grill test`) — build cells with `addSized(w, h)` to model declared sizes. At runtime the library additionally logs a warning (gated by `tableWarnings`) for any zero-size cell and for horizontal/vertical overflow.
+`checkFits()`/`inspect()` are frame-independent, so they also run headless in unit tests (`grill test`): build cells with `addSized(w, h)` to model declared sizes. At runtime the library additionally logs a warning (gated by `tableWarnings`) for any zero-size cell and for horizontal/vertical overflow.
 
 ## AI readiness
 
 This library is built to be driven by LLM coding agents: the goal is that an agent can produce correct, aligned, non-overflowing Warcraft III UI without hand-rolling frame math.
 
-It ships agent instruction files — point your agent at these first:
+It ships agent instruction files. Point your agent at these first:
 
-- [`AGENTS.md`](AGENTS.md) — project map, key behaviours, and the rules for changing UI.
-- [`AI_USAGE.md`](AI_USAGE.md) — a decision tree and cookbook: which helper to use, copy-pasteable recipes, anti-patterns, and a self-check the agent runs before finishing.
-- [`WC3_FRAMEHANDLE_GUIDE.md`](WC3_FRAMEHANDLE_GUIDE.md) — Warcraft III framehandle, focus and desync rules adapted for this library.
+- [`AGENTS.md`](AGENTS.md): project map, key behaviours, and the rules for changing UI.
+- [`AI_USAGE.md`](AI_USAGE.md): a decision tree and cookbook: which helper to use, copy-pasteable recipes, anti-patterns, and a self-check the agent runs before finishing.
+- [`WC3_FRAMEHANDLE_GUIDE.md`](WC3_FRAMEHANDLE_GUIDE.md): Warcraft III framehandle, focus and desync rules adapted for this library.
 
 What makes it agent-friendly:
 
-- **A real feedback loop.** `layout.checkFits()` / `inspect()` validate a layout (overflow, zero-size cells) *without a running game*, so the agent can verify its own output — at runtime and headless via `grill test`. Runtime `Log.warn`s flag the common mistakes (unsized text, gap+grow overflow, vertical overflow).
+- **A real feedback loop.** `layout.checkFits()` / `inspect()` validate a layout (overflow, zero-size cells) *without a running game*, so the agent can verify its own output: at runtime and headless via `grill test`. Runtime `Log.warn`s flag the common mistakes (unsized text, gap+grow overflow, vertical overflow).
 - **Guard rails and sane defaults.** Zero-size/overflow warnings, component minimums, a consistent spacing scale, a container hierarchy, and opt-in safe-area placement keep generated UI inside the lines.
 - **A streamlined, cascade-friendly API** where the boring choice is the correct choice: nest tables and reuse helpers instead of computing frame points.
 
