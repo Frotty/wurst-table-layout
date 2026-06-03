@@ -42,11 +42,13 @@ public var MIN_BUTTON_HEIGHT = 0.022
 public var MIN_ICON_SIZE     = 0.012
 
 // --- Safe area ---------------------------------------------------------------
-// The central band of the 4:3 UI box that stays clear of the default melee HUD
-// (bottom console, resource bar, hero bar, minimap). Exact occupancy varies with
-// multiboard / leaderboard / aspect ratio, so this is a sensible default, not a guarantee.
+// The central band of the 4:3 UI box that stays clear of the default melee HUD:
+// the bottom console (command card, portrait, minimap), the hero bar on the left,
+// and at the top the resource bar (gold/lumber/food) and the day/night clock.
+// Exact occupancy varies with multiboard / leaderboard / aspect ratio, so this is
+// a sensible default, not a guarantee.
 public constant SAFE_AREA_MIN = vec2(0.07, 0.16)   // bottom-left of the safe band
-public constant SAFE_AREA_MAX = vec2(0.73, 0.56)   // top-right of the safe band
+public constant SAFE_AREA_MAX = vec2(0.73, 0.52)   // top-right (kept below the resource bar + clock)
 
 public enum Align
     START

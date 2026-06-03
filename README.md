@@ -261,7 +261,7 @@ Use the spacing scale — `SPACE_XS`, `SPACE_S`, `SPACE_M`, `SPACE_L`, `SPACE_XL
 
 Pick the lightest container and never nest backdrops more than one level: a `panel` (window) holds `card`s (distinct sections, used sparingly), and everything else nests in `container`/`section` (no border).
 
-Position roots with `placeSafe` to keep them inside the central band that is clear of the melee HUD (command card, resource bar, hero bar, minimap) rather than raw `setAbsPoint`. `panelTable`/`cardTable` + `.build()` create a backdrop and its table in one chain, and `label`/`value` size text in one call:
+Position roots with `placeSafe` to keep them inside the central band that is clear of the melee HUD (command card, resource bar, day/night clock, hero bar, minimap) rather than raw `setAbsPoint`. `panelTable`/`cardTable` + `.build()` create a backdrop and its table in one chain, and `label`/`value` size text in one call:
 
 ```
 let p = panelTable(0.24, 0.12, "Setup")

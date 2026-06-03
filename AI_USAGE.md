@@ -255,7 +255,7 @@ Pick the lightest container that does the job, and **never nest backdrops more t
 
 ### Safe placement
 
-Don't `setAbsPoint` a root at arbitrary coordinates — it can land on the command card or resource bar. Use `frame.placeSafe(vec2(x, y), w, h)` (clamps into `SAFE_AREA_MIN`..`SAFE_AREA_MAX` and warns when it moves the frame), or keep panels in the central band x ∈ [0.07, 0.73], y ∈ [0.16, 0.56].
+Don't `setAbsPoint` a root at arbitrary coordinates — it can land on the command card, the resource bar or the day/night clock. Use `frame.placeSafe(vec2(x, y), w, h)` (clamps into `SAFE_AREA_MIN`..`SAFE_AREA_MAX` and warns when it moves the frame), or keep panels in the central band x ∈ [0.07, 0.73], y ∈ [0.16, 0.52].
 
 ### Flatter setup
 
