@@ -53,6 +53,12 @@ Frame "TEXTAREA" "TableUiTextArea" INHERITS WITHCHILDREN "EscMenuTextAreaTemplat
     Height 0.12,
 }
 
+Frame "SLIDER" "TableUiSlider" INHERITS WITHCHILDREN "EscMenuSliderTemplate" {
+    UseActiveContext,
+    Width 0.15,
+    Height 0.016,
+}
+
 // -- Frames -------------------------------------------------------
 Frame "GLUETEXTBUTTON" "GeneralButton" INHERITS WITHCHILDREN "EscMenuButtonTemplate" {
     UseActiveContext,

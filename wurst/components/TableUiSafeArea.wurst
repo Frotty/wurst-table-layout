@@ -1,0 +1,27 @@
+package TableUiSafeArea
+// The central band of the 4:3 UI box that stays clear of the default melee HUD: the bottom console
+// (command card, portrait, minimap), the hero bar on the left, and at the top the resource bar and
+// the day/night clock. Exact occupancy varies with multiboard / leaderboard / aspect ratio, so this is
+// a sensible default, not a guarantee. Measured in-game against the default melee HUD.
+import TableLayout
+
+public constant SAFE_AREA_MIN = vec2(0.05, 0.17)   // bottom-left: clears the console top edge (0.16), 0.17 for margin
+public constant SAFE_AREA_MAX = vec2(0.78, 0.56)   // top-right: stays just below the resource bar / day-night clock
+
+/** Treats this as a desired TOPLEFT and clamps it so a width x height panel stays inside the
+    safe area (clear of the melee HUD and the 4:3 edges). */
+public function vec2.clampToSafeArea(real width, real height) returns vec2
+    let minX = SAFE_AREA_MIN.x
+    let maxX = max(minX, SAFE_AREA_MAX.x - width)
+    let minY = SAFE_AREA_MIN.y + height
+    let maxY = max(minY, SAFE_AREA_MAX.y)
+    return vec2(max(minX, min(maxX, this.x)), max(minY, min(maxY, this.y)))
+
+/** Places a frame's TOPLEFT inside the safe area, warning (tableWarnings) if it had to move it
+    out of the melee HUD / off the 4:3 box. */
+public function framehandle.placeSafe(vec2 desiredTopLeft, real width, real height)
+    let safe = desiredTopLeft.clampToSafeArea(width, height)
+    if tableWarnings and (safe.x != desiredTopLeft.x or safe.y != desiredTopLeft.y)
+        Log.warn("placeSafe: requested (" + desiredTopLeft.x.toString() + ", " + desiredTopLeft.y.toString()
+            + ") overlaps the melee HUD / 4:3 edge; clamped to (" + safe.x.toString() + ", " + safe.y.toString() + ").")
+    this.clearAndSetAbsPoint(FRAMEPOINT_TOPLEFT, safe)

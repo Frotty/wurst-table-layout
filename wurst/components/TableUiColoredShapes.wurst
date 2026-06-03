@@ -1,0 +1,34 @@
+package TableUiColoredShapes
+// Lightweight flat-colour shapes built on the player-colour textures (ReplaceableTextures\TeamColor\
+// TeamColorNN.blp). These render as solid blocks of a fixed colour: the same trick separator() and the
+// layer probe used. Handy for accent bars, swatches, highlights, simple bar charts, dividers, etc.
+import TableUiImages
+
+// The classic Warcraft III player colours, by teamcolor index (0..27 are valid; 0..11 named here).
+public constant TC_RED        = 0
+public constant TC_BLUE       = 1
+public constant TC_TEAL       = 2
+public constant TC_PURPLE     = 3
+public constant TC_YELLOW     = 4
+public constant TC_ORANGE     = 5
+public constant TC_GREEN      = 6
+public constant TC_PINK       = 7
+public constant TC_GRAY       = 8
+public constant TC_LIGHT_BLUE = 9
+public constant TC_DARK_GREEN = 10
+public constant TC_BROWN      = 11
+
+/** Texture path for a player-colour teamcolor index (clamped to 0..27). */
+public function teamColorPath(int teamColor) returns string
+    let i = max(0, min(27, teamColor))
+    let suffix = i < 10 ? "0" + i.toString() : i.toString()
+    return "ReplaceableTextures\\TeamColor\\TeamColor" + suffix + ".blp"
+
+/** A solid rectangle in a player colour (a TC_* constant or a 0..27 index). The flat-colour trick
+    separators use; size it as you like for accent bars, swatches, highlights, simple charts. */
+public function coloredRect(int teamColor, real width, real height) returns framehandle
+    return img(teamColorPath(teamColor), width, height, false)
+
+/** A solid square in a player colour. */
+public function coloredSquare(int teamColor, real size) returns framehandle
+    return coloredRect(teamColor, size, size)

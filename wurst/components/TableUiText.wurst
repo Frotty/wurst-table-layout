@@ -1,0 +1,46 @@
+package TableUiText
+// Text presets: the typographic scale (p/p2/p3 body, h1..h5 headings) plus sized one-call helpers
+// (label left-aligned, value right-aligned). All are FIXEDSIZE text frames, so size every non-grow
+// cell that holds one (setSize / the label/value helpers / growX) or it collapses to 0.
+import TableLayout
+
+function textframe(string typeClass, string text) returns framehandle
+    return createFrame(typeClass, defaultFrameParent, 0, 0)..setText(text)..setTextAlignment(TEXT_JUSTIFY_CENTER, TEXT_JUSTIFY_CENTER)
+
+public function p(string text) returns framehandle
+    return textframe("p", text)
+
+public function p2(string text) returns framehandle
+    return textframe("p2", text)
+
+public function p3(string text) returns framehandle
+    return textframe("p3", text)
+
+public function h1(string text) returns framehandle
+    return textframe("h1", text)
+
+public function h2(string text) returns framehandle
+    return textframe("h2", text)
+
+public function h3(string text) returns framehandle
+    return textframe("h3", text)
+
+public function h4(string text) returns framehandle
+    return textframe("h4", text)
+
+public function h5(string text) returns framehandle
+    return textframe("h5", text)
+
+/** Left-aligned paragraph text, sized in one call (flattens p()..setSize()..setTextAlignment()). */
+public function label(string text, real width) returns framehandle
+    return label(text, width, SPACE_M)
+
+public function label(string text, real width, real height) returns framehandle
+    return p(text)..setSize(width, height)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT)
+
+/** Right-aligned paragraph text, sized in one call (handy for the value column of a row). */
+public function value(string text, real width) returns framehandle
+    return value(text, width, SPACE_M)
+
+public function value(string text, real width, real height) returns framehandle
+    return p(text)..setSize(width, height)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_RIGHT)

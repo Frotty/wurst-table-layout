@@ -1,7 +1,7 @@
 # AGENTS.md
 
 ## Project Summary
-This repo is a UI toolkit for WurstScript Warcraft III frames: a flexbox-inspired table layout engine PLUS a library of ready-made components (panels/cards, buttons, inputs, selects, dialogs, bars, tooltips, etc.), with sane defaults, auto focus-release, and frame-independent validation. It is no longer layout-only.
+This repo is a UI toolkit for WurstScript Warcraft III frames: a flexbox-inspired table layout engine PLUS a library of ready-made components (panels/cards, buttons, inputs, selects, sliders, tabs, stat/icon cards, dialogs, bars, tooltips, etc.), with sane defaults, auto focus-release, and frame-independent validation. It is no longer layout-only.
 Core layout concept: a TableLayout has rows, rows contain cells, cells contain framehandles.
 
 ## Key Files

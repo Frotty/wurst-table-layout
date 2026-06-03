@@ -1,0 +1,92 @@
+package TableUiButtons
+// Clickable primitives: text button (btn), icon button (imgBtn), the native checkbox helper, and the
+// UICheckbox widget (custom checkbox with a check overlay). All honour autoReleaseFocus so a click does
+// not leave keyboard focus trapped on the frame (which would swallow Enter / re-fire on Enter).
+import TableLayout
+import TableUiImages
+import FramehandleNames
+
+public function btn(string text) returns framehandle
+    let frame = createFrame("button", defaultFrameParent, 0, 0)
+        ..setText(text)..setTextAlignment(TEXT_JUSTIFY_CENTER, TEXT_JUSTIFY_CENTER)
+    if autoReleaseFocus
+        frame.onClickReleaseFocus()
+    return frame
+
+public function imgBtn(string path) returns framehandle
+    return imgBtn(path, 0.025, 0.025)
+
+public function imgBtn(string path, real size) returns framehandle
+    return imgBtn(path, size, size)
+
+public function imgBtn(string path, real width, real height) returns framehandle
+    return imgBtnFrame(path, width, height)
+
+public function checkbox(real width, real height) returns framehandle
+    let frame = createFrame("QuestCheckBox2", defaultFrameParent, 0, 0)
+        ..setSize(max(MIN_ICON_SIZE, width), max(MIN_ICON_SIZE, height))
+    if autoReleaseFocus
+        frame.onClickReleaseFocus()
+    return frame
+
+function imgBtnFrame(string path, real width, real height) returns framehandle
+    let imgButton = createFrame(FramehandleTypeNames.gluebutton, "PickIconButton", defaultFrameParent, FramehandleNames.iconButtonTemplate, 2)
+    let imgTexture = createFrame(FramehandleTypeNames.backdrop, "pickIcon", imgButton, "", 2)
+
+    imgButton
+    ..setSize(width, height)
+
+    imgTexture
+    ..setAllPoints(imgButton)
+    ..setTexture(path, 0, true)
+
+    if autoReleaseFocus
+        imgButton.onClickReleaseFocus()
+
+    return imgButton
+
+
+interface CheckboxListener
+    function onChange(boolean checked)
+
+public class UICheckbox
+    private var value = false
+
+    framehandle bg
+    framehandle check
+
+    CheckboxListener listener
+
+    construct(real width, real height, boolean checked, string bgTexture, string checkTexture)
+        setup(width, height, checked, bgTexture, checkTexture)
+
+    construct(real width, real height, boolean checked)
+        setup(width, height, checked, "ui\\widgets\\escmenu\\human\\checkbox-background.dds", "ui\\widgets\\escmenu\\human\\checkbox-check.dds")
+
+    function setup(real width, real height, boolean checked, string bgTexture, string checkTexture)
+        value = checked
+        bg = imgBtn(bgTexture)..setWidth(width)..setHeight(height)
+        bg..onClick() ->
+            value = not value
+            if value
+                check.show()
+            else
+                check.hide()
+
+            if listener != null
+                listener.onChange(value)
+
+        check = img(checkTexture, true)..setVisible(checked)..setParent(bg)..setAllPoints(bg)..setWidth(width)..setHeight(height)
+
+    function addListener(CheckboxListener listener)
+        this.listener = listener
+
+    function getFrame() returns framehandle
+        return bg
+
+    function setChecked(boolean value)
+        this.value = value
+        if value
+            check.show()
+        else
+            check.hide()

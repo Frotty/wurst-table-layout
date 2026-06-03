@@ -1,7 +1,6 @@
 package TableLayout
 import public ClosureFrames
 import LinkedList
-import FramehandleNames
 
 /*
  * A table-like layout inspired by the libgdx table and css flex-box.
@@ -17,79 +16,6 @@ import FramehandleNames
  * Setting the parent afterwards seems to not work properly in all cases. 
  */
 public var defaultFrameParent = GAME_UI
-
-// --- UI layers (z-bands) -----------------------------------------------------
-// WC3 has no global z-index: stacking follows the frame tree. Verified in-game (LayerProbeTest): of the
-// origin frames, GAME_UI renders ON TOP, above the HUD console AND above WORLD_UI and CONSOLE_UI; WORLD_UI
-// sits behind the melee HUD and CONSOLE_UI sits below GAME_UI. So custom UI belongs in GAME_UI, and
-// "on top of other custom UI" is achieved WITHIN GAME_UI: two tiny corner child layers (DIALOG, OVERLAY)
-// are held above ordinary content with setLevel, so a dialog or dropdown created in them renders above
-// panels with no reparenting. They are tiny (not full-screen) because a full-screen transparent frame
-// blocks mouse input to everything below it; content overflows the small frame. The default parent stays
-// GAME_UI (CONTENT); setLevel orders siblings within a parent, so the layers stay on top regardless of
-// when later content is added.
-public enum Layer
-    BACKGROUND   // WORLD_UI: behind the melee HUD
-    CONTENT      // GAME_UI (default parent): the top origin band for custom UI
-    DIALOG       // GAME_UI child, held above CONTENT (modal dialogs)
-    OVERLAY      // GAME_UI child, held above DIALOG (dropdowns, menus, tooltips)
-
-constant LAYER_DIALOG_LEVEL  = 10
-constant LAYER_OVERLAY_LEVEL = 20
-framehandle dialogLayer = null
-framehandle overlayLayer = null
-
-// A layer frame is a TINY corner frame, never full-screen: a full-screen transparent frame blocks mouse
-// interaction with everything beneath it. Its children are positioned absolutely and overflow this frame
-// (WC3 does not clip children to parent bounds), so the frame's own size only governs the tiny area it
-// would block for input, not where its content renders. setLevel keeps it above ordinary GAME_UI content.
-function makeLayer(int level) returns framehandle
-    return layoutFrame(GAME_UI)
-        ..setAbsPoint(FRAMEPOINT_BOTTOMLEFT, vec2(0., 0.))
-        ..setSize(0.001, 0.001)
-        ..setLevel(level)
-
-/** GAME_UI child raised above ordinary content; modal dialogs are created here. */
-function getDialogLayer() returns framehandle
-    if dialogLayer == null
-        dialogLayer = makeLayer(LAYER_DIALOG_LEVEL)
-    return dialogLayer
-
-/** GAME_UI child raised above the dialog layer; dropdowns / tooltips go here. */
-function getOverlayLayer() returns framehandle
-    if overlayLayer == null
-        overlayLayer = makeLayer(LAYER_OVERLAY_LEVEL)
-    return overlayLayer
-
-public function Layer.getFrame() returns framehandle
-    framehandle result
-    switch this
-        case BACKGROUND
-            result = WORLD_UI
-        case CONTENT
-            result = GAME_UI
-        case DIALOG
-            result = getDialogLayer()
-        case OVERLAY
-            result = getOverlayLayer()
-    return result
-
-public interface LayerScope
-    function run()
-
-/** Runs `body` with defaultFrameParent set to `layer`'s frame, so helpers CREATE their frames in
-    that band. Preferred over reparenting later, which can desync a frame's hit area from its visual
-    in WC3. Restores the previous parent afterwards. Usage: inLayer(Layer.OVERLAY) -> buildMyDialog(). */
-public function inLayer(Layer layer, LayerScope body)
-    let previous = defaultFrameParent
-    defaultFrameParent = layer.getFrame()
-    body.run()
-    defaultFrameParent = previous
-
-/** Moves an already-created frame into a z-band. Prefer creating in the band (inLayer / the
-    layer-aware helpers): reparenting after creation can desync a frame's clickable area in WC3. */
-public function framehandle.setLayer(Layer layer)
-    this.setParent(layer.getFrame())
 
 constant DEFAULT_PADDING = 0.0175
 public var tableWarnings = true
@@ -123,15 +49,6 @@ public var MIN_BUTTON_WIDTH  = 0.04
 public var MIN_BUTTON_HEIGHT = 0.022
 public var MIN_ICON_SIZE     = 0.012
 
-// --- Safe area ---------------------------------------------------------------
-// The central band of the 4:3 UI box that stays clear of the default melee HUD:
-// the bottom console (command card, portrait, minimap), the hero bar on the left,
-// and at the top the resource bar (gold/lumber/food) and the day/night clock.
-// Exact occupancy varies with multiboard / leaderboard / aspect ratio, so this is
-// a sensible default, not a guarantee.
-// Measured in-game with the TableLayoutTest probe grid against the default melee HUD.
-public constant SAFE_AREA_MIN = vec2(0.05, 0.17)   // bottom-left: clears the console top edge (0.16), 0.17 for margin
-public constant SAFE_AREA_MAX = vec2(0.78, 0.56)   // top-right: stays just below the resource bar / day-night clock
 
 public enum Align
     START
@@ -446,7 +363,9 @@ public class TableLayout
                 if row.hasGrowY()
                     row.height += growHeight
 
-        if tableWarnings and remainingHeight < 0.
+        // Tolerate float rounding so a layout whose content exactly fills the height (content == available)
+        // does not spuriously warn; matches the epsilon used by inspect()/checkFits().
+        if tableWarnings and remainingHeight < -0.0001
             Log.warn("Table " + name + " vertical overflow: content height " + (contentHeight + rowGapTotal).toString() + " exceeds available height " + (height - padding.getHeight()).toString())
 
         count = 0
@@ -848,225 +767,6 @@ public function defaultFrame() returns framehandle
         ..setAbsPoint(FRAMEPOINT_TOP, vec2(0.4, 0.515))
     createFrame("HeroPickMenuBackdrop", baseFrame, 0, 0)..setAllPoints(baseFrame)
     return baseFrame
-
-/** Treats this as a desired TOPLEFT and clamps it so a width x height panel stays inside the
-    safe area (clear of the melee HUD and the 4:3 edges). */
-public function vec2.clampToSafeArea(real width, real height) returns vec2
-    let minX = SAFE_AREA_MIN.x
-    let maxX = max(minX, SAFE_AREA_MAX.x - width)
-    let minY = SAFE_AREA_MIN.y + height
-    let maxY = max(minY, SAFE_AREA_MAX.y)
-    return vec2(max(minX, min(maxX, this.x)), max(minY, min(maxY, this.y)))
-
-/** Places a frame's TOPLEFT inside the safe area, warning (tableWarnings) if it had to move it
-    out of the melee HUD / off the 4:3 box. */
-public function framehandle.placeSafe(vec2 desiredTopLeft, real width, real height)
-    let safe = desiredTopLeft.clampToSafeArea(width, height)
-    if tableWarnings and (safe.x != desiredTopLeft.x or safe.y != desiredTopLeft.y)
-        Log.warn("placeSafe: requested (" + desiredTopLeft.x.toString() + ", " + desiredTopLeft.y.toString()
-            + ") overlaps the melee HUD / 4:3 edge; clamped to (" + safe.x.toString() + ", " + safe.y.toString() + ").")
-    this.clearAndSetAbsPoint(FRAMEPOINT_TOPLEFT, safe)
-
-public function p(string text) returns framehandle
-    return textframe("p", text)
-
-public function p2(string text) returns framehandle
-    return textframe("p2", text)
-
-public function p3(string text) returns framehandle
-    return textframe("p3", text)
-
-public function h1(string text) returns framehandle
-    return textframe("h1", text)
-
-public function h2(string text) returns framehandle
-    return textframe("h2", text)
-
-public function h3(string text) returns framehandle
-    return textframe("h3", text)
-
-public function h4(string text) returns framehandle
-    return textframe("h4", text)
-
-public function h5(string text) returns framehandle
-    return textframe("h5", text)
-
-/** Left-aligned paragraph text, sized in one call (flattens p()..setSize()..setTextAlignment()). */
-public function label(string text, real width) returns framehandle
-    return label(text, width, SPACE_M)
-
-public function label(string text, real width, real height) returns framehandle
-    return p(text)..setSize(width, height)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT)
-
-/** Right-aligned paragraph text, sized in one call (handy for the value column of a row). */
-public function value(string text, real width) returns framehandle
-    return value(text, width, SPACE_M)
-
-public function value(string text, real width, real height) returns framehandle
-    return p(text)..setSize(width, height)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_RIGHT)
-
-public function img(string path) returns framehandle
-    return img(path, 0.025, false)
-
-public function img(string path, boolean blend) returns framehandle
-    return img(path, 0.025, blend)
-
-public function img(string path, real size) returns framehandle
-    return img(path, size, size, false)
-
-public function img(string path, real size, boolean blend) returns framehandle
-    return img(path, size, size, blend)
-
-public function img(string path, real width, real height) returns framehandle
-    return imgframe(path, width, height, false)
-
-public function img(string path, real width, real height, boolean blend) returns framehandle
-    return imgframe(path, width, height, blend)
-
-public function btn(string text) returns framehandle
-    let frame = createFrame("button", defaultFrameParent, 0, 0)
-        ..setText(text)..setTextAlignment(TEXT_JUSTIFY_CENTER, TEXT_JUSTIFY_CENTER)
-    if autoReleaseFocus
-        frame.onClickReleaseFocus()
-    return frame
-
-public function imgBtn(string path) returns framehandle
-    return imgBtn(path, 0.025, 0.025)
-
-public function imgBtn(string path, real size) returns framehandle
-    return imgBtn(path, size, size)
-
-public function imgBtn(string path, real width, real height) returns framehandle
-    return imgBtnFrame(path, width, height)
-
-public function checkbox(real width, real height) returns framehandle
-    let frame = createFrame("QuestCheckBox2", defaultFrameParent, 0, 0)
-        ..setSize(max(MIN_ICON_SIZE, width), max(MIN_ICON_SIZE, height))
-    if autoReleaseFocus
-        frame.onClickReleaseFocus()
-    return frame
-
-function textframe(string typeClass, string text) returns framehandle
-    return createFrame(typeClass, defaultFrameParent, 0, 0)..setText(text)..setTextAlignment(TEXT_JUSTIFY_CENTER, TEXT_JUSTIFY_CENTER)
-
-function imgframe(string path, real width, real height, boolean blend) returns framehandle
-    return createFrame(FramehandleTypeNames.backdrop, "", defaultFrameParent, "", 0)
-        ..setSize(width, height)
-        ..setTexture(path, 0, blend)
-
-
-function imgBtnFrame(string path, real width, real height) returns framehandle
-    let imgButton = createFrame(FramehandleTypeNames.gluebutton, "PickIconButton", defaultFrameParent, FramehandleNames.iconButtonTemplate, 2)
-    let imgTexture = createFrame(FramehandleTypeNames.backdrop, "pickIcon", imgButton, "", 2)
-
-    imgButton
-    ..setSize(width, height)
-
-    imgTexture
-    ..setAllPoints(imgButton)
-    ..setTexture(path, 0, true)
-
-    if autoReleaseFocus
-        imgButton.onClickReleaseFocus()
-
-    return imgButton
-
-
-public class UIBar
-    private var width = 0.
-    private var height = 0.
-    private var value = 0.
-    framehandle treeBarAc
-    framehandle treeBarBg
-
-    TableLayout layout = null
-
-    construct(real width, real height)
-        this.width = width
-        this.height = height
-        treeBarAc = img("bar-active.dds")..setWidth(0)..setHeight(height)
-        treeBarBg = img("bar-bg.dds")..setWidth(width)..setHeight(height)
-
-    function create() returns framehandle
-        layout = new TableLayout(width + 0.002, height, "uibar #" + (this castTo int).toString())
-        layout.padding = padding(0, 0, 0, 0)
-
-        return layout..row()
-        ..add(treeBarAc)
-        ..add(treeBarBg)
-        .createContainer(defaultFrameParent)
-
-    function getActiveTexture() returns string
-        if value <= 0.3
-            return "bar-low.dds"
-        if value <= 0.6
-            return "bar-mid.dds"
-        return "bar-active.dds"
-
-    function getBgTexture() returns string
-        return "bar-bg.dds"
-
-    function setValue(real value)
-        this.value = value
-        treeBarAc.show()
-        treeBarAc
-        ..setTexture(getActiveTexture(), 0, false)
-        ..setWidth(max(0.001, value * width))
-        treeBarBg.setWidth(max(0.001, (1 - value) * width))
-        if value < 1.0
-            treeBarBg..setTexture(getBgTexture(), 0, false)..show()
-        else
-            treeBarBg.hide()
-
-        if layout != null
-            layout.layout()
-
-
-interface CheckboxListener
-    function onChange(boolean checked)
-
-public class UICheckbox
-    private var value = false
-
-    framehandle bg
-    framehandle check
-
-    CheckboxListener listener
-
-    construct(real width, real height, boolean checked, string bgTexture, string checkTexture)
-        setup(width, height, checked, bgTexture, checkTexture)
-        
-    construct(real width, real height, boolean checked)
-        setup(width, height, checked, "ui\\widgets\\escmenu\\human\\checkbox-background.dds", "ui\\widgets\\escmenu\\human\\checkbox-check.dds")
-
-    function setup(real width, real height, boolean checked, string bgTexture, string checkTexture)
-        value = checked
-        bg = imgBtn(bgTexture)..setWidth(width)..setHeight(height)
-        bg..onClick() ->
-            value = not value
-            if value
-                check.show()
-            else
-                check.hide()
-
-            if listener != null
-                listener.onChange(value)
-                
-        check = img(checkTexture, true)..setVisible(checked)..setParent(bg)..setAllPoints(bg)..setWidth(width)..setHeight(height)
-
-    function addListener(CheckboxListener listener)
-        this.listener = listener
-
-    function getFrame() returns framehandle
-        return bg
-
-    function setChecked(boolean value)
-        this.value = value
-        if value
-            check.show()
-        else
-            check.hide()
-
 
 init
     loadTOCFile("TableLayout.toc")

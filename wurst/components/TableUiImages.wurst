@@ -1,0 +1,28 @@
+package TableUiImages
+// Image helper: a backdrop frame textured with the given path. Defaults to a 0.025 icon; overloads
+// take a size, a width/height, and a blend flag (blend = alpha-blended, for icons with transparency).
+import TableLayout
+import FramehandleNames
+
+function imgframe(string path, real width, real height, boolean blend) returns framehandle
+    return createFrame(FramehandleTypeNames.backdrop, "", defaultFrameParent, "", 0)
+        ..setSize(width, height)
+        ..setTexture(path, 0, blend)
+
+public function img(string path) returns framehandle
+    return img(path, 0.025, false)
+
+public function img(string path, boolean blend) returns framehandle
+    return img(path, 0.025, blend)
+
+public function img(string path, real size) returns framehandle
+    return img(path, size, size, false)
+
+public function img(string path, real size, boolean blend) returns framehandle
+    return img(path, size, size, blend)
+
+public function img(string path, real width, real height) returns framehandle
+    return imgframe(path, width, height, false)
+
+public function img(string path, real width, real height, boolean blend) returns framehandle
+    return imgframe(path, width, height, blend)

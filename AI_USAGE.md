@@ -39,7 +39,9 @@ Use these helpers instead of custom frame construction:
 - Layout roots: `defaultFrame`, `panel`, `card`, `layoutFrame`, `spacer`
 - Dividers: `separator`, `vSeparator`
 - Common rows: `iconLabel`, `labelValue`
-- Forms: `textInput`, `select`, `checkbox`, `UICheckbox`
+- Cards: `statCard(label, value, w)` (stat tile), `iconCard(icon, title, subtitle, w)` (media/list row)
+- Forms: `textInput`, `select`, `checkbox`, `UICheckbox`, `slider(label, w, min, max)`
+- Navigation: `tabs(w, contentHeight)` (`addTab(title)` returns a content frame to build into, then `build()`)
 - Feedback: `UIBar`, `statBar`, `textArea`
 - Tooltips: `withTooltip`, `boxedTooltip`
 - Dialogs: `confirmDialog`, `closeButton` for the EscMenu-styled X close control

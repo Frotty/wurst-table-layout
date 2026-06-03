@@ -1,5 +1,6 @@
 package TableLayoutValidationTest
 import TableLayout
+import TableUiSafeArea
 
 /*
  * Frame-independent tests for the layout sanity checker (inspect()/checkFits()).
@@ -212,3 +213,37 @@ function confirmDialogRowsFitOnlyWithRoomForBorderPadding()
     small..row()..addSized(0.07, 0.024)..addSized(0.07, 0.024)
     small.checkFits().assertFalse()
     destroy small
+
+@Test
+function predefinedCardsFitTheirContent()
+    let inset = 0.006
+
+    // statCard: small label over a prominent value within the card inset.
+    let statW = 0.12
+    let stat = new TableLayout(statW, 0.05)
+    stat.padding = padding(inset, inset, inset, inset)
+    stat.gap(0, 0.002)
+    stat..row()..addSized(statW - 2. * inset, 0.012)
+    stat..row()..addSized(statW - 2. * inset, 0.022)
+    stat.checkFits().assertTrue()
+    destroy stat
+
+    // iconCard: icon + text column within the card inset (the row fits the width).
+    let cardW = 0.13
+    let iconSize = 0.046 - 2. * inset
+    let textWidth = cardW - iconSize - 0.006 - 2. * inset
+    let iconRow = new TableLayout(cardW, 0.046)
+    iconRow.padding = padding(inset, inset, inset, inset)
+    iconRow.gap(0.006, 0)
+    iconRow..row()..addSized(iconSize, iconSize)..addSized(textWidth, iconSize)
+    iconRow.checkFits().assertTrue()
+    destroy iconRow
+
+    // iconCard's nested text column: title over subtitle fits the icon's height.
+    let textCol = new TableLayout(textWidth, iconSize)
+    textCol.padding = padding(0, 0, 0, 0)
+    textCol.gap(0, 0.002)
+    textCol..row()..addSized(textWidth, 0.014)
+    textCol..row()..addSized(textWidth, 0.012)
+    textCol.checkFits().assertTrue()
+    destroy textCol

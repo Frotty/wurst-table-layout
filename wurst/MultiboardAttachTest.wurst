@@ -1,6 +1,6 @@
 package MultiboardAttachTest
 import MultiboardAttach
-import TableLayout
+import TableUi
 import ClosureTimers
 
 public function runMultiboardAttachTest()

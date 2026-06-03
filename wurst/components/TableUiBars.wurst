@@ -1,0 +1,56 @@
+package TableUiBars
+// Progress / value bar: an active fill laid beside a background remainder, sized by setValue (0..1).
+// The active texture changes by fill level (low / mid / high) for a quick visual read.
+import TableLayout
+import TableUiImages
+
+public class UIBar
+    private var width = 0.
+    private var height = 0.
+    private var value = 0.
+    framehandle treeBarAc
+    framehandle treeBarBg
+
+    TableLayout layout = null
+
+    construct(real width, real height)
+        this.width = width
+        this.height = height
+        // Start the active fill at a hair's width (matching setValue's 0.001 floor) rather than 0, so
+        // the layout does not see a zero-size cell and warn at create() for an empty (0%) bar.
+        treeBarAc = img("bar-active.dds")..setWidth(0.001)..setHeight(height)
+        treeBarBg = img("bar-bg.dds")..setWidth(width)..setHeight(height)
+
+    function create() returns framehandle
+        layout = new TableLayout(width + 0.002, height, "uibar #" + (this castTo int).toString())
+        layout.padding = padding(0, 0, 0, 0)
+
+        return layout..row()
+        ..add(treeBarAc)
+        ..add(treeBarBg)
+        .createContainer(defaultFrameParent)
+
+    function getActiveTexture() returns string
+        if value <= 0.3
+            return "bar-low.dds"
+        if value <= 0.6
+            return "bar-mid.dds"
+        return "bar-active.dds"
+
+    function getBgTexture() returns string
+        return "bar-bg.dds"
+
+    function setValue(real value)
+        this.value = value
+        treeBarAc.show()
+        treeBarAc
+        ..setTexture(getActiveTexture(), 0, false)
+        ..setWidth(max(0.001, value * width))
+        treeBarBg.setWidth(max(0.001, (1 - value) * width))
+        if value < 1.0
+            treeBarBg..setTexture(getBgTexture(), 0, false)..show()
+        else
+            treeBarBg.hide()
+
+        if layout != null
+            layout.layout()

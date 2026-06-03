@@ -15,7 +15,7 @@ It began as a table/flexbox layout (rows → cells → framehandles, with option
 
 ### What you get
 
-- **Ready-made components**: panels & cards, buttons, icon buttons, checkboxes, dropdowns/selects, edit boxes, text areas, tooltips, confirm dialogs, progress & stat bars, icon-label and label-value rows, separators and spacers.
+- **Ready-made components**: panels & cards, buttons, icon buttons, checkboxes, dropdowns/selects, sliders, tabs, edit boxes, text areas, tooltips, confirm dialogs, progress & stat bars, stat/icon cards, icon-label and label-value rows, separators and spacers.
 - **A layout engine**: flexbox-style rows and cells with padding, gaps, horizontal & vertical alignment and `grow`, plus opt-in column/grid alignment (`columns()`, `colspan`).
 - **Text presets**: `h1`-`h5`, `p`-`p3`, and sized `label` / `value` helpers.
 - **Sane defaults**: a spacing scale (`SPACE_*`), automatic component minimums, automatic keyboard-focus release, a container hierarchy, and safe-area placement that keeps panels clear of the melee HUD.
@@ -163,7 +163,7 @@ Because you cannot use scaling with the table layout, several presets are provid
 - Image `img`, Button `btn`, ImageButton `imgBtn`, Checkbox `checkbox` / `UICheckbox`
 - Custom (Progress-)Bar `UIBar`
 - Containers: `panel` (window), `card` (section), `container` / `section` (no backdrop), plus `panelTable` / `cardTable` + `.build()`
-- Higher-level components in `TableUi` such as spacers, separators, icon/label rows, label/value rows, close/X buttons, boxed tooltips, edit boxes, text areas, dynamic selects, confirm dialogs, and stat bars
+- Higher-level components in `TableUi` such as spacers, separators, icon/label rows, label/value rows, close/X buttons, boxed tooltips, edit boxes, text areas, dynamic selects, sliders, tabs, stat/icon cards, confirm dialogs, and stat bars
 - Spacing scale `SPACE_XS`-`SPACE_XL` for use in `gap` / `padding` / `spacer`
 
 ```
