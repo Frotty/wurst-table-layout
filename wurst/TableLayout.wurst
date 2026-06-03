@@ -25,6 +25,15 @@ public var tableWarnings = true
     by (cellCount-1)*gapX. Default false applies the corrected, gap-aware math. */
 public var legacyGapMath = false
 
+// --- Focus -------------------------------------------------------------------
+// When true (default), clickable presets (btn / imgBtn / iconButton / textButton /
+// checkbox, and components built on them) release keyboard focus on click. Otherwise a
+// focused control swallows the Enter key — blocking chat, or re-firing the button on Enter,
+// which can be destructive. Opt out project-wide by setting this false, or per-component by
+// creating that component while it is false. For frames the library did not create, call
+// frame.onClickReleaseFocus() yourself, or disable() purely decorative frames so they never grab focus.
+public var autoReleaseFocus = true
+
 // --- Spacing scale -----------------------------------------------------------
 // A small, consistent set of free-space tokens, sized to sit in line with the text
 // presets. Use these for gap(), padding and spacer() instead of ad-hoc magic numbers.
@@ -841,7 +850,11 @@ public function img(string path, real width, real height, boolean blend) returns
     return imgframe(path, width, height, blend)
 
 public function btn(string text) returns framehandle
-    return createFrame("button", defaultFrameParent, 0, 0)..setText(text)..setTextAlignment(TEXT_JUSTIFY_CENTER, TEXT_JUSTIFY_CENTER)
+    let frame = createFrame("button", defaultFrameParent, 0, 0)
+        ..setText(text)..setTextAlignment(TEXT_JUSTIFY_CENTER, TEXT_JUSTIFY_CENTER)
+    if autoReleaseFocus
+        frame.onClickReleaseFocus()
+    return frame
 
 public function imgBtn(string path) returns framehandle
     return imgBtn(path, 0.025, 0.025)
@@ -853,8 +866,11 @@ public function imgBtn(string path, real width, real height) returns framehandle
     return imgBtnFrame(path, width, height)
 
 public function checkbox(real width, real height) returns framehandle
-    return createFrame("QuestCheckBox2", defaultFrameParent, 0, 0)
+    let frame = createFrame("QuestCheckBox2", defaultFrameParent, 0, 0)
         ..setSize(max(MIN_ICON_SIZE, width), max(MIN_ICON_SIZE, height))
+    if autoReleaseFocus
+        frame.onClickReleaseFocus()
+    return frame
 
 function textframe(string typeClass, string text) returns framehandle
     return createFrame(typeClass, defaultFrameParent, 0, 0)..setText(text)..setTextAlignment(TEXT_JUSTIFY_CENTER, TEXT_JUSTIFY_CENTER)
@@ -875,6 +891,9 @@ function imgBtnFrame(string path, real width, real height) returns framehandle
     imgTexture
     ..setAllPoints(imgButton)
     ..setTexture(path, 0, true)
+
+    if autoReleaseFocus
+        imgButton.onClickReleaseFocus()
 
     return imgButton
 

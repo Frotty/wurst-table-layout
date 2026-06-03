@@ -284,7 +284,7 @@ If a requested layout needs new behavior, add it behind an explicit method. Exis
 - Components should return either a `framehandle` or a small wrapper with `create()` / `getFrame()`.
 - Keep APIs cascade-friendly.
 - Keep frame creation cached. Calling `create()` twice should return the same frame when practical.
-- Use `onClickReleaseFocus()` or release focus manually for clickable controls.
+- Keyboard focus is handled automatically: library clickables (`btn`/`imgBtn`/`iconButton`/`textButton`/`checkbox`) release focus on click by default (`autoReleaseFocus`), so Enter still opens chat and a stray Enter can't re-fire a button. Don't add manual `unfocus()` to library buttons. For a frame the library did not create, call `frame.onClickReleaseFocus()`; for a decorative frame, `disable()` it so it never takes focus. Edit boxes keep focus intentionally.
 - Hide and reuse UI frames instead of destroying them in multiplayer UI.
 - Put FDF templates in `imports/TableLayout.fdf`.
 - Expose FDF names through helpers; do not make map code know template strings.
@@ -322,6 +322,6 @@ At runtime the library also warns automatically: a `Log.warn` fires once per cel
 - Is every non-grow cell sized (no bare unsized text presets in multi-cell rows)?
 - Does `layout.checkFits()` pass (no overflow, no zero-size cells)?
 - Are tooltips created through `withTooltip` or `boxedTooltip`?
-- Are buttons releasing keyboard focus?
+- Library buttons release keyboard focus automatically; for any clickable frame the library did NOT create, did it get `onClickReleaseFocus()` (or `disable()` if decorative)?
 - If multiboard code changed, was minimize/maximize considered?
 - Did `grill build` pass?

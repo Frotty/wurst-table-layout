@@ -49,6 +49,7 @@ end)
 - Minimum sizes: `textButton`/`iconButton`/`checkbox` clamp to `MIN_BUTTON_WIDTH`/`MIN_BUTTON_HEIGHT`/`MIN_ICON_SIZE` so controls can't render broken.
 - Container hierarchy: `panel` (window) > `card` (section, sparingly) > `container`/`section` (no backdrop, default nesting). Never nest backdrops more than one level — box with `container`/`section`, not `card`.
 - Safe placement: use `frame.placeSafe(vec2, w, h)` (clamps into `SAFE_AREA_MIN`..`SAFE_AREA_MAX`) instead of raw `setAbsPoint`, to avoid the melee HUD.
+- Keyboard focus: library clickables auto-release focus on click (`autoReleaseFocus`, default true) so Enter still opens chat and can't re-fire a button; no manual `unfocus()` needed. For foreign frames call `onClickReleaseFocus()`; for decorative frames `disable()`. There is no FDF "unfocusable" flag and no `GetFocus`/focus event, so focus is handled at creation/click, not globally.
 - Flatter setup: `panelTable`/`cardTable` + `.build()` (no duplicated dimensions); `label(text,w)`/`value(text,w)` for sized text.
 - If content size changes later, call `layout()` again to recompute positions.
 - Free transient layouts with `destroy layout` (frees Row/Cell wrappers and lists; does not destroy the shared framehandles).

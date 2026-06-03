@@ -215,14 +215,24 @@ Use `createContext` intentionally for repeated instances or per-player copies. C
 let close = btn("Close")..setSize(0.08, 0.024)
 close.onClick() ->
     root.hide()
-    close.unfocus()
 ```
 
 Available wrappers include `onClick`, `onMouseEnter`, `onMouseLeave`, `onSliderValueChange`, `onEditboxChange`, and `onEditboxEnter`.
 
 Frame events are synchronized. For game-affecting input, read the event data inside the event and store it in synced/player-indexed state. Do not read local UI getters later and use them for synced game logic.
 
-Buttons and edit boxes can steal keyboard focus. After button clicks, call `unfocus()` or disable/enable the frame for the triggering player if local focus behavior matters.
+### Keyboard focus
+
+Clicked frames steal keyboard focus, and a focused frame swallows the **Enter** key. Because Enter normally opens chat, a stray focus means Enter either does nothing (chat won't open) or re-fires the focused control — which can be destructive (an accidental button press). This affects buttons, edit boxes and even clickable backdrops (e.g. Blizzard's chat window).
+
+Why there is no single global cure: WC3 exposes `BlzFrameSetFocus` but **no `GetFocus`** (you can't ask what is focused), there is **no focus-changed frame event**, and player mouse events don't fire reliably over UI frames. So focus must be handled where a frame is created or clicked, not via one global listener.
+
+How this library handles it:
+
+- **Library clickables auto-release focus by default.** `btn`, `imgBtn`, `iconButton`, `textButton`, `checkbox`, and the components built on them attach `onClickReleaseFocus()` automatically (controlled by the `autoReleaseFocus` flag, default true). So after a library button is clicked, focus drops and Enter opens chat normally — no manual `unfocus()` needed. Edit boxes (`textInput`) are intentionally excluded, since typing needs focus.
+- **Opt out** project-wide with `autoReleaseFocus = false`, or per-component by creating that component while the flag is false (reset it afterwards, like `defaultFrameParent`).
+- **Foreign / Blizzard frames** the library did not create: call `frame.onClickReleaseFocus()` on a clickable you want to behave, or `frame.disable()` on a purely decorative frame so it never grabs focus in the first place (the library already disables its own `panel`/`card` backdrops for this reason). There is **no FDF flag** for "unfocusable" — disabling is the structural equivalent.
+- Manual `unfocus()` / `releaseKeyboardFocus(player)` is still available when you need to release focus from a specific frame yourself.
 
 ## Multiplayer Safety
 
