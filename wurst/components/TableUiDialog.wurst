@@ -1,0 +1,169 @@
+package TableUiDialog
+// Code-driven dialogs on the DIALOG layer (above ordinary UI): a yes/no confirm prompt
+// (confirmDialog / UIConfirmDialog) and a blank dialog frame with map-side content (dialogFrame /
+// UIDialog). Content is built in place under the dialog frame to avoid hit-area desync.
+import TableLayout
+import TableUiText
+import TableUiButtons
+import TableUiPanels
+import TableUiLayers
+import TableUiSafeArea
+
+public interface ConfirmDialogListener
+    function onAccept(player p)
+    function onCancel(player p)
+
+public class UIConfirmDialog
+    string title = ""
+    string message = ""
+    string acceptText = "Yes"
+    string cancelText = "No"
+    real width = 0.24
+    real height = 0.13
+    framehandle frame = null
+    ConfirmDialogListener listener = null
+
+    construct(string title, string message)
+        this.title = title
+        this.message = message
+
+    construct(string title, string message, real width, real height)
+        this.title = title
+        this.message = message
+        this.width = width
+        this.height = height
+
+    function setButtons(string acceptText, string cancelText) returns thistype
+        this.acceptText = acceptText
+        this.cancelText = cancelText
+        return this
+
+    function onResult(ConfirmDialogListener listener) returns thistype
+        this.listener = listener
+        return this
+
+    function create() returns framehandle
+        if frame != null
+            return frame
+
+        let prevParent = defaultFrameParent
+        // The dialog lives in the DIALOG layer (a GAME_UI child held above ordinary content) so it
+        // renders on top of panels without reparenting. Dropdowns sit one layer higher (OVERLAY).
+        defaultFrameParent = Layer.DIALOG.getFrame()
+        frame = panel(width, height)
+            ..hide()
+
+        // Create the buttons + text UNDER the dialog frame so TableLayout's setParent is a no-op.
+        // Reparenting after creation desyncs a frame's clickable area from its visual in WC3.
+        defaultFrameParent = frame
+
+        let accept = textButton(acceptText, 0.07, 0.024)
+        let cancel = textButton(cancelText, 0.07, 0.024)
+
+        accept.onClick() ->
+            accept.releaseKeyboardFocus(GetTriggerPlayer())
+            hide()
+            if listener != null
+                listener.onAccept(GetTriggerPlayer())
+
+        cancel.onClick() ->
+            cancel.releaseKeyboardFocus(GetTriggerPlayer())
+            hide()
+            if listener != null
+                listener.onCancel(GetTriggerPlayer())
+
+        // Pad by the ornate border inset so the title / message / buttons clear the decorated border.
+        let inset = PANEL_BORDER_INSET
+        let innerWidth = width - 2. * inset
+        let layout = new TableLayout(width, height, "ConfirmDialog")
+        layout.padding = padding(inset, inset, inset, inset)
+        layout.gap(0.004, 0.006)
+        layout
+        ..row()..add(h3(title)..setSize(innerWidth, 0.018))..growX()
+        ..row()..add(p(message)..setSize(innerWidth, 0.040))..growX()
+        ..row()..end_()
+        ..add(cancel)
+        ..add(accept)
+        layout.applyTo(frame)
+        defaultFrameParent = prevParent
+        return frame
+
+    function show() returns thistype
+        create().show()
+        return this
+
+    function hide() returns thistype
+        if frame != null
+            frame.hide()
+        return this
+
+    function getFrame() returns framehandle
+        return create()
+
+public function confirmDialog(string title, string message) returns UIConfirmDialog
+    return new UIConfirmDialog(title, message)
+
+public function confirmDialog(string title, string message, real width, real height) returns UIConfirmDialog
+    return new UIConfirmDialog(title, message, width, height)
+
+public interface DialogBody
+    function run()
+
+/** A blank "dialog frame" with full map-side control of its content: a panel backdrop on the DIALOG
+    layer (so it renders above ordinary UI), plus show()/hide()/placeSafe(). Use confirmDialog for quick
+    yes/no prompts; use this when you need arbitrary dialog content but still want the on-top dialog frame.
+
+    Build content INSIDE build() so it is created under the dialog frame (no reparenting / hit-area
+    desync). Pad your layout by at least PANEL_BORDER_INSET to clear the ornate border:
+
+        let d = dialogFrame(0.30, 0.20)
+        d.build() ->
+            let layout = new TableLayout(0.30, 0.20, "MyDialog")
+            layout.padding = padding(PANEL_BORDER_INSET, PANEL_BORDER_INSET, PANEL_BORDER_INSET, PANEL_BORDER_INSET)
+            layout..row()..add(h3("Title"))..growX()
+            layout..row()..add(p("Body")..setSize(0.27, 0.05))..growX()
+            layout.applyTo(d.getFrame())
+        d..placeSafe(vec2(0.35, 0.45))..show() */
+public class UIDialog
+    private real width
+    private real height
+    private framehandle frame = null
+
+    construct(real width, real height)
+        this.width = width
+        this.height = height
+
+    /** Creates (once) the dialog backdrop on the DIALOG layer and returns it, hidden. */
+    function getFrame() returns framehandle
+        if frame == null
+            let prev = defaultFrameParent
+            defaultFrameParent = Layer.DIALOG.getFrame()
+            frame = panel(width, height)..hide()
+            defaultFrameParent = prev
+        return frame
+
+    /** Runs `body` with defaultFrameParent set to the dialog frame, so content built inside it (helpers,
+        a TableLayout applied to getFrame()) is CREATED in place rather than reparented. Returns the frame. */
+    function build(DialogBody body) returns framehandle
+        let f = getFrame()
+        let prev = defaultFrameParent
+        defaultFrameParent = f
+        body.run()
+        defaultFrameParent = prev
+        return f
+
+    function show() returns thistype
+        getFrame().show()
+        return this
+
+    function hide() returns thistype
+        getFrame().hide()
+        return this
+
+    /** Positions the dialog's TOPLEFT, clamped into the safe area (clear of the melee HUD). */
+    function placeSafe(vec2 topLeft) returns thistype
+        getFrame().placeSafe(topLeft, width, height)
+        return this
+
+public function dialogFrame(real width, real height) returns UIDialog
+    return new UIDialog(width, height)

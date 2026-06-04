@@ -1,0 +1,56 @@
+package TableUiCards
+// Predefined display cards on a card() backdrop: a compact stat tile (statCard) and a media-object
+// row with an icon, title and subtitle (iconCard).
+import TableLayout
+import TableUiText
+import TableUiImages
+import TableUiPanels
+
+/** A compact stat tile: a small label above a prominent value, on a card backdrop. For dashboards /
+    HUD readouts (e.g. "Gold" over "1,250"). Display-only. */
+public function statCard(string label, string value, real width) returns framehandle
+    let height = 0.05
+    let prevParent = defaultFrameParent
+    let root = card(width, height)
+    defaultFrameParent = root
+    let inset = 0.006
+    let innerW = max(0.001, width - 2. * inset)
+    let layout = new TableLayout(width, height, "StatCard")
+    layout.padding = padding(inset, inset, inset, inset)
+    layout.gap(0, 0.002)
+    layout
+    ..row()..add(p3(label)..setSize(innerW, 0.012)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
+    ..row()..add(h2(value)..setSize(innerW, 0.022)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
+    layout.applyTo(root)
+    root.disable()
+    defaultFrameParent = prevParent
+    return root
+
+/** The "media object" card: an icon on the left with a title over a subtitle on the right, on a card
+    backdrop. For list items / shop entries / menu rows. Display-only. */
+public function iconCard(string iconPath, string title, string subtitle, real width) returns framehandle
+    let height = 0.046
+    let prevParent = defaultFrameParent
+    let root = card(width, height)
+    defaultFrameParent = root
+    let inset = 0.006
+    let iconSize = height - 2. * inset
+    let textWidth = max(0.001, width - iconSize - 0.006 - 2. * inset)
+
+    let textCol = layoutFrame(root)..setSize(textWidth, iconSize)
+    let textLayout = new TableLayout(textWidth, iconSize, "IconCardText")
+    textLayout.padding = padding(0, 0, 0, 0)
+    textLayout.gap(0, 0.002)
+    textLayout
+    ..row()..add(p(title)..setSize(textWidth, 0.014)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
+    ..row()..add(p3(subtitle)..setSize(textWidth, 0.012)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
+    textLayout.applyTo(textCol)
+
+    let layout = new TableLayout(width, height, "IconCard")
+    layout.padding = padding(inset, inset, inset, inset)
+    layout.gap(0.006, 0)
+    layout..row()..middle()..add(img(iconPath, iconSize, iconSize))..add(textCol)..growX()
+    layout.applyTo(root)
+    root.disable()
+    defaultFrameParent = prevParent
+    return root

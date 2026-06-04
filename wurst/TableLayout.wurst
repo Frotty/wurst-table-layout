@@ -24,6 +24,14 @@ public var tableWarnings = true
     by (cellCount-1)*gapX. Default false applies the corrected, gap-aware math. */
 public var legacyGapMath = false
 
+// --- UI create contexts ------------------------------------------------------
+// Frames are stored by (name, createContext); use a fresh context per repeated/instanced frame so
+// copies do not collide. nextUiContext() hands out monotonically increasing contexts.
+var nextCreateContext = 1000
+public function nextUiContext() returns int
+    nextCreateContext++
+    return nextCreateContext
+
 // --- Focus -------------------------------------------------------------------
 // When true (default), clickable presets (btn / imgBtn / iconButton / textButton /
 // checkbox, and components built on them) release keyboard focus on click. Otherwise a
@@ -730,6 +738,12 @@ public class Cell
         if frame == null
             return
         frame.setParent(baseFrame)
+        // Clear any pre-existing anchor before placing the cell. decoratedFrame()-based content
+        // (card/panel and the statCard/iconCard built on them) carries a setAbsPoint(TOP) from
+        // creation; without this clear the cell would add a SECOND anchor, leaving the frame pinned
+        // to both screen-centre and the cell. That double-anchor collapses the frame toward a corner
+        // and shows its border art as a stray mark. A no-op for freshly-created text/img/button cells.
+        frame.clearAllPoints()
         frame.setPoint(FRAMEPOINT_TOPLEFT, baseFrame, FRAMEPOINT_TOPLEFT, offset)
 
 

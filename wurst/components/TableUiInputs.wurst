@@ -1,0 +1,65 @@
+package TableUiInputs
+// Text entry: a single-line edit box (textInput / UIEditBox) whose submit listener reads synced
+// frame-event text, and a scrollable multi-line text area (textArea).
+import TableLayout
+
+public interface TextInputListener
+    function onSubmit(player p, string text)
+
+public class UIEditBox
+    framehandle frame = null
+    TextInputListener listener = null
+    string initialText = ""
+    real width = 0.
+    real height = 0.026
+    int textLimit = 255
+
+    construct(string initialText, real width)
+        this.initialText = initialText
+        this.width = width
+
+    construct(string initialText, real width, real height)
+        this.initialText = initialText
+        this.width = width
+        this.height = height
+
+    function create() returns framehandle
+        if frame != null
+            return frame
+
+        frame = createFrame("TableUiEditBox", defaultFrameParent, 0, nextUiContext())
+            ..setSize(width, height)
+            ..setText(initialText)
+            ..setTextSizeLimit(textLimit)
+
+        frame.onEditboxEnter() ->
+            if listener != null
+                listener.onSubmit(GetTriggerPlayer(), BlzGetTriggerFrameText())
+            frame.releaseKeyboardFocus(GetTriggerPlayer())
+
+        return frame
+
+    function onSubmit(TextInputListener listener) returns thistype
+        this.listener = listener
+        return this
+
+    function setTextLimit(int limit) returns thistype
+        textLimit = limit
+        if frame != null
+            frame.setTextSizeLimit(limit)
+        return this
+
+    function getFrame() returns framehandle
+        return create()
+
+public function textInput(string initialText, real width) returns UIEditBox
+    return new UIEditBox(initialText, width)
+
+public function textInput(string initialText, real width, real height) returns UIEditBox
+    return new UIEditBox(initialText, width, height)
+
+public function textArea(string text, real width, real height) returns framehandle
+    let frame = createFrame("TableUiTextArea", defaultFrameParent, 0, nextUiContext())
+        ..setSize(width, max(0.03, height))
+        ..setText(text)
+    return frame

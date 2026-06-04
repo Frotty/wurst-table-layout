@@ -1,8 +1,10 @@
 package TableUiBars
 // Progress / value bar: an active fill laid beside a background remainder, sized by setValue (0..1).
-// The active texture changes by fill level (low / mid / high) for a quick visual read.
+// The active texture changes by fill level (low / mid / high) for a quick visual read. Also the
+// labelled stat bar (statBar / UIStatBar): a label + value text above the bar.
 import TableLayout
 import TableUiImages
+import TableUiText
 
 public class UIBar
     private var width = 0.
@@ -54,3 +56,62 @@ public class UIBar
 
         if layout != null
             layout.layout()
+
+// --- Stat bar ----------------------------------------------------------------
+// A labelled bar: [label .......... value] over [====fill====].
+
+public class UIStatBar
+    string label = ""
+    string valueText = ""
+    real width = 0.
+    real value = 0.
+    framehandle frame = null
+    framehandle valueFrame = null
+    UIBar bar = null
+
+    construct(string label, real width)
+        this.label = label
+        this.width = width
+
+    function create() returns framehandle
+        if frame != null
+            return frame
+
+        frame = layoutFrame(defaultFrameParent)
+            ..setSize(width, 0.032)
+        valueFrame = p(valueText)
+            ..setSize(width * 0.34, 0.014)
+            ..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_RIGHT)
+        bar = new UIBar(width, 0.008)
+
+        let layout = new TableLayout(width, 0.032, "StatBar")
+        layout.padding = padding(0, 0, 0, 0)
+        layout.gap(0, 0.002)
+        layout
+        ..row()
+        ..add(p(label)..setSize(width * 0.62, 0.014)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))..growX()
+        ..add(valueFrame)
+        ..row()
+        ..add(bar.create())..growX()
+        layout.applyTo(frame)
+        bar.setValue(value)
+        frame.disable()
+        return frame
+
+    function setValue(real value) returns thistype
+        this.value = max(0., min(1., value))
+        if bar != null
+            bar.setValue(this.value)
+        return this
+
+    function setValueText(string valueText) returns thistype
+        this.valueText = valueText
+        if valueFrame != null
+            valueFrame.setText(valueText)
+        return this
+
+    function getFrame() returns framehandle
+        return create()
+
+public function statBar(string label, real width) returns UIStatBar
+    return new UIStatBar(label, width)

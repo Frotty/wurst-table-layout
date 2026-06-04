@@ -51,12 +51,20 @@ Frame "TEXTAREA" "TableUiTextArea" INHERITS WITHCHILDREN "EscMenuTextAreaTemplat
     UseActiveContext,
     Width 0.22,
     Height 0.12,
+    // Inset (padding) of the text inside the area. The inherited default wastes a lot at the bottom;
+    // too small jams the text into the top-left corner. 0.008 keeps a comfortable even margin.
+    // If the area renders blank in-game, remove this line to restore the inherited default.
+    TextAreaInset 0.008,
+    // The inherited line height is taller than the font needs, so lines look far apart. Tighten it.
+    // If lines overlap vertically, raise TextAreaLineHeight back toward the font size (~0.01).
+    TextAreaLineHeight 0.012,
+    TextAreaLineGap 0.0,
 }
 
 Frame "SLIDER" "TableUiSlider" INHERITS WITHCHILDREN "EscMenuSliderTemplate" {
     UseActiveContext,
     Width 0.15,
-    Height 0.016,
+    Height 0.012,
 }
 
 // -- Frames -------------------------------------------------------

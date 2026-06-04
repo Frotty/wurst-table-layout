@@ -3,186 +3,236 @@ import ClosureTimers
 import TableUi
 import Icons
 import GameTimer
-import Textures
+
+constant NAME_W = 0.07   // left "name" column width in the components showcase
+constant NOTES_TEXT = "TableUi.textArea wraps WC3's native scrollable text area. When the content is "
+    + "taller than the box a scrollbar appears on the right and you can drag to read the rest. This "
+    + "paragraph is intentionally long so it overflows the few visible lines and demonstrates the "
+    + "automatic scrolling you would use for patch notes, lore, quest text or long tooltips."
 
 init
-
-    doAfter(.1) ->
-
-        let legacyBar = new UIBar(0.10, 0.01)
-
-        doPeriodically(0.01) cb ->
-            legacyBar.setValue((1 + currentTime.cos()) / 2.)
-
-        let checkbox = new UICheckbox(0.025, 0.025, true)
-
-        let nestedTable1 = new TableLayout(0.1, 0.05)
-        ..row()..center()
-        ..add(img(Icons.bTNAcolyte))
-        ..row()..center()
-        ..add(p("Acolyte"))..padTop(0.01)
-
-        let nestedTable2 = new TableLayout(0.1, 0.05)
-        ..row()..center()
-        ..add(img(Icons.bTNAbomination))
-        ..row()..center()
-        ..add(p("Abomination"))..padTop(0.01)
-
-        let uiPanel = panel(0.42, 0.40)
-        uiPanel.clearAndSetAbsPoint(FRAMEPOINT_TOPLEFT, vec2(0.055, 0.565))
-
-        let selectField = select("Select", 0.13)
-        ..addOption("Practice")
-        ..addOption("Normal")
-        ..addOption("Hard")
-
-        let stat = statBar("Power", 0.20)
-        ..setValue(0.5)
-        ..setValueText("animated")
-
-        doPeriodically(0.03) cb ->
-            stat.setValue((1 + (currentTime + 1.57).sin()) / 2.)
-
-        let confirm = confirmDialog("Confirm", "This dialog is made from TableUi helpers.", 0.24, 0.13)
+    doAfter(0.1) ->
+        // confirmDialog + a blank dialogFrame (UIDialog), both on the DIALOG layer (render on top).
+        let confirm = confirmDialog("Confirm", "A simple confirm dialog built from TableUi helpers.", 0.26, 0.13)
         ..setButtons("OK", "Cancel")
-        let confirmFrame = confirm.getFrame()
-        confirmFrame.clearAndSetAbsPoint(FRAMEPOINT_CENTER, vec2(0.4, 0.32))
+        confirm.getFrame().clearAndSetAbsPoint(FRAMEPOINT_CENTER, vec2(0.4, 0.32))
+        let custom = buildCustomDialog()
 
-        let dialogButton = textButton("Dialog", 0.07, 0.024)
-        ..withTooltip("Open a simple code-driven confirm dialog.")
-        dialogButton.onClick() ->
-            dialogButton.releaseKeyboardFocus(GetTriggerPlayer())
-            confirm.show()
+        buildComponentsPanel(confirm, custom)
+        buildDisplayPanel()
+        buildTypographyPanel()
+        buildShowcasePanel()
 
-        let componentColumn = layoutFrame(defaultFrameParent)
-            ..setSize(0.23, 0.33)
+// A blank dialogFrame (UIDialog) filled with our own layout via build(); closed by its own closeButton.
+function buildCustomDialog() returns UIDialog
+    let dw = 0.28
+    let dh = 0.15
+    let custom = dialogFrame(dw, dh)
+    let inner = dw - 2. * PANEL_BORDER_INSET
+    custom.build() ->
+        let l = new TableLayout(dw, dh, "CustomDialog")
+        l.padding = padding(PANEL_BORDER_INSET, PANEL_BORDER_INSET, PANEL_BORDER_INSET, PANEL_BORDER_INSET)
+        l.gap(0.004, 0.006)
+        l
+        ..row()..add(h3("Custom dialog")..setSize(inner - 0.022, 0.02))..growX()..add(closeButton(custom.getFrame(), 0.018))
+        ..row()..add(p("dialogFrame() is a blank on-top dialog; fill it with any layout via build().")..setSize(inner, 0.04))..growX()
+        ..row()..add(iconLabel(Icons.bTNPeasant, "closeButton hides its target", inner))
+        l.applyTo(custom.getFrame())
+    custom.placeSafe(vec2(0.36, 0.45))
+    return custom
 
-        let componentLayout = new TableLayout(0.23, 0.33, "ComponentColumn")
-        componentLayout.padding = padding(0, 0, 0, 0)
-        componentLayout
-        ..gap(0.004, 0.004)
-        ..row()
-        ..add(h4("Components"))..growX()
-        ..row()
-        ..add(iconLabel(Icons.bTNHumanBuild, "Icon label", 0.18))
-        ..row()
-        ..add(labelValue("State", "Ready", 0.20))
-        ..row()
-        ..add(p("Select")..setSize(0.045, 0.024)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
-        ..add(selectField.create())..growX()
-        ..row()
-        ..add(p("Input")..setSize(0.045, 0.026)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
-        ..add(textInput("type", 0.13).create())..growX()
-        ..row()
-        ..add(stat.create())
-        ..row()
-        ..add(textArea("Textarea line 1|nTextarea line 2", 0.20, 0.075))
-        ..row()
-        ..add(dialogButton)
-        ..add(spacer(0.008, 0.024))
-        ..add(iconButton(Icons.bTNHumanBuild, 0.024).withTooltip("Icon button"))
-        ..add(spacer(0.008, 0.024))
-        ..add(checkbox.getFrame())
-        componentLayout.applyTo(componentColumn)
+// ===== Components: interactive widgets, a 2-column [name | component] list =====
+function buildComponentsPanel(UIConfirmDialog confirm, UIDialog custom)
+    let cw = 0.245
+    let ch = 0.38
+    let root = panel(cw, ch)
+    root.placeSafe(vec2(0.05, 0.56), cw, ch)
+    let inner = cw - 2. * PANEL_BORDER_INSET
 
-        let legacyColumn = layoutFrame(defaultFrameParent)
-            ..setSize(0.15, 0.33)
+    let prev = defaultFrameParent
+    defaultFrameParent = root
 
-        let nestedContainer = layoutFrame(defaultFrameParent)
-            ..setSize(0.145, 0.055)
+    let selectField = select("Select", 0.13)
+    ..addOption("Practice")..addOption("Normal")..addOption("Hard")
+    let bar = new UIBar(0.13, 0.012)
+    let check = new UICheckbox(0.022, 0.022, true)
+    let volume = slider("", 0.13, 0, 100)..setValue(60)
+    let confirmButton = textButton("Confirm", 0.062, 0.024)..withTooltip("Open the confirm dialog.")
+    confirmButton.onClick() ->
+        confirmButton.releaseKeyboardFocus(GetTriggerPlayer())
+        confirm.show()
+    let customButton = textButton("Custom", 0.06, 0.024)..withTooltip("Open the custom dialogFrame.")
+    customButton.onClick() ->
+        customButton.releaseKeyboardFocus(GetTriggerPlayer())
+        custom.show()
 
-        new TableLayout(0.145, 0.055, "NestedExamples")
-        ..gap(0.004, 0)
-        ..row()
-        ..add(nestedTable1.createContainer(nestedContainer))..growX()
-        ..add(nestedTable2.createContainer(nestedContainer))..growX()
-        ..applyTo(nestedContainer)
+    let layout = new TableLayout(cw, ch, "Components")
+    layout.padding = padding(PANEL_BORDER_INSET, PANEL_BORDER_INSET, PANEL_BORDER_INSET, PANEL_BORDER_INSET)
+    layout.gap(0.006, 0.005)
+    layout
+    ..row()..add(h3("Components")..setSize(inner, 0.02))..growX()
+    ..row()..add(label("Select box", NAME_W))..add(selectField.create())
+    ..row()..add(label("Input field", NAME_W))..add(textInput("type", 0.13).create())
+    ..row()..add(label("Slider", NAME_W))..add(volume.create())
+    ..row()..add(label("UI bar", NAME_W))..add(bar.create())
+    ..row()..add(label("Checkbox", NAME_W))..add(check.getFrame())
+    ..row()..add(label("Button", NAME_W))..add(textButton("Click", 0.08, 0.024))
+    ..row()..add(label("Icon button", NAME_W))..add(iconButton(Icons.bTNHumanBuild, 0.024))
+    ..row()..add(label("Dialogs", NAME_W))..add(confirmButton)..add(customButton)
+    ..row()..middle()..add(label("Text area", NAME_W))..add(textArea(NOTES_TEXT, 0.13, 0.064))
+    layout.applyTo(root)
+    defaultFrameParent = prev
 
-        let legacyLayout = new TableLayout(0.15, 0.33, "LegacyColumn")
-        legacyLayout.padding = padding(0, 0, 0, 0)
-        legacyLayout
-        ..gap(0.003, 0.0025)
-        ..row()
-        ..add(h4("Typography"))..growX()
-        ..row()
-        ..add(h1("h1"))
-        ..row()
-        ..add(h2("h2"))
-        ..row()
-        ..add(h3("h3"))
-        ..row()
-        ..add(h4("h4"))
-        ..row()
-        ..add(h5("h5"))
-        ..row()
-        ..add(p("p1"))
-        ..row()
-        ..add(p2("p2"))
-        ..row()
-        ..add(p3("p3"))
-        ..row()
-        ..add(separator(0.13))
-        ..row()
-        ..add(img(Textures.auraRune6, 0.05, true))
-        ..row()
-        ..add(btn("button")..setWidth(0.11)..setHeight(0.024))
-        ..row()
-        ..add(imgBtn(Icons.bTNHumanBuild))
-        ..row()
-        ..add(legacyBar.create())
-        ..row()
-        ..add(nestedContainer)
-        legacyLayout.applyTo(legacyColumn)
+    doPeriodically(0.03) cb ->
+        bar.setValue((1 + currentTime.cos()) / 2.)
 
-        new TableLayout(0.42, 0.40, "TableUiTest")
-        ..gap(0.004, 0.004)
-        ..row()
-        ..add(h2("TableUi"))..growX()
-        ..add(closeButton(uiPanel))
-        ..row()
-        ..add(separator(0.38))
-        ..row()
-        ..add(componentColumn)
-        ..add(legacyColumn)
-        ..applyTo(uiPanel)
+// A custom tooltip BUILT FROM FRAMES (icon + heading + body, each its own size), not just a string.
+// Created hidden in the OVERLAY band, anchored above its owner, then attached with setTooltip so WC3
+// shows/hides it on hover.
+function buildRichTooltip(framehandle owner)
+    let tw = 0.22
+    let th = 0.092
+    let inner = tw - 2. * PANEL_BORDER_INSET
+    let prev = defaultFrameParent
+    defaultFrameParent = Layer.OVERLAY.getFrame()
+    let tip = card(tw, th)..hide()..disable()
+    defaultFrameParent = tip
+    let l = new TableLayout(tw, th, "RichTip")
+    l.padding = padding(PANEL_BORDER_INSET, PANEL_BORDER_INSET, PANEL_BORDER_INSET, PANEL_BORDER_INSET)
+    l.gap(0.004, 0.003)
+    l
+    ..row()..middle()..add(img(Icons.bTNHeroArchMage, 0.02, 0.02)..disable())..add(h4("Archmage")..setSize(inner - 0.024, 0.016)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT)..disable())..growX()
+    ..row()..add(p("A tooltip built from frames: an icon, a heading and body text, each with its own size.")..setSize(inner, 0.04)..disable())..growX()
+    l.applyTo(tip)
+    tip..clearAllPoints()..setPoint(FRAMEPOINT_BOTTOM, owner, FRAMEPOINT_TOP, vec2(0, 0.006))
+    defaultFrameParent = prev
+    owner.setTooltip(tip)
 
-        // Grid mode demo: columns() auto-aligns cells into columns across rows (no manual offsets).
-        let gridPanel = panel(0.2, 0.13)
-        gridPanel.clearAndSetAbsPoint(FRAMEPOINT_TOPLEFT, vec2(0.5, 0.565))
-        new TableLayout(0.2, 0.13, "GridDemo")
-        ..columns()
-        ..gap(0.006, 0.004)
-        ..row()..add(h4("Roster")..setSize(0.12, 0.016))..colspan(2)
-        ..row()..add(iconLabel(Icons.bTNAcolyte, "Acolyte", 0.11))..add(p("x12")..setSize(0.03, 0.014))
-        ..row()..add(iconLabel(Icons.bTNAbomination, "Abomination", 0.11))..add(p("x3")..setSize(0.03, 0.014))
-        ..row()..add(iconLabel(Icons.bTNHumanBuild, "Peasant", 0.11))..add(p("x8")..setSize(0.03, 0.014))
-        ..applyTo(gridPanel)
+// ===== Display: info rows, colour swatches, dividers, a section, a stat bar, a rich tooltip =====
+function buildDisplayPanel()
+    let dw = 0.165
+    let dh = 0.38
+    let root = panel(dw, dh)
+    root.placeSafe(vec2(0.305, 0.56), dw, dh)
+    let inner = dw - 2. * PANEL_BORDER_INSET
 
-        // Newer components: slider, tabs, and predefined cards.
-        let newPanel = panel(0.30, 0.26)
-        newPanel.placeSafe(vec2(0.48, 0.43), 0.30, 0.26)
+    let prev = defaultFrameParent
+    defaultFrameParent = root
+    let mana = statBar("Mana", inner)..setValue(0.5)..setValueText("150/300")
+    let tipButton = textButton("Hover me", inner, 0.024)
+    buildRichTooltip(tipButton)
 
-        let volume = slider("Volume", 0.26, 0, 100)..setValue(60)
+    let layout = new TableLayout(dw, dh, "Display")
+    layout.padding = padding(PANEL_BORDER_INSET, PANEL_BORDER_INSET, PANEL_BORDER_INSET, PANEL_BORDER_INSET)
+    layout.gap(0.005, 0.005)
+    layout
+    ..row()..add(h3("Display")..setSize(inner, 0.02))..growX()
+    ..row()..add(iconLabel(Icons.bTNFootman, "Footman", inner))
+    ..row()..add(labelValue("Kills", "12", inner))..growX()
+    ..row()..add(mana.create())..growX()
+    ..row()..middle()..add(label("Colours", 0.04, 0.012))..add(coloredRect(TC_RED, 0.03, 0.014))..add(coloredSquare(TC_BLUE, 0.014))..add(coloredSquare(TC_TEAL, 0.014))..add(coloredSquare(TC_YELLOW, 0.014))
+    ..row()..middle()..add(label("vSep", 0.028, 0.012))..add(value("A", 0.018, 0.012))..add(vSeparator(0.012))..add(label("B", 0.018, 0.012))
+    ..row()..add(section("Section helper", inner))
+    ..row()..add(h5("Custom tooltip")..setSize(inner, 0.013)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))..growX()
+    ..row()..add(tipButton)..growX()
+    layout.applyTo(root)
+    defaultFrameParent = prev
 
-        let demoTabs = tabs(0.26, 0.06)
-        let statsTab = demoTabs.addTab("Stats")
-        let statsLayout = new TableLayout(0.26, 0.06, "StatsTab")
-        statsLayout.padding = padding(0.002, 0.002, 0.002, 0.002)
-        statsLayout..gap(0, 0.003)
-        ..row()..add(labelValue("Health", "500/500", 0.252))
-        ..row()..add(labelValue("Mana", "120/300", 0.252))
-        statsLayout.applyTo(statsTab)
-        let infoTab = demoTabs.addTab("Info")
-        let infoLayout = new TableLayout(0.26, 0.06, "InfoTab")
-        infoLayout.padding = padding(0.002, 0.002, 0.002, 0.002)
-        infoLayout..row()..add(p("Tabs swap content with no reparenting.")..setSize(0.252, 0.05))..growX()
-        infoLayout.applyTo(infoTab)
-        demoTabs.build()
+// ===== Typography scale =====
+function buildTypographyPanel()
+    let tw = 0.10
+    let th = 0.34
+    let root = panel(tw, th)
+    root.placeSafe(vec2(0.48, 0.56), tw, th)
+    let inner = tw - 2. * PANEL_BORDER_INSET
 
-        new TableLayout(0.30, 0.26, "NewComponents")
-        ..gap(0.006, 0.006)
-        ..row()..add(h3("More components")..setSize(0.272, 0.018))..growX()
-        ..row()..add(volume.create())
-        ..row()..add(statCard("Gold", "1,250", 0.12))..add(iconCard(Icons.bTNHumanBuild, "Peasant", "Worker unit", 0.13))
-        ..row()..add(demoTabs.getFrame())
-        ..applyTo(newPanel)
+    let prev = defaultFrameParent
+    defaultFrameParent = root
+    let layout = new TableLayout(tw, th, "Typography")
+    layout.padding = padding(PANEL_BORDER_INSET, PANEL_BORDER_INSET, PANEL_BORDER_INSET, PANEL_BORDER_INSET)
+    layout.gap(0, 0.004)
+    layout
+    ..row()..add(h3("Type")..setSize(inner, 0.02))..growX()
+    ..row()..add(h1("h1")..setSize(inner, 0.026))
+    ..row()..add(h2("h2")..setSize(inner, 0.024))
+    ..row()..add(h3("h3")..setSize(inner, 0.022))
+    ..row()..add(h4("h4")..setSize(inner, 0.018))
+    ..row()..add(h5("h5")..setSize(inner, 0.016))
+    ..row()..add(p("p")..setSize(inner, 0.014))
+    ..row()..add(p2("p2")..setSize(inner, 0.012))
+    ..row()..add(p3("p3")..setSize(inner, 0.010))
+    layout.applyTo(root)
+    defaultFrameParent = prev
+
+// ===== Layout showcase: nested tables, a column grid, and labelled composite widgets =====
+function buildShowcasePanel()
+    let sw = 0.195
+    let sh = 0.38
+    let root = panel(sw, sh)
+    root.placeSafe(vec2(0.585, 0.56), sw, sh)
+    let inner = sw - 2. * PANEL_BORDER_INSET
+
+    let prev = defaultFrameParent
+    defaultFrameParent = root
+
+    // Profile: an icon beside a NESTED table (name over subtitle). A table inside a cell of another.
+    let profileColW = inner - 0.038 - 0.006
+    let profileCol = container(profileColW, 0.03)
+    defaultFrameParent = profileCol
+    new TableLayout(profileColW, 0.03, "Profile")
+    ..row()..add(h4("Archmage")..setSize(profileColW, 0.015)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
+    ..row()..add(p2("Level 7 Hero")..setSize(profileColW, 0.011)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
+    ..applyTo(profileCol)
+    defaultFrameParent = root
+
+    let hp = statBar("HP", inner)..setValue(0.8)..setValueText("640/800")
+
+    // Attributes: a column-aligned grid (columns()) with a header spanning all 4 columns (colspan).
+    let attrCol = container(inner, 0.05)
+    defaultFrameParent = attrCol
+    let attr = new TableLayout(inner, 0.05, "Attrs")
+    attr.padding = padding(0, 0, 0, 0)
+    attr.gap(0.006, 0.002)
+    attr..columns()
+    attr..row()..add(label("Primary: INT", inner, 0.011))..colspan(4)
+    attr..row()..add(label("STR", 0.025, 0.012))..add(value("24", 0.016, 0.012))..add(label("AGI", 0.025, 0.012))..add(value("18", 0.016, 0.012))
+    attr..row()..add(label("INT", 0.025, 0.012))..add(value("31", 0.016, 0.012))..add(label("LVL", 0.025, 0.012))..add(value("7", 0.016, 0.012))
+    attr.applyTo(attrCol)
+    defaultFrameParent = root
+
+    // Tabs: content built in-place. Stats shows two stat cards, Info an icon card.
+    let showTabs = tabs(inner, 0.058)
+    let cardW = (inner - 0.008) / 2.
+    let statsTab = showTabs.addTab("Stats")
+    defaultFrameParent = statsTab
+    let statsLayout = new TableLayout(inner, 0.058, "StatsTab")
+    statsLayout.padding = padding(0.002, 0.002, 0.002, 0.002)
+    statsLayout.gap(0.004, 0)
+    statsLayout..row()..add(statCard("Gold", "1,250", cardW))..add(statCard("Wood", "640", cardW))
+    statsLayout.applyTo(statsTab)
+    let infoTab = showTabs.addTab("Info")
+    defaultFrameParent = infoTab
+    let infoLayout = new TableLayout(inner, 0.058, "InfoTab")
+    infoLayout.padding = padding(0.002, 0.002, 0.002, 0.002)
+    infoLayout..row()..add(iconCard(Icons.bTNHumanBuild, "Peasant", "Worker unit", inner - 0.004))..growX()
+    infoLayout.applyTo(infoTab)
+    defaultFrameParent = root
+    showTabs.build()
+
+    let layout = new TableLayout(sw, sh, "Showcase")
+    layout.padding = padding(PANEL_BORDER_INSET, PANEL_BORDER_INSET, PANEL_BORDER_INSET, PANEL_BORDER_INSET)
+    layout.gap(0.005, 0.004)
+    layout
+    ..row()..add(h3("Showcase")..setSize(inner, 0.02))..growX()
+    ..row()..add(p3("nested tables, column grids, tabs")..setSize(inner, 0.009)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))..growX()
+    ..row()..add(h5("Profile (nested table)")..setSize(inner, 0.012)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))..growX()
+    ..row()..middle()..add(img(Icons.bTNHeroArchMage, 0.038, 0.038))..add(profileCol)..growX()
+    ..row()..add(hp.create())..growX()
+    ..row()..add(separator(inner))
+    ..row()..add(h5("Attributes (column grid)")..setSize(inner, 0.012)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))..growX()
+    ..row()..add(attrCol)..growX()
+    ..row()..add(separator(inner))
+    ..row()..add(h5("Tabs (swap card content)")..setSize(inner, 0.012)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))..growX()
+    ..row()..add(showTabs.getFrame())..growX()
+    layout.applyTo(root)
+    defaultFrameParent = prev

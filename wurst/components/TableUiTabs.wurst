@@ -1,0 +1,94 @@
+package TableUiTabs
+// A tabbed container: a row of grouped tab buttons above a content area. Content is built INTO each
+// tab frame (no reparenting); clicking a tab shows its content and hides the others.
+import TableLayout
+import TableUiButtons
+import LinkedList
+
+constant TAB_GROUP_PAD = 0.003          // inset of the buttons inside the grouping border
+
+/** A tabbed container: a row of tab buttons above a content area. addTab(title) returns a content
+    frame to build INTO (no reparenting); call build() once all tabs are added. Clicking a tab shows
+    its content and hides the others. */
+public class UITabs
+    private real width = 0.
+    private real tabHeight = 0.028
+    private real contentHeight = 0.
+    private framehandle root = null
+    private framehandle contentArea = null
+    private constant titles = new LinkedList<string>()
+    private constant contents = new LinkedList<framehandle>()
+    private constant buttons = new LinkedList<framehandle>()
+    private var built = false
+    private var activeIndex = -1
+
+    construct(real width, real contentHeight)
+        this.width = width
+        this.contentHeight = contentHeight
+        let totalHeight = tabHeight + SPACE_XS + contentHeight
+        root = layoutFrame(defaultFrameParent)..setSize(width, totalHeight)
+        contentArea = layoutFrame(root)
+            ..setSize(width, contentHeight)
+            ..setPoint(FRAMEPOINT_BOTTOMLEFT, root, FRAMEPOINT_BOTTOMLEFT, vec2(0., 0.))
+
+    /** Adds a tab and returns its content frame (sized to the content area, hidden until selected).
+        Build your content into the returned frame (e.g. applyTo a TableLayout to it). */
+    function addTab(string title) returns framehandle
+        let content = layoutFrame(contentArea)
+            ..setSize(width, contentHeight)
+            ..setPoint(FRAMEPOINT_TOPLEFT, contentArea, FRAMEPOINT_TOPLEFT, vec2(0., 0.))
+            ..hide()
+        titles.add(title)
+        contents.add(content)
+        return content
+
+    function showTab(int index)
+        if index < 0 or index >= contents.size()
+            return
+        activeIndex = index
+        for i = 0 to contents.size() - 1
+            contents.get(i).setVisible(i == index)
+        // No active-tab marker yet (tint impossible, alpha reads as "disabled", stock border textures
+        // look bad). The grouping border stays; a custom "selected" texture goes here later.
+
+    /** Lays out the tab buttons and shows the first tab. Call once after the addTab() calls. */
+    function build() returns framehandle
+        if built or titles.size() == 0
+            return root
+        built = true
+        let prevParent = defaultFrameParent
+        let tabRoot = layoutFrame(root)
+            ..setSize(width, tabHeight)
+            ..setPoint(FRAMEPOINT_TOPLEFT, root, FRAMEPOINT_TOPLEFT, vec2(0., 0.))
+        // Grouping border behind the whole strip (created first => behind the buttons) so the tabs
+        // read as one group. No active-tab marker yet: a tint is impossible, alpha reads as
+        // "disabled", and stock border textures render as a placeholder square. A custom "selected"
+        // texture/backdrop behind the active button is the place to add one later.
+        createFrame("TableUiCardBackdrop", tabRoot, 0, nextUiContext())
+            ..setAllPoints(tabRoot)
+            ..disable()
+        // Buttons created UNDER tabRoot (no reparent), inset by TAB_GROUP_PAD so the group border shows.
+        defaultFrameParent = tabRoot
+        let innerHeight = tabHeight - 2. * TAB_GROUP_PAD
+        let layout = new TableLayout(width, tabHeight, "TabRow")
+        layout.padding = padding(TAB_GROUP_PAD, TAB_GROUP_PAD, TAB_GROUP_PAD, TAB_GROUP_PAD)
+        layout.gap(0.004, 0)
+        layout..row()
+        for i = 0 to titles.size() - 1
+            let index = i
+            let tabBtn = textButton(titles.get(i), 0.04, innerHeight)
+            tabBtn.onClick() ->
+                tabBtn.releaseKeyboardFocus(GetTriggerPlayer())
+                showTab(index)
+            buttons.add(tabBtn)
+            layout..add(tabBtn)..growX()
+        layout.applyTo(tabRoot)
+        showTab(0)
+        defaultFrameParent = prevParent
+        return root
+
+    function getFrame() returns framehandle
+        return build()
+
+public function tabs(real width, real contentHeight) returns UITabs
+    return new UITabs(width, contentHeight)

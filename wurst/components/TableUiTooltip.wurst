@@ -1,0 +1,62 @@
+package TableUiTooltip
+// Reusable boxed tooltips: one tooltip frame per owner, cached so repeated withTooltip() calls update
+// the text rather than creating duplicates (calling setTooltip twice for a pair can crash on hover).
+import TableLayout
+import HashMap
+
+constant tooltipByOwner = new HashMap<framehandle, UITooltip>
+
+public class UITooltip
+    framehandle owner
+    framehandle box
+    framehandle textFrame
+    real width
+
+    construct(framehandle owner, string text, real width)
+        this.owner = owner
+        this.width = width
+        let context = nextUiContext()
+        box = createFrame("TableUiTooltipBackdrop", defaultFrameParent, 0, context)
+        textFrame = createTextFrame("TableUiTooltipText", box, context)
+        textFrame
+        ..setSize(width, 0.)
+        ..setText(text)
+        ..disable()
+
+        box
+        ..setPoint(FRAMEPOINT_BOTTOMLEFT, textFrame, FRAMEPOINT_BOTTOMLEFT, vec2(-0.008, -0.006))
+        ..setPoint(FRAMEPOINT_TOPRIGHT, textFrame, FRAMEPOINT_TOPRIGHT, vec2(0.008, 0.006))
+
+        textFrame.setPoint(FRAMEPOINT_BOTTOM, owner, FRAMEPOINT_TOP, vec2(0, 0.008))
+        owner.setTooltip(box)
+
+    function setText(string text)
+        textFrame.setText(text)
+        textFrame.setSize(width, 0.)
+
+    function getFrame() returns framehandle
+        return box
+
+public function boxedTooltip(framehandle owner, string text) returns framehandle
+    return boxedTooltip(owner, text, 0.18)
+
+public function boxedTooltip(framehandle owner, string text, real width) returns framehandle
+    if owner == null
+        return null
+
+    var tooltip = tooltipByOwner.get(owner)
+    if tooltip == null
+        tooltip = new UITooltip(owner, text, width)
+        tooltipByOwner.put(owner, tooltip)
+    else
+        tooltip.setText(text)
+
+    return tooltip.getFrame()
+
+public function framehandle.withTooltip(string text) returns framehandle
+    boxedTooltip(this, text)
+    return this
+
+public function framehandle.withTooltip(string text, real width) returns framehandle
+    boxedTooltip(this, text, width)
+    return this

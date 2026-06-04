@@ -1,0 +1,157 @@
+package TableUiSelect
+// A dynamic, code-generated select / dropdown: a toggle button that opens an option menu in the
+// OVERLAY band (so it floats above content and the HUD) with no reparenting of the option buttons.
+import TableLayout
+import TableUiButtons
+import TableUiLayers
+import LinkedList
+
+public interface SelectListener
+    function onSelect(int index, string value)
+
+public class UISelect
+    static constant OVERLAY_LEVEL = 20
+
+    string placeholder = ""
+    real width = 0.
+    real optionHeight = 0.024
+    bool open = false
+    int selectedIndex = -1
+
+    framehandle root = null
+    framehandle toggleButton = null
+    framehandle menu = null
+    framehandle menuBackdrop = null
+
+    SelectListener listener = null
+    constant options = new LinkedList<string>()
+    constant optionFrames = new LinkedList<framehandle>()
+
+    construct(string placeholder, real width)
+        this.placeholder = placeholder
+        this.width = width
+
+    construct(string placeholder, real width, real optionHeight)
+        this.placeholder = placeholder
+        this.width = width
+        this.optionHeight = optionHeight
+
+    function addOption(string value) returns thistype
+        options.add(value)
+        return this
+
+    function onSelect(SelectListener listener) returns thistype
+        this.listener = listener
+        return this
+
+    function selectedText() returns string
+        if selectedIndex >= 0 and selectedIndex < options.size()
+            return options.get(selectedIndex)
+        return placeholder
+
+    function create() returns framehandle
+        if root != null
+            return root
+
+        let prevParent = defaultFrameParent
+
+        root = layoutFrame(defaultFrameParent)
+            ..setSize(width, optionHeight)
+
+        // Toggle button created UNDER root so it is never reparented (which desyncs hit areas).
+        defaultFrameParent = root
+        toggleButton = textButton(selectedText(), width, optionHeight)
+            ..setAllPoints(root)
+        toggleButton.onClick() ->
+            toggleButton.releaseKeyboardFocus(GetTriggerPlayer())
+            toggle()
+
+        // The dropdown lives in the OVERLAY band so it floats above content and the HUD; it is anchored
+        // to the toggle by point, so it needs no shared parent with root. The menu must be tall enough
+        // for every option PLUS the layout padding and inter-option gaps, or the last option overflows.
+        let menuPad = 0.003
+        let menuGapY = 0.001
+        let optionCount = options.size()
+        let menuHeight = optionCount.toReal() * optionHeight
+            + max(0, optionCount - 1).toReal() * menuGapY
+            + 2. * menuPad
+        menu = layoutFrame(Layer.OVERLAY.getFrame())
+            ..setSize(width, menuHeight)
+            ..setLevel(OVERLAY_LEVEL)
+            ..hide()
+        menu.clearAndSetPoint(FRAMEPOINT_TOP, root, FRAMEPOINT_BOTTOM, vec2(0, -0.001))
+
+        menuBackdrop = createFrame("TableUiSelectMenuBackdrop", menu, 0, nextUiContext())
+            ..setAllPoints(menu)
+            ..disable()
+
+        let menuLayout = new TableLayout(width, menuHeight, "SelectMenu")
+        menuLayout.padding = padding(menuPad, menuPad, menuPad, menuPad)
+        menuLayout.gap(0, menuGapY)
+
+        // Options created UNDER menu (no reparent), so they share the OVERLAY band.
+        defaultFrameParent = menu
+        for i = 0 to optionCount - 1
+            let index = i
+            let option = textButton(options.get(i), width - 2. * menuPad, optionHeight)
+                ..hide()
+            option.onClick() ->
+                option.releaseKeyboardFocus(GetTriggerPlayer())
+                selectOption(index)
+            optionFrames.add(option)
+            menuLayout..row()..add(option)
+
+        menuLayout.applyTo(menu)
+        defaultFrameParent = prevParent
+        return root
+
+    function getFrame() returns framehandle
+        return create()
+
+    function toggle()
+        setOpen(not open)
+
+    function syncMenuOverlay()
+        // menu is created in the OVERLAY band, so on open we only re-anchor it to the toggle and
+        // refresh levels: no reparenting (which would desync the option buttons' hit areas).
+        menu
+        ..clearAndSetPoint(FRAMEPOINT_TOP, root, FRAMEPOINT_BOTTOM, vec2(0, -0.001))
+        ..setLevel(OVERLAY_LEVEL)
+        menuBackdrop.setLevel(OVERLAY_LEVEL)
+        optionFrames.forEach(option -> option.setLevel(OVERLAY_LEVEL + 1))
+
+    function setOpen(bool flag)
+        create()
+        if flag == open
+            return
+        open = flag
+        if open
+            syncMenuOverlay()
+            menu.show()
+            optionFrames.forEach(option -> option.show())
+        else
+            optionFrames.forEach(option -> option.hide())
+            menu.hide()
+            menuBackdrop.setAllPoints(menu)
+
+    function selectOption(int index)
+        if index < 0 or index >= options.size()
+            return
+        selectedIndex = index
+        let value = options.get(index)
+        toggleButton.setText(value)
+        setOpen(false)
+        if listener != null
+            listener.onSelect(index, value)
+
+public function select(string placeholder, real width) returns UISelect
+    return new UISelect(placeholder, width)
+
+public function select(string placeholder, real width, real optionHeight) returns UISelect
+    return new UISelect(placeholder, width, optionHeight)
+
+public function dropdown(string placeholder, real width) returns UISelect
+    return select(placeholder, width)
+
+public function dropdown(string placeholder, real width, real optionHeight) returns UISelect
+    return select(placeholder, width, optionHeight)

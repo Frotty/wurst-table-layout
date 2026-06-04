@@ -84,6 +84,8 @@ Rules:
 - `+x` moves right, `+y` moves up.
 - `setScale` affects relative offsets and children; this library's table layout does not support scaling.
 
+**Verified quirk: multiple live anchors collapse a frame.** Anchors are not "last wins". A frame given two conflicting anchors at once (e.g. a creation-time `setAbsPoint` plus a later `setPoint`) makes WC3 try to satisfy both, stretching or collapsing the frame toward a corner; a decorated frame's border art then shows as a small stray mark (this was the long-hunted "cross"). Always `clearAllPoints()` before re-anchoring a frame that may already carry a point. The `TableLayout` engine now does this for every cell, so `card()`/`panel()` (which carry a creation-time `setAbsPoint`) can be dropped into a layout safely.
+
 Relative placement examples:
 
 ```wurst
@@ -132,6 +134,14 @@ myFrame.setLayer(Layer.OVERLAY)
 ```
 
 `confirmDialog` and `select` already create themselves in `OVERLAY`, so they render above content and the HUD with correctly aligned hit areas with no extra work.
+
+## Texture, colour and opacity
+
+Verified in-game (`Wc3QuirkProbe`, a 3-column ref / before-layout / after-layout matrix across image, backdrop and glue button):
+
+- **`setVertexColor` does not tint UI textures.** It applies to model/sprite frames only (the stdlib comment says "the model frame"). It had no visible effect on a `BACKDROP`, an image (which is a backdrop), or a glue button, in any column. To recolour a UI element, swap its texture (`setTexture`) or use a differently-coloured FDF backdrop. Text colour is a separate mechanism: `FontColor` in the FDF, or `|cAARRGGBB ... |r` colour codes in the string.
+- **`setAlpha` works on backdrops, images and glue buttons, but only after the frame is laid out.** Alpha set on a bare frame before it is parented, anchored and sized (before `applyTo` / `createFrame` places it) is wiped; the identical call made afterwards takes and persists. So apply opacity once the frame is in its final position, not at creation. On a glue button the fade covers the whole button, child backdrops included. This is exactly why `UITabs` dims tabs from `showTab()` (post-layout) rather than at button creation.
+- **Opacity reads as "disabled / unavailable"** to players, so reserve it for genuinely inactive elements. For a "selected / active" state, use a distinct backdrop, a border, or a swapped texture, not alpha alone. You cannot brighten an active item by tinting it.
 
 ## TableLayout Patterns
 

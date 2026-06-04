@@ -1,0 +1,51 @@
+package TableUiInfo
+// Composite information rows: an icon beside a label (iconLabel), and a label with a right-aligned
+// value (labelValue). Both are display-only sized rows built on a TableLayout.
+import TableLayout
+import TableUiText
+import TableUiImages
+
+public function iconLabel(string path, string text, real width) returns framehandle
+    return iconLabel(path, text, width, 0.022)
+
+public function iconLabel(string path, string text, real width, real height) returns framehandle
+    let root = layoutFrame(defaultFrameParent)
+        ..setSize(width, height)
+    let label = p(text)
+        ..setSize(max(0.001, width - height - 0.004), height)
+        ..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT)
+
+    let layout = new TableLayout(width, height, "IconLabel")
+    layout.padding = padding(0, 0, 0, 0)
+    layout.gap(0.004, 0)
+    layout
+    ..row()
+    ..add(img(path, height, height))
+    ..add(label)..growX()
+    layout.applyTo(root)
+    root.disable()
+    return root
+
+public function labelValue(string label, string value, real width) returns framehandle
+    return labelValue(label, value, width, 0.018)
+
+public function labelValue(string label, string value, real width, real height) returns framehandle
+    let root = layoutFrame(defaultFrameParent)
+        ..setSize(width, height)
+    let labelFrame = p(label)
+        ..setSize(width * 0.56, height)
+        ..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT)
+    let valueFrame = p(value)
+        ..setSize(width * 0.40, height)
+        ..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_RIGHT)
+
+    let layout = new TableLayout(width, height, "LabelValue")
+    layout.padding = padding(0, 0, 0, 0)
+    layout.gap(0.004, 0)
+    layout
+    ..row()
+    ..add(labelFrame)..growX()
+    ..add(valueFrame)
+    layout.applyTo(root)
+    root.disable()
+    return root

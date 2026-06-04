@@ -1,0 +1,105 @@
+package TableUiSliders
+// A labelled value slider on WC3's native SLIDER: [label] [====O====] [value].
+import TableLayout
+import TableUiText
+
+public interface SliderListener
+    function onChange(real value)
+
+/** A labelled value slider on WC3's native SLIDER: [label] [====O====] [value]. Set the range in the
+    constructor, tune step/decimals, read getValue(), and react with onChange(); the value text and
+    knob update automatically. */
+public class UISlider
+    private real minValue = 0.
+    private real maxValue = 100.
+    private real stepSize = 1.
+    private real value = 0.
+    private int valueDecimals = 0
+    private real width = 0.
+    private string label = ""
+    private SliderListener listener = null
+    private framehandle root = null
+    private framehandle sliderFrame = null
+    private framehandle valueFrame = null
+
+    construct(string label, real width, real minValue, real maxValue)
+        this.label = label
+        this.width = width
+        this.minValue = minValue
+        this.maxValue = maxValue
+        this.value = minValue
+
+    private function format(real v) returns string
+        return v.toString(valueDecimals)
+
+    /** Decimal places shown in the value label (default 0). */
+    function setDecimals(int decimals) returns thistype
+        valueDecimals = decimals
+        if valueFrame != null
+            valueFrame.setText(format(value))
+        return this
+
+    function setStep(real newStep) returns thistype
+        stepSize = newStep
+        if sliderFrame != null
+            sliderFrame.setStepSize(newStep)
+        return this
+
+    function setValue(real newValue) returns thistype
+        value = max(minValue, min(maxValue, newValue))
+        if sliderFrame != null
+            sliderFrame.setValue(value)
+        if valueFrame != null
+            valueFrame.setText(format(value))
+        return this
+
+    function onChange(SliderListener cb) returns thistype
+        listener = cb
+        return this
+
+    function getValue() returns real
+        return value
+
+    function create() returns framehandle
+        if root != null
+            return root
+        let prevParent = defaultFrameParent
+        let height = 0.024
+        root = layoutFrame(defaultFrameParent)..setSize(width, height)
+        defaultFrameParent = root
+
+        sliderFrame = createFrame("TableUiSlider", root, 0, nextUiContext())
+        sliderFrame..setMinMax(minValue, maxValue)..setStepSize(stepSize)..setValue(value)
+
+        // Floor the value column so multi-digit / decimal values (e.g. "100.0") do not wrap to a
+        // second line on a narrow slider.
+        valueFrame = p(format(value))
+            ..setSize(max(0.034, width * 0.18), height)
+            ..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_RIGHT)
+
+        sliderFrame.onSliderValueChange() ->
+            value = BlzGetTriggerFrameValue()
+            valueFrame.setText(format(value))
+            if listener != null
+                listener.onChange(value)
+
+        let layout = new TableLayout(width, height, "Slider")
+        layout.padding = padding(0, 0, 0, 0)
+        layout.gap(0.006, 0)
+        layout..row()..middle()
+        if label != ""
+            layout..add(p(label)..setSize(width * 0.30, height)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
+        layout..add(sliderFrame)..growX()
+        layout..add(valueFrame)
+        layout.applyTo(root)
+        defaultFrameParent = prevParent
+        return root
+
+    function getFrame() returns framehandle
+        return create()
+
+public function slider(string label, real width, real minValue, real maxValue) returns UISlider
+    return new UISlider(label, width, minValue, maxValue)
+
+public function slider(real width, real minValue, real maxValue) returns UISlider
+    return new UISlider("", width, minValue, maxValue)

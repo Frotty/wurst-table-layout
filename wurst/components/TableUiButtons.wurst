@@ -1,7 +1,8 @@
 package TableUiButtons
 // Clickable primitives: text button (btn), icon button (imgBtn), the native checkbox helper, and the
-// UICheckbox widget (custom checkbox with a check overlay). All honour autoReleaseFocus so a click does
-// not leave keyboard focus trapped on the frame (which would swallow Enter / re-fire on Enter).
+// UICheckbox widget (custom checkbox with a check overlay), plus the sized composite buttons
+// (textButton / iconButton / closeButton). All honour autoReleaseFocus so a click does not leave
+// keyboard focus trapped on the frame (which would swallow Enter / re-fire on Enter).
 import TableLayout
 import TableUiImages
 import FramehandleNames
@@ -90,3 +91,27 @@ public class UICheckbox
             check.show()
         else
             check.hide()
+
+// --- Composite buttons -------------------------------------------------------
+// Sized text / icon buttons and a close button, built on btn / imgBtn with min-size floors.
+
+public function textButton(string text, real width, real height) returns framehandle
+    return btn(text)
+        ..setSize(max(MIN_BUTTON_WIDTH, width), max(MIN_BUTTON_HEIGHT, height))
+
+public function iconButton(string path, real size) returns framehandle
+    return iconButton(path, size, size)
+
+public function iconButton(string path, real width, real height) returns framehandle
+    return imgBtn(path, max(MIN_ICON_SIZE, width), max(MIN_ICON_SIZE, height))
+
+public function closeButton(framehandle target) returns framehandle
+    return closeButton(target, 0.018)
+
+public function closeButton(framehandle target, real size) returns framehandle
+    let closeFrame = textButton("X", size, size)
+    closeFrame.onClick() ->
+        closeFrame.releaseKeyboardFocus(GetTriggerPlayer())
+        if target != null
+            target.hide()
+    return closeFrame

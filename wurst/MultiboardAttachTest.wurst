@@ -13,16 +13,17 @@ public function runMultiboardAttachTest()
     attachToMultiboard(
         mb,
         "DemoMb",
-        0.22,
-        0.06,
+        0.16,
+        0.09,
         true,
         (uiParent, anchor) -> begin
-            let layout = new TableLayout(0.22, 0.06, "DemoMbLayout")
+            let layout = new TableLayout(0.16, 0.09, "DemoMbLayout")
             layout.padding = padding(0.006, 0.012, 0.006, 0.012)
+            layout.gap(0, 0.003)
             layout
-            ..row()..add(h2("Attach Test"))..padBot(0.004)
-            ..row()..center()..add(img("ReplaceableTextures\\CommandButtons\\BTNSelectHeroOn.blp", 0.028, 0.028))
-            ..row()..add(p("h2 + img attached"))
+            ..row()..add(h3("Attach test")..setSize(0.13, 0.018))..growX()
+            ..row()..center()..add(img("ReplaceableTextures\\CommandButtons\\BTNSelectHeroOn.blp", 0.024, 0.024))
+            ..row()..add(p("img + text")..setSize(0.13, 0.012))..growX()
             layout.applyTo(anchor) // anchor == itemContainer
             return anchor
         end
