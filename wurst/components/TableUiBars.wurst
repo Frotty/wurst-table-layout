@@ -89,7 +89,7 @@ public class UIStatBar
         layout.gap(0, 0.002)
         layout
         ..row()
-        ..add(p(label)..setSize(width * 0.62, 0.014)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))..growX()
+        ..add(p(muted(label))..setSize(width * 0.62, 0.014)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))..growX()
         ..add(valueFrame)
         ..row()
         ..add(bar.create())..growX()

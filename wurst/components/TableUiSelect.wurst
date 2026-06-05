@@ -1,5 +1,5 @@
 package TableUiSelect
-// A dynamic, code-generated select / dropdown: a toggle button that opens an option menu in the
+// A dynamic, code-generated select menu: a toggle button that opens an option menu in the
 // OVERLAY band (so it floats above content and the HUD) with no reparenting of the option buttons.
 import TableLayout
 import TableUiButtons
@@ -149,9 +149,3 @@ public function select(string placeholder, real width) returns UISelect
 
 public function select(string placeholder, real width, real optionHeight) returns UISelect
     return new UISelect(placeholder, width, optionHeight)
-
-public function dropdown(string placeholder, real width) returns UISelect
-    return select(placeholder, width)
-
-public function dropdown(string placeholder, real width, real optionHeight) returns UISelect
-    return select(placeholder, width, optionHeight)

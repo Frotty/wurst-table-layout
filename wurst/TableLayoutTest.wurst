@@ -133,6 +133,8 @@ function buildDisplayPanel()
     ..row()..middle()..add(label("Colours", 0.04, 0.012))..add(coloredRect(TC_RED, 0.03, 0.014))..add(coloredSquare(TC_BLUE, 0.014))..add(coloredSquare(TC_TEAL, 0.014))..add(coloredSquare(TC_YELLOW, 0.014))
     ..row()..middle()..add(label("vSep", 0.028, 0.012))..add(value("A", 0.018, 0.012))..add(vSeparator(0.012))..add(label("B", 0.018, 0.012))
     ..row()..add(section("Section helper", inner))
+    ..row()..add(underline("underlined"))
+    ..row()..middle()..add(p(accent("accent"))..setSize(0.06, 0.012)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))..add(p(muted("muted"))..setSize(0.06, 0.012)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
     ..row()..add(h5("Custom tooltip")..setSize(inner, 0.013)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))..growX()
     ..row()..add(tipButton)..growX()
     layout.applyTo(root)
@@ -179,10 +181,13 @@ function buildShowcasePanel()
     let profileColW = inner - 0.038 - 0.006
     let profileCol = container(profileColW, 0.03)
     defaultFrameParent = profileCol
-    new TableLayout(profileColW, 0.03, "Profile")
+    let profileLayout = new TableLayout(profileColW, 0.03, "Profile")
+    profileLayout.padding = padding(0, 0, 0, 0)   // nested table: zero the default 0.0175 inset or it overflows
+    profileLayout.gap(0, 0.002)
+    profileLayout
     ..row()..add(h4("Archmage")..setSize(profileColW, 0.015)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
     ..row()..add(p2("Level 7 Hero")..setSize(profileColW, 0.011)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
-    ..applyTo(profileCol)
+    profileLayout.applyTo(profileCol)
     defaultFrameParent = root
 
     let hp = statBar("HP", inner)..setValue(0.8)..setValueText("640/800")
@@ -205,10 +210,18 @@ function buildShowcasePanel()
     let cardW = (inner - 0.008) / 2.
     let statsTab = showTabs.addTab("Stats")
     defaultFrameParent = statsTab
+    // Selectable cards: UISelectableGroup overlays each card with an invisible glue button (hover glow +
+    // click) plus a selection border, with radio behaviour. CAVEAT: the overlay covers the WHOLE card,
+    // so a selectable card must be display-only - an inner button under the overlay would not get clicks.
+    let cardGroup = new UISelectableGroup
+    let goldCard = statCard("Gold", "1,250", cardW)
+    let woodCard = statCard("Wood", "640", cardW)
+    cardGroup.add(goldCard).setSelected(true)   // pre-select one so it is obvious the cards are clickable
+    cardGroup.add(woodCard)
     let statsLayout = new TableLayout(inner, 0.058, "StatsTab")
     statsLayout.padding = padding(0.002, 0.002, 0.002, 0.002)
     statsLayout.gap(0.004, 0)
-    statsLayout..row()..add(statCard("Gold", "1,250", cardW))..add(statCard("Wood", "640", cardW))
+    statsLayout..row()..add(goldCard)..add(woodCard)
     statsLayout.applyTo(statsTab)
     let infoTab = showTabs.addTab("Info")
     defaultFrameParent = infoTab
@@ -232,7 +245,7 @@ function buildShowcasePanel()
     ..row()..add(h5("Attributes (column grid)")..setSize(inner, 0.012)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))..growX()
     ..row()..add(attrCol)..growX()
     ..row()..add(separator(inner))
-    ..row()..add(h5("Tabs (swap card content)")..setSize(inner, 0.012)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))..growX()
+    ..row()..add(h5("Tabs / clickable cards")..setSize(inner, 0.012)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))..growX()
     ..row()..add(showTabs.getFrame())..growX()
     layout.applyTo(root)
     defaultFrameParent = prev

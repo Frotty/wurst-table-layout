@@ -19,8 +19,8 @@ public function statCard(string label, string value, real width) returns frameha
     layout.padding = padding(inset, inset, inset, inset)
     layout.gap(0, 0.002)
     layout
-    ..row()..add(p3(label)..setSize(innerW, 0.012)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
-    ..row()..add(h2(value)..setSize(innerW, 0.022)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
+    ..row()..add(p3(muted(label))..setSize(innerW, 0.012)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
+    ..row()..add(h2(accent(value))..setSize(innerW, 0.022)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
     layout.applyTo(root)
     root.disable()
     defaultFrameParent = prevParent
@@ -43,7 +43,7 @@ public function iconCard(string iconPath, string title, string subtitle, real wi
     textLayout.gap(0, 0.002)
     textLayout
     ..row()..add(p(title)..setSize(textWidth, 0.014)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
-    ..row()..add(p3(subtitle)..setSize(textWidth, 0.012)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
+    ..row()..add(p3(muted(subtitle))..setSize(textWidth, 0.012)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
     textLayout.applyTo(textCol)
 
     let layout = new TableLayout(width, height, "IconCard")

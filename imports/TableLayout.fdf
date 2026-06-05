@@ -192,3 +192,28 @@ Frame "GLUETEXTBUTTON" "button" INHERITS WITHCHILDREN "EscMenuButtonTemplate" {
         Text "",
     }
 }
+
+// A transparent, clickable overlay button: no normal backdrop, so it is invisible until hovered, when
+// it shows the EscMenu mouse-over glow. Lay it over any frame (clickableOverlay) to make that whole
+// frame hoverable + clickable while its own content still shows through.
+Frame "GLUEBUTTON" "TableUiOverlayButton" {
+    UseActiveContext,
+    ControlStyle "AUTOTRACK|HIGHLIGHTONMOUSEOVER",
+    ControlMouseOverHighlight "TableUiOverlayHighlight",
+    Frame "HIGHLIGHT" "TableUiOverlayHighlight" {
+        HighlightType "FILETEXTURE",
+        HighlightAlphaFile "UI\Widgets\EscMenu\Human\human-options-button-highlight.blp",
+        HighlightAlphaMode "ADD",
+    }
+}
+
+// A persistent "selected / active" border shown over a frame to mark selection (selectionHighlight).
+// Must use a texture with a TRUE alpha channel (transparent interior) so it frames the content rather
+// than blacking it out: a plain glow with a black background needs ADDITIVE blend, which a BACKDROP
+// cannot do (only the hover HIGHLIGHT above blends additively). A selection border fits the bill.
+// Alternatives with true alpha: BattleNet\chaticons\iconselection-border-active.blp, ...-hilight.blp.
+Frame "BACKDROP" "TableUiSelectedHighlight" {
+    UseActiveContext,
+    BackdropBlendAll,
+    BackdropBackground "UI\Widgets\Console\Human\CommandButton\human-multipleselection-border.blp",
+}

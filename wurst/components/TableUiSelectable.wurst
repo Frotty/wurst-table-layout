@@ -1,0 +1,103 @@
+package TableUiSelectable
+// Make any display frame (card, panel, row, ...) behave as a selectable item: a transparent overlay
+// gives it the WC3 hover glow + click events, and a true-alpha selection border marks the active
+// state. Group several into a UISelectableGroup for radio (single-select) behaviour. Built on
+// clickableOverlay + selectionHighlight. The target is disabled so the overlay receives the clicks, so
+// use display-only targets (not ones with their own inner buttons that need to stay clickable).
+import TableLayout
+import TableUiButtons
+import LinkedList
+
+public interface SelectableListener
+    function onSelect(bool selected)
+
+public interface SelectableGroupListener
+    function onSelect(int index)
+
+/** Wraps a display frame so the WHOLE frame is hoverable + clickable, with a selected/active state.
+    Standalone it toggles its selection on click; added to a UISelectableGroup it behaves as a radio
+    member (selecting it clears the others).
+    CAVEAT: the clickable overlay covers the whole target, so inner buttons/clickables beneath it stop
+    receiving clicks. Use on display-only content (cards, rows, panels without their own buttons). */
+public class UISelectable
+    private framehandle target = null
+    private framehandle highlight = null
+    private framehandle overlay = null
+    private var selectedState = false
+    private SelectableListener listener = null
+    UISelectableGroup ownerGroup = null
+
+    construct(framehandle target)
+        this.target = target
+        target.disable()                       // so the overlay, not the target, receives clicks
+        highlight = selectionHighlight(target) // created first => below the overlay
+        overlay = clickableOverlay(target)     // on top => hover glow + clicks
+        overlay.onClick() ->
+            overlay.releaseKeyboardFocus(GetTriggerPlayer())
+            if ownerGroup != null
+                ownerGroup.select(this)
+            else
+                setSelected(not selectedState)
+            if listener != null
+                listener.onSelect(selectedState)
+
+    /** Shows or hides the selection border. */
+    function setSelected(bool flag)
+        selectedState = flag
+        highlight.setVisible(flag)
+
+    function isSelected() returns bool
+        return selectedState
+
+    /** Reacts to this item being clicked; the new selected state is passed. */
+    function onSelect(SelectableListener cb) returns thistype
+        listener = cb
+        return this
+
+    function getFrame() returns framehandle
+        return target
+
+/** Makes a single display frame selectable; clicking toggles its selected state. */
+public function selectable(framehandle target) returns UISelectable
+    return new UISelectable(target)
+
+/** A single-select (radio) group: selecting one member clears the others. */
+public class UISelectableGroup
+    private constant members = new LinkedList<UISelectable>
+    private SelectableGroupListener listener = null
+
+    /** Wraps `target` as a selectable, adds it to the group, and returns it. */
+    function add(framehandle target) returns UISelectable
+        return register(new UISelectable(target))
+
+    /** Adds an existing selectable to the group and returns it. */
+    function add(UISelectable sel) returns UISelectable
+        return register(sel)
+
+    private function register(UISelectable sel) returns UISelectable
+        sel.ownerGroup = this
+        members.add(sel)
+        return sel
+
+    /** Selects `chosen`, clears the others, and fires the group listener with its index. */
+    function select(UISelectable chosen)
+        var index = 0
+        var chosenIndex = -1
+        for sel in members
+            let picked = sel == chosen
+            sel.setSelected(picked)
+            if picked
+                chosenIndex = index
+            index++
+        if listener != null and chosenIndex >= 0
+            listener.onSelect(chosenIndex)
+
+    /** Clears all selection in the group. */
+    function clearSelection()
+        for sel in members
+            sel.setSelected(false)
+
+    /** Reacts to the group's selection changing; the selected index is passed. */
+    function onSelect(SelectableGroupListener cb) returns thistype
+        listener = cb
+        return this

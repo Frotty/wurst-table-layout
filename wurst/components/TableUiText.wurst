@@ -3,6 +3,8 @@ package TableUiText
 // (label left-aligned, value right-aligned). All are FIXEDSIZE text frames, so size every non-grow
 // cell that holds one (setSize / the label/value helpers / growX) or it collapses to 0.
 import TableLayout
+import TableUiImages
+import TableUiTextMetrics
 
 function textframe(string typeClass, string text) returns framehandle
     return createFrame(typeClass, defaultFrameParent, 0, 0)..setText(text)..setTextAlignment(TEXT_JUSTIFY_CENTER, TEXT_JUSTIFY_CENTER)
@@ -44,3 +46,53 @@ public function value(string text, real width) returns framehandle
 
 public function value(string text, real width, real height) returns framehandle
     return p(text)..setSize(width, height)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_RIGHT)
+
+// --- Colour palette (art direction) ------------------------------------------
+// Inline colour-code prefixes (|cAARRGGBB). Reassign any of these to re-theme the whole library at
+// once. Presets apply them by default (muted captions, accent values), and the helpers below wrap any
+// string. Colour is the main styling lever in WC3: there is no bold/italic toggle on a text frame.
+public var COLOR_PRIMARY = "|cffffffff"   // body text / titles
+public var COLOR_MUTED   = "|cffb0b0b0"   // captions, subtitles, secondary text
+public var COLOR_ACCENT  = "|cffffcc00"   // values, emphasis (WC3 gold)
+public var COLOR_SUCCESS = "|cff40c040"
+public var COLOR_WARNING = "|cffff8000"
+public var COLOR_DANGER  = "|cffe03030"
+
+/** Wraps `text` in a colour code (pass a COLOR_* prefix or any literal "|cAARRGGBB"). */
+public function colored(string text, string colorPrefix) returns string
+    return colorPrefix + text + "|r"
+
+/** Secondary / caption colour. */
+public function muted(string text) returns string
+    return colored(text, COLOR_MUTED)
+
+/** Emphasis / value colour (gold). */
+public function accent(string text) returns string
+    return colored(text, COLOR_ACCENT)
+
+public function success(string text) returns string
+    return colored(text, COLOR_SUCCESS)
+
+public function warning(string text) returns string
+    return colored(text, COLOR_WARNING)
+
+public function danger(string text) returns string
+    return colored(text, COLOR_DANGER)
+
+/** Paragraph text with an underline (WC3 text has no underline attribute, so this draws the text with a
+    thin rule beneath, sized to the text via TableUiTextMetrics). Display-only. */
+public function underline(string text) returns framehandle
+    let w = max(0.001, estimateTextWidth(text, FONT_P))
+    let height = FONT_P + 0.004
+    let root = layoutFrame(defaultFrameParent)..setSize(w, height)
+    let layout = new TableLayout(w, height, "Underline")
+    layout.padding = padding(0, 0, 0, 0)
+    layout.gap(0, 0.001)
+    layout
+    ..row()..add(p(text)..setSize(w, FONT_P)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
+    // White rule (matches the default text colour). WC3 cannot measure text, so the width is a slightly
+    // trimmed estimate to hug the glyphs rather than overrun to the cell edge.
+    ..row()..add(img("Textures\\white.blp", w * 0.9, 0.0014, true)..disable())
+    layout.applyTo(root)
+    root.disable()
+    return root

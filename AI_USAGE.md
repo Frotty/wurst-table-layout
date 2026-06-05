@@ -36,6 +36,8 @@ Use these helpers instead of custom frame construction:
 - Text: `p`, `p2`, `p3`, `h1`, `h2`, `h3`, `h4`, `h5`
 - Images: `img`
 - Buttons: `btn`, `imgBtn`, `textButton`, `iconButton`
+- Selectable: `selectable(frame)` and `UISelectableGroup` (radio); `clickableOverlay`/`selectionHighlight` make any display frame clickable + show an active state
+- Colour / type: `muted(text)`, `accent(text)`, `success`/`warning`/`danger`, `colored(text, COLOR_*)`; `underline(text)`
 - Layout roots: `defaultFrame`, `panel`, `card`, `layoutFrame`, `spacer`
 - Dividers: `separator`, `vSeparator`
 - Common rows: `iconLabel`, `labelValue`
@@ -78,6 +80,22 @@ init
     doAfter(0.) ->
         createUi()
 ```
+
+## Art Direction (aim for *nice*, not just functional)
+
+The helpers encode sensible defaults; follow these so a quick UI also looks designed.
+
+**Colour hierarchy.** Don't leave everything pure white. Use the palette (re-theme the whole library by reassigning the `COLOR_*` vars):
+- `muted(text)` for captions, labels, subtitles, secondary text (grey).
+- `accent(text)` for the values / numbers that matter (gold).
+- plain white for body and titles.
+- `success(text)` / `warning(text)` / `danger(text)` for state.
+
+Presets already apply this: `labelValue` mutes the label, `statCard` mutes the caption and accents the value, `iconCard`/`statBar` mute the secondary text. So `labelValue("Kills", "12", w)` reads as a designed caption/value pair with no extra work. Accent the key number, mute the caption.
+
+**Typography.** WC3 frame text has no bold / italic / underline attribute, so vary emphasis with the size scale (`h1`-`h5` for headings, `p`/`p2`/`p3` for body/captions; don't invent sizes) and colour (`accent()` an important value instead of bolding it). Do NOT try to fake bold (a heavier shadow just looks muddy at UI sizes). `underline(text)` draws a thin rule beneath the text (the only way to underline in WC3).
+
+**Structure.** One `panel` per window; `card` sparingly and never nested; `section(title, w)` or `container` for grouping; `SPACE_*` tokens for gaps. Let the spacing scale and colour hierarchy carry the design rather than reaching for more chrome.
 
 ## Recipes
 

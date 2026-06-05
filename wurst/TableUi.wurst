@@ -8,6 +8,7 @@ import public TableUiText
 import public TableUiTextMetrics
 import public TableUiImages
 import public TableUiButtons
+import public TableUiSelectable
 import public TableUiBars
 import public TableUiLayers
 import public TableUiSafeArea

@@ -115,3 +115,29 @@ public function closeButton(framehandle target, real size) returns framehandle
         if target != null
             target.hide()
     return closeFrame
+
+// --- Interactive overlays ----------------------------------------------------
+// Make any frame behave like a button, and mark a selected/active state, without tinting (WC3 does
+// not support tinting UI textures). A transparent glue button shows the native mouse-over glow and
+// fires clicks; a separate backdrop is a togglable persistent "selected" glow.
+
+/** Overlays a transparent, clickable glue button covering `target`, showing the WC3 mouse-over glow on
+    hover; the target's own content shows through. Returns the overlay, so add behaviour with onClick().
+    Use to make a whole card / panel / row clickable instead of only an inner button.
+    CAVEAT: the overlay covers the WHOLE target, so any inner buttons or other clickables beneath it
+    will NOT receive clicks (the overlay intercepts them). Only overlay display-only content. */
+public function clickableOverlay(framehandle target) returns framehandle
+    let overlay = createFrame("TableUiOverlayButton", target, 0, nextUiContext())
+        ..setAllPoints(target)
+    if autoReleaseFocus
+        overlay.onClickReleaseFocus()
+    return overlay
+
+/** A togglable "selected / active" glow over `target`, created hidden: show() to mark selected, hide()
+    to clear. Create it BEFORE a clickableOverlay on the same target so the overlay stays on top for
+    clicks. Disabled, so it never intercepts input. */
+public function selectionHighlight(framehandle target) returns framehandle
+    return createFrame("TableUiSelectedHighlight", target, 0, nextUiContext())
+        ..setAllPoints(target)
+        ..disable()
+        ..hide()

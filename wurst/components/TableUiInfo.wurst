@@ -32,7 +32,7 @@ public function labelValue(string label, string value, real width) returns frame
 public function labelValue(string label, string value, real width, real height) returns framehandle
     let root = layoutFrame(defaultFrameParent)
         ..setSize(width, height)
-    let labelFrame = p(label)
+    let labelFrame = p(muted(label))
         ..setSize(width * 0.56, height)
         ..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT)
     let valueFrame = p(value)
