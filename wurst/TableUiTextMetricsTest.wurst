@@ -1,0 +1,44 @@
+package TableUiTextMetricsTest
+// Headless tests for the text-width heuristic. These assert the calibration-INDEPENDENT behaviour
+// (empty/colour/newline/monotonicity/ellipsis-fits), not the absolute scale, so they stay valid if
+// textWidthEmFactor is retuned in-game.
+import TableUiTextMetrics
+
+@Test
+function emptyIsZero()
+    estimateTextWidth("", FONT_P).assertEquals(0., 0.0000001)
+
+@Test
+function colorCodesIgnored()
+    estimateTextWidth("|cffff0000Hello|r", FONT_P).assertEquals(estimateTextWidth("Hello", FONT_P), 0.0000001)
+
+@Test
+function escapedPipeCounts()
+    estimateTextWidth("a||b", FONT_P).assertEquals(estimateTextWidth("a|b", FONT_P), 0.0000001)
+
+@Test
+function multilineUsesWidestLine()
+    estimateTextWidth("Hi\nHello", FONT_P).assertEquals(estimateTextWidth("Hello", FONT_P), 0.0000001)
+
+@Test
+function widerStringMeasuresWider()
+    (estimateTextWidth("AAAA", FONT_P) > estimateTextWidth("AA", FONT_P)).assertTrue()
+
+@Test
+function biggerFontMeasuresWider()
+    (estimateTextWidth("Hello", FONT_H1) > estimateTextWidth("Hello", FONT_P3)).assertTrue()
+
+@Test
+function shortTextPassesThrough()
+    ellipsize("Hi", FONT_P, 1.0).assertEquals("Hi")
+
+@Test
+function longTextGetsEllipsisAndFits()
+    let maxW = 0.04
+    let result = ellipsize("AAAAAAAAAAAAAAAAAAAAAAAAAAAA", FONT_P, maxW)
+    result.endsWith("...").assertTrue()
+    textFits(result, FONT_P, maxW + 0.0000001).assertTrue()
+
+@Test
+function tinyWidthReturnsEllipsis()
+    ellipsize("Hello world", FONT_P, 0.0).assertEquals("...")

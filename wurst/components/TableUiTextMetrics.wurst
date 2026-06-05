@@ -1,0 +1,98 @@
+package TableUiTextMetrics
+// Heuristic text-width estimation for the FIXEDSIZE text presets. Warcraft III cannot measure text at
+// runtime, which is why an unsized text cell collapses to 0 and why validation can't (yet) catch a
+// string that is wider than its cell. This module closes that gap approximately, using wurstStdlib2's
+// empirically-measured per-glyph advance table (StringUtils.char.getWidth()).
+//
+// Two uses:
+//   - ellipsize(text, fontSize, maxWidth): truncate with "..." so text fits a width (no more magic
+//     "max chars" constants per call site).
+//   - textFits(text, fontSize, maxWidth) / estimateTextWidth(...): an opt-in width check that callers
+//     and headless @Test code can use to flag likely overflow before launching the game.
+//
+// The estimate is a heuristic: glyph widths come from a fixed table and the absolute scale
+// (textWidthEmFactor) is approximate. The calibration-independent behaviour (colour-code stripping,
+// widest-line for multi-line, monotonicity, ellipsis fitting) is covered by TableUiTextMetricsTest.
+import StringUtils
+
+// FrameFont heights from imports/TableLayout.fdf (screen-relative em height of each preset). Keep in
+// sync with the FDF if a preset's FrameFont size changes.
+public constant FONT_H1 = 0.0225
+public constant FONT_H2 = 0.0195
+public constant FONT_H3 = 0.0175
+public constant FONT_H4 = 0.0145
+public constant FONT_H5 = 0.0125
+public constant FONT_P  = 0.01
+public constant FONT_P2 = 0.0075
+public constant FONT_P3 = 0.005
+
+/** Screen-relative width contributed by one "em" of StringUtils glyph units (the per-1000 advance
+    table is normalised to the font em). APPROXIMATE: empirically anchored to the UI char budgets and
+    tunable; lower means "assume text is narrower". Verify in-game for tight layouts. */
+public var textWidthEmFactor = 4.3
+
+/** Removes WC3 colour codes (|cAARRGGBB ... |r) and collapses escaped pipes (||) so only the visible
+    glyphs are measured. */
+public function stripColorCodes(string text) returns string
+    if text == null
+        return ""
+    var result = ""
+    var i = 0
+    let n = text.length()
+    while i < n
+        let ch = text.substring(i, i + 1)
+        if ch == "|" and i + 1 < n
+            let next = text.substring(i + 1, i + 2)
+            if next == "c" or next == "C"
+                i += 10              // |cAARRGGBB
+            else if next == "r" or next == "R"
+                i += 2               // |r
+            else if next == "|"
+                result += "|"        // escaped literal pipe
+                i += 2
+            else
+                result += ch
+                i += 1
+        else
+            result += ch
+            i += 1
+    return result
+
+/** Estimated screen-relative width of `text` rendered at `fontSize` (a FONT_* preset height). Colour
+    codes are ignored; for multi-line text the widest line is returned (text frames grow in height, not
+    width, across line breaks). */
+public function estimateTextWidth(string text, real fontSize) returns real
+    let clean = stripColorCodes(text)
+    if clean == ""
+        return 0.
+    var maxUnits = 0
+    var lineUnits = 0
+    for i = 0 to clean.length() - 1
+        let chStr = clean.substring(i, i + 1)
+        if chStr == "\n"
+            maxUnits = max(maxUnits, lineUnits)
+            lineUnits = 0
+        else
+            lineUnits += char(chStr).getWidth()
+    maxUnits = max(maxUnits, lineUnits)
+    return maxUnits / 1000. * fontSize * textWidthEmFactor
+
+/** True when `text` is estimated to fit `maxWidth` at `fontSize` on a single line. */
+public function textFits(string text, real fontSize, real maxWidth) returns boolean
+    return estimateTextWidth(text, fontSize) <= maxWidth
+
+/** Truncates `text` with a trailing "..." so its estimated width fits `maxWidth` at `fontSize`. Returns
+    the text unchanged when it already fits; returns "..." when even that does not fit. Colour codes are
+    not counted toward width, but truncation operates on the raw string, so a span colour can be cut. */
+public function ellipsize(string text, real fontSize, real maxWidth) returns string
+    if text == null
+        return ""
+    if estimateTextWidth(text, fontSize) <= maxWidth
+        return text
+    let target = maxWidth - estimateTextWidth("...", fontSize)
+    if target <= 0.
+        return "..."
+    var result = text
+    while result.length() > 0 and estimateTextWidth(result, fontSize) > target
+        result = result.substring(0, result.length() - 1)
+    return result + "..."

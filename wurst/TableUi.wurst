@@ -5,6 +5,7 @@ package TableUi
 // wurst/components/ and can be imported directly if only part of the surface is needed.
 import public TableLayout
 import public TableUiText
+import public TableUiTextMetrics
 import public TableUiImages
 import public TableUiButtons
 import public TableUiBars
