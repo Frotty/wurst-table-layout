@@ -775,7 +775,12 @@ public class Cell
     function layout(framehandle baseFrame, vec2 offset)
         if frame == null
             return
-        frame.setParent(baseFrame)
+        // Parent the cell to baseFrame only when it is not already there. Re-parenting on every layout()
+        // pass (e.g. UIBar.setValue re-runs layout() on each update) is unnecessary and resets per-frame
+        // state in WC3 - notably it re-enables a frame that was disabled (e.g. by clickableOverlay's
+        // disableDescendants), letting bar images capture the mouse again and block the click overlay.
+        if frame.getParent() != baseFrame
+            frame.setParent(baseFrame)
         // Clear any pre-existing anchor before placing the cell. decoratedFrame()-based content
         // (card/panel and the statCard/iconCard built on them) carries a setAbsPoint(TOP) from
         // creation; without this clear the cell would add a SECOND anchor, leaving the frame pinned
