@@ -217,3 +217,15 @@ Frame "BACKDROP" "TableUiSelectedHighlight" {
     BackdropBlendAll,
     BackdropBackground "UI\Widgets\Console\Human\CommandButton\human-multipleselection-border.blp",
 }
+
+// A "disabled" overlay: a glue button with no hover highlight whose backdrop is solid black, laid over
+// a frame and given a sub-255 alpha (in disabledOverlay) so it dims the content to a greyed/disabled
+// look while swallowing clicks. The glue button catches input so the content beneath is non-interactive.
+Frame "GLUEBUTTON" "TableUiDisabledOverlay" {
+    UseActiveContext,
+    ControlBackdrop "TableUiDisabledBackdrop",
+    Frame "BACKDROP" "TableUiDisabledBackdrop" {
+        BackdropBlendAll,
+        BackdropBackground "Textures\Black32.blp",
+    }
+}

@@ -36,8 +36,8 @@ Use these helpers instead of custom frame construction:
 - Text: `p`, `p2`, `p3`, `h1`, `h2`, `h3`, `h4`, `h5`
 - Images: `img`
 - Buttons: `btn`, `imgBtn`, `textButton`, `iconButton`
-- Selectable: `selectable(frame)` and `UISelectableGroup` (radio); `clickableOverlay`/`selectionHighlight` make any display frame clickable + show an active state
-- Colour / type: `muted(text)`, `accent(text)`, `success`/`warning`/`danger`, `colored(text, COLOR_*)`; `underline(text)`
+- Selectable / state: `selectable(frame)`, `UISelectableGroup` (radio); `clickableOverlay`/`selectionHighlight` (clickable + active state), `disabledOverlay` (grey out + swallow input) - all overlay a display frame
+- Colour / type: `muted`, `accent`, `success`/`warning`/`danger`, `gold`/`lumber`/`mana`/`health`, `colored(text, COLOR_*)`; `underline(text)`
 - Layout roots: `defaultFrame`, `panel`, `card`, `layoutFrame`, `spacer`
 - Dividers: `separator`, `vSeparator`
 - Common rows: `iconLabel`, `labelValue`

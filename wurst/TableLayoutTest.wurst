@@ -121,6 +121,7 @@ function buildDisplayPanel()
     let mana = statBar("Mana", inner)..setValue(0.5)..setValueText("150/300")
     let tipButton = textButton("Hover me", inner, 0.024)
     buildRichTooltip(tipButton)
+    let disabledCard = barCard("Upgrade", "Locked", 0.5, inner)
 
     let layout = new TableLayout(dw, dh, "Display")
     layout.padding = padding(PANEL_BORDER_INSET, PANEL_BORDER_INSET, PANEL_BORDER_INSET, PANEL_BORDER_INSET)
@@ -135,9 +136,11 @@ function buildDisplayPanel()
     ..row()..add(section("Section helper", inner))
     ..row()..add(underline("underlined"))
     ..row()..middle()..add(p(accent("accent"))..setSize(0.06, 0.012)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))..add(p(muted("muted"))..setSize(0.06, 0.012)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
-    ..row()..add(h5("Custom tooltip")..setSize(inner, 0.013)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))..growX()
     ..row()..add(tipButton)..growX()
+    ..row()..add(h5("Disabled card")..setSize(inner, 0.012)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))..growX()
+    ..row()..add(disabledCard)..growX()
     layout.applyTo(root)
+    disabledOverlay(disabledCard)   // applied AFTER layout so its dim alpha is not wiped
     defaultFrameParent = prev
 
 // ===== Typography scale =====
@@ -165,6 +168,27 @@ function buildTypographyPanel()
     ..row()..add(p3("p3")..setSize(inner, 0.010))
     layout.applyTo(root)
     defaultFrameParent = prev
+
+// A small selectable resource card: muted caption, a coloured value, and a fill bar - richer content
+// than a plain statCard, so the selectable overlay must stay above the bar to keep catching clicks.
+function barCard(string label, string value, real pct, real width) returns framehandle
+    let h = 0.05
+    let prev = defaultFrameParent
+    let root = card(width, h)
+    defaultFrameParent = root
+    let iw = width - 0.012
+    let bar = new UIBar(iw, 0.006)..setValue(pct)
+    let l = new TableLayout(width, h, "BarCard")
+    l.padding = padding(0.004, 0.004, 0.004, 0.004)
+    l.gap(0, 0.003)
+    l
+    ..row()..add(p3(muted(label))..setSize(iw, 0.01)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
+    ..row()..add(p(value)..setSize(iw, 0.012)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
+    ..row()..add(bar.create())..growX()
+    l.applyTo(root)
+    root.disable()
+    defaultFrameParent = prev
+    return root
 
 // ===== Layout showcase: nested tables, a column grid, and labelled composite widgets =====
 function buildShowcasePanel()
@@ -214,8 +238,8 @@ function buildShowcasePanel()
     // click) plus a selection border, with radio behaviour. CAVEAT: the overlay covers the WHOLE card,
     // so a selectable card must be display-only - an inner button under the overlay would not get clicks.
     let cardGroup = new UISelectableGroup
-    let goldCard = statCard("Gold", "1,250", cardW)
-    let woodCard = statCard("Wood", "640", cardW)
+    let goldCard = barCard("Gold", gold("1,250"), 0.7, cardW)
+    let woodCard = barCard("Lumber", lumber("640"), 0.4, cardW)
     cardGroup.add(goldCard).setSelected(true)   // pre-select one so it is obvious the cards are clickable
     cardGroup.add(woodCard)
     let statsLayout = new TableLayout(inner, 0.058, "StatsTab")

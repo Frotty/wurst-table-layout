@@ -57,6 +57,11 @@ public var COLOR_ACCENT  = "|cffffcc00"   // values, emphasis (WC3 gold)
 public var COLOR_SUCCESS = "|cff40c040"
 public var COLOR_WARNING = "|cffff8000"
 public var COLOR_DANGER  = "|cffe03030"
+// Resource / stat colours (WC3 conventions).
+public var COLOR_GOLD   = "|cffffd700"   // gold resource
+public var COLOR_LUMBER = "|cff2ecc40"   // lumber (green)
+public var COLOR_MANA   = "|cff4d8fff"   // mana (blue)
+public var COLOR_HEALTH = "|cff4cd44c"   // health (green)
 
 /** Wraps `text` in a colour code (pass a COLOR_* prefix or any literal "|cAARRGGBB"). */
 public function colored(string text, string colorPrefix) returns string
@@ -78,6 +83,18 @@ public function warning(string text) returns string
 
 public function danger(string text) returns string
     return colored(text, COLOR_DANGER)
+
+public function gold(string text) returns string
+    return colored(text, COLOR_GOLD)
+
+public function lumber(string text) returns string
+    return colored(text, COLOR_LUMBER)
+
+public function mana(string text) returns string
+    return colored(text, COLOR_MANA)
+
+public function health(string text) returns string
+    return colored(text, COLOR_HEALTH)
 
 /** Paragraph text with an underline (WC3 text has no underline attribute, so this draws the text with a
     thin rule beneath, sized to the text via TableUiTextMetrics). Display-only. */

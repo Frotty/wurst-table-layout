@@ -119,16 +119,38 @@ public function closeButton(framehandle target, real size) returns framehandle
 // --- Interactive overlays ----------------------------------------------------
 // Make any frame behave like a button, and mark a selected/active state, without tinting (WC3 does
 // not support tinting UI textures). A transparent glue button shows the native mouse-over glow and
-// fires clicks; a separate backdrop is a togglable persistent "selected" glow.
+// fires clicks; a separate backdrop is a togglable persistent "selected" glow. Both are raised above
+// the target's content (setLevel) so clicks reach the overlay even when content is added afterwards.
+constant OVERLAY_CLICK_LEVEL = 5
+constant OVERLAY_SELECT_LEVEL = 4
+constant OVERLAY_DISABLED_LEVEL = 6   // above the click overlay, so disabling also blocks a clickableOverlay
+
+// Disables every descendant of `frame` (recursively) so none of them capture the mouse. An ENABLED
+// child frame (e.g. an image backdrop) swallows clicks over its own area, so without this only the GAPS
+// between content would be clickable. Display content (text, images, bars) is unaffected visually.
+function disableDescendants(framehandle frame, int depth)
+    if frame == null or depth >= 8
+        return
+    let count = frame.getChildrenCount()
+    for i = 0 to count - 1
+        let child = frame.getChild(i)
+        if child != null
+            child.disable()
+            disableDescendants(child, depth + 1)
 
 /** Overlays a transparent, clickable glue button covering `target`, showing the WC3 mouse-over glow on
     hover; the target's own content shows through. Returns the overlay, so add behaviour with onClick().
     Use to make a whole card / panel / row clickable instead of only an inner button.
-    CAVEAT: the overlay covers the WHOLE target, so any inner buttons or other clickables beneath it
-    will NOT receive clicks (the overlay intercepts them). Only overlay display-only content. */
+    Call this AFTER building the target's content: it disables the target's existing descendants so an
+    enabled content frame can't swallow clicks over its own area (otherwise only the gaps between
+    content are clickable). The content must therefore be display-only - inner buttons get disabled too. */
 public function clickableOverlay(framehandle target) returns framehandle
+    // Content must not capture the mouse or it blocks the overlay where it sits; disable it, then put
+    // the (enabled) overlay on top.
+    disableDescendants(target, 0)
     let overlay = createFrame("TableUiOverlayButton", target, 0, nextUiContext())
         ..setAllPoints(target)
+        ..setLevel(OVERLAY_CLICK_LEVEL)
     if autoReleaseFocus
         overlay.onClickReleaseFocus()
     return overlay
@@ -139,5 +161,22 @@ public function clickableOverlay(framehandle target) returns framehandle
 public function selectionHighlight(framehandle target) returns framehandle
     return createFrame("TableUiSelectedHighlight", target, 0, nextUiContext())
         ..setAllPoints(target)
+        ..setLevel(OVERLAY_SELECT_LEVEL)
         ..disable()
         ..hide()
+
+/** Overlays a "disabled" scrim over `target`: a grey glue button (no hover) that dims the content and
+    SWALLOWS clicks, so the whole component reads as disabled and is non-interactive (it sits above a
+    clickableOverlay too). Returns the overlay; hide() it to re-enable. Also disable the real controls
+    underneath for correctness; this guarantees the visual + blocks input. Apply it AFTER the target is
+    laid out, since the dimming uses setAlpha (which a later layout pass would otherwise wipe). */
+public function disabledOverlay(framehandle target) returns framehandle
+    disableDescendants(target, 0)
+    let overlay = createFrame("TableUiDisabledOverlay", target, 0, nextUiContext())
+        ..setAllPoints(target)
+        ..setLevel(OVERLAY_DISABLED_LEVEL)
+        ..setAlpha(185)
+    // Catch the click so it never reaches the content; release focus and do nothing else.
+    overlay.onClick() ->
+        overlay.releaseKeyboardFocus(GetTriggerPlayer())
+    return overlay
