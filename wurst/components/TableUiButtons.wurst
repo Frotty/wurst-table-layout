@@ -138,6 +138,20 @@ function disableDescendants(framehandle frame, int depth)
             child.disable()
             disableDescendants(child, depth + 1)
 
+// Fades every descendant of `frame` (recursively) via setAlpha. Used by disabledOverlay so the CONTENT
+// dims too: WC3 draws text strings ABOVE backdrops, so the dark scrim cannot cover text - fading the
+// text frame itself is the only way to dim it. Backdrops/images get faded as well (they sit under the
+// scrim, so it does not matter). Must run after the target is laid out, like disabledOverlay itself.
+function dimDescendants(framehandle frame, int alpha, int depth)
+    if frame == null or depth >= 8
+        return
+    let count = frame.getChildrenCount()
+    for i = 0 to count - 1
+        let child = frame.getChild(i)
+        if child != null
+            child.setAlpha(alpha)
+            dimDescendants(child, alpha, depth + 1)
+
 /** Overlays a transparent, clickable glue button covering `target`, showing the WC3 mouse-over glow on
     hover; the target's own content shows through. Returns the overlay, so add behaviour with onClick().
     Use to make a whole card / panel / row clickable instead of only an inner button.
@@ -172,6 +186,7 @@ public function selectionHighlight(framehandle target) returns framehandle
     laid out, since the dimming uses setAlpha (which a later layout pass would otherwise wipe). */
 public function disabledOverlay(framehandle target) returns framehandle
     disableDescendants(target, 0)
+    dimDescendants(target, 110, 0)   // text renders above the scrim, so fade the content directly too
     let overlay = createFrame("TableUiDisabledOverlay", target, 0, nextUiContext())
         ..setAllPoints(target)
         ..setLevel(OVERLAY_DISABLED_LEVEL)
