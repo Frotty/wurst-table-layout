@@ -1,6 +1,7 @@
 package TableLayoutValidationTest
 import TableLayout
 import TableUiSafeArea
+import TableUiTextMetrics
 
 /*
  * Frame-independent tests for the layout sanity checker (inspect()/checkFits()).
@@ -75,6 +76,41 @@ function growCellNotFlaggedAsZeroWidth()
     t..addSized(0., 0.02)..growX()
     let report = t.inspect()
     report.zeroSizeCount.assertEquals(0)
+    report.ok.assertTrue()
+    destroy report
+    destroy t
+
+@Test
+function textOverflowIsReportedSoftly()
+    let t = new TableLayout(0.2, 0.05, "TextSoft")
+    t.padding = padding(0, 0, 0, 0)
+    t..row()..addSized(0.03, 0.02)..text("AAAAAAAAAAAAAAAAAAAA", FONT_P)
+    let report = t.inspect()
+    report.ok.assertTrue()
+    report.textOverflow.assertEquals(1)
+    t.checkFits().assertTrue()
+    destroy report
+    destroy t
+
+@Test
+function textOverflowUsesGrowWidth()
+    let t = new TableLayout(0.2, 0.05, "TextGrow")
+    t.padding = padding(0, 0, 0, 0)
+    t..row()..addSized(0.05, 0.02)
+    t..addSized(0., 0.02)..growX()..text("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", FONT_P)
+    let report = t.inspect()
+    report.ok.assertTrue()
+    report.textOverflow.assertEquals(1)
+    destroy report
+    destroy t
+
+@Test
+function textOverflowClearWhenEstimatedTextFits()
+    let t = new TableLayout(0.2, 0.05, "TextFits")
+    t.padding = padding(0, 0, 0, 0)
+    t..row()..addSized(0.16, 0.02)..text("Short", FONT_P)
+    let report = t.inspect()
+    report.textOverflow.assertEquals(0)
     report.ok.assertTrue()
     destroy report
     destroy t

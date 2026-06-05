@@ -307,19 +307,21 @@ If a requested layout needs new behavior, add it behind an explicit method. Exis
 The library can sanity-check a layout WITHOUT a running game, so you (and CI) catch overflow and unsized cells before ever launching WC3.
 
 - `layout.checkFits() returns boolean`: true when nothing overflows and every non-grow cell has a size. Leak-free; ideal for assertions.
-- `layout.inspect() returns LayoutReport`: the detailed report (`ok`, `zeroSizeCount`, `rowOverflowCount`, `verticalOverflow`, `worstOverflowX`, `summary`). Destroy the report when done.
+- `layout.inspect() returns LayoutReport`: the detailed report (`ok`, `zeroSizeCount`, `rowOverflowCount`, `verticalOverflow`, `worstOverflowX`, `summary`, plus soft `textOverflow` / `textOverflowSummary`). Destroy the report when done.
 - `layout.validateAndWarn()`: at runtime, logs any problems via `Log.warn` (gated by `tableWarnings`) without aborting layout.
+- `..text(text, FONT_*)` after `add(...)` / `addSized(...)` records text metadata for heuristic width validation. Text overflow is soft: it warns through `validateAndWarn()` and appears in `inspect().textOverflow`, but it does not make `checkFits()` fail.
 
 Self-check pattern: runs headless via `grill test` (no frames needed). Use `addSized(w, h)` to model declared cell sizes:
 
 ```wurst
 package MyUiTest
 import TableLayout
+import TableUiTextMetrics
 
 @Test
 function setupPanelFits()
     let t = new TableLayout(0.24, 0.16, "SetupPanel")
-    t..row()..addSized(0.06, 0.02)..addSized(0.12, 0.02)..growX()
+    t..row()..addSized(0.06, 0.02)..text("Name", FONT_P)..addSized(0.12, 0.02)..growX()
     t.checkFits().assertTrue()
     destroy t
 ```

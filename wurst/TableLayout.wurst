@@ -1,6 +1,7 @@
 package TableLayout
 import public ClosureFrames
 import LinkedList
+import TableUiTextMetrics
 
 /*
  * A table-like layout inspired by the libgdx table and css flex-box.
@@ -194,6 +195,13 @@ public class TableLayout
         if cell != null
             cell.prefWidth = width
             cell.prefHeight = height
+
+    /** Records text metadata for the latest cell so inspect()/validateAndWarn() can soft-check
+        likely overflow with TableUiTextMetrics. Does not affect checkFits(). */
+    function text(string text, real fontSize)
+        let cell = getLastCellOrWarn("text")
+        if cell != null
+            cell.text(text, fontSize)
 
     /** Opt-in column alignment: cells line up into columns sized to the widest cell per column index,
         so grids/forms align without manual offsets. growX is ignored in grid mode (size cells instead). */
@@ -458,6 +466,8 @@ public class TableLayout
     function inspect() returns LayoutReport
         let report = new LayoutReport()
         let avail = max(0., width - padding.getWidth())
+        if gridMode
+            recomputeColumns()
         var contentHeight = 0.
         var rowIndex = 0
         for row in rows
@@ -465,6 +475,7 @@ public class TableLayout
             var rowHeight = 0.
             var cellIndex = 0
             let gapBudget = legacyGapMath ? 0. : max(0, row.cells.size() - 1).toReal() * gapX
+            var growCells = 0
             for cell in row.cells
                 let cw = cell.declaredWidth()
                 let ch = cell.declaredHeight()
@@ -472,7 +483,8 @@ public class TableLayout
                     report.reportZeroSize(rowIndex, cellIndex, true)
                 if ch <= 0. and not cell.growY
                     report.reportZeroSize(rowIndex, cellIndex, false)
-                if cell.growX and not gridMode
+                if cell.growX and cell.fixedWidth < 0. and not gridMode
+                    growCells++
                     fixedPortion += cell.padding.getWidth()
                 else
                     fixedPortion += cw + cell.padding.getWidth()
@@ -481,10 +493,23 @@ public class TableLayout
             fixedPortion += gapBudget
             if not gridMode and fixedPortion > avail + 0.0001
                 report.reportRowOverflow(rowIndex, fixedPortion - avail)
+            let growWidth = growCells > 0 and fixedPortion < avail ? (avail - fixedPortion) / growCells.toReal() : 0.
+            cellIndex = 0
+            var col = 0
+            for cell in row.cells
+                var cellWidth = cell.declaredWidth()
+                if gridMode
+                    cellWidth = columnSlotWidth(col, cell.colspan) - cell.padding.getWidth()
+                    col += cell.colspan
+                else if cell.growX and cell.fixedWidth < 0.
+                    cellWidth = growWidth
+                if cellWidth < 0.
+                    cellWidth = 0.
+                cell.inspectText(report, rowIndex, cellIndex, cellWidth)
+                cellIndex++
             contentHeight += rowHeight
             rowIndex++
         if gridMode
-            recomputeColumns()
             let gridWidth = gridTotalWidth()
             if gridWidth > avail + 0.0001
                 report.reportRowOverflow(-1, gridWidth - avail)
@@ -506,6 +531,8 @@ public class TableLayout
         let report = inspect()
         if not report.ok and tableWarnings
             Log.warn("TableLayout " + name + " has layout issues: " + report.summary)
+        if report.textOverflow > 0 and tableWarnings
+            Log.warn("TableLayout " + name + " has likely text overflow: " + report.textOverflowSummary)
         destroy report
 
     /** Removes a row and invalidates the layout */
@@ -673,6 +700,9 @@ public class Cell
     var prefWidth = -1.
     var prefHeight = -1.
     var warnedEmpty = false
+    var textValue = ""
+    var textFontSize = 0.
+    var hasTextMetric = false
     var valign = Align.UNSET
     var colspan = 1
 
@@ -686,6 +716,14 @@ public class Cell
         this.frame = null
         this.prefWidth = prefWidth
         this.prefHeight = prefHeight
+
+    /** Adds soft text-fit metadata for inspect()/validateAndWarn(). The estimate is heuristic, so
+        overflow is reported separately and never makes checkFits() fail. */
+    function text(string text, real fontSize) returns thistype
+        this.textValue = text
+        this.textFontSize = fontSize
+        this.hasTextMetric = true
+        return this
 
     /** The width used by validation; never touches a frame when one is absent. */
     function declaredWidth() returns real
@@ -746,15 +784,24 @@ public class Cell
         frame.clearAllPoints()
         frame.setPoint(FRAMEPOINT_TOPLEFT, baseFrame, FRAMEPOINT_TOPLEFT, offset)
 
+    function inspectText(LayoutReport report, int rowIndex, int cellIndex, real cellWidth)
+        if not hasTextMetric
+            return
+        let estimated = estimateTextWidth(textValue, textFontSize)
+        if estimated > cellWidth + 0.0001
+            report.reportTextOverflow(rowIndex, cellIndex, estimated, cellWidth, textValue)
+
 
 /** Structured result of TableLayout.inspect(): a frame-independent layout sanity check. */
 public class LayoutReport
     var ok = true
     var zeroSizeCount = 0
     var rowOverflowCount = 0
+    var textOverflow = 0
     var verticalOverflow = false
     var worstOverflowX = 0.
     var summary = ""
+    var textOverflowSummary = ""
 
     function reportZeroSize(int rowIndex, int cellIndex, boolean widthAxis)
         ok = false
@@ -772,6 +819,10 @@ public class LayoutReport
         ok = false
         verticalOverflow = true
         summary += "content height overflow by " + amount.toString() + "; "
+
+    function reportTextOverflow(int rowIndex, int cellIndex, real estimatedWidth, real cellWidth, string text)
+        textOverflow++
+        textOverflowSummary += "[row " + rowIndex.toString() + " cell " + cellIndex.toString() + "] estimated text width " + estimatedWidth.toString() + " exceeds cell width " + cellWidth.toString() + " for \"" + text + "\"; "
 
 public function layoutFrame(framehandle parent) returns framehandle
     return createFrame("FRAME", "multiboardFrame", parent, null, 0)

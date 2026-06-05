@@ -40,7 +40,7 @@ end)
 - Call `row()` before the first `add(...)`. `add` uses the last row.
 - Cell sizes come from the frame size at layout time. Set widths/heights before `applyTo`.
 - Text presets (`p`/`p2`/`p3`/`h1`-`h5`) are FIXEDSIZE and measure `0` until sized. Size every non-grow cell (`setSize`/`prefSize`/`fixedWidth`/`minWidth`) or use `growX`/`growY`, or it collapses and siblings overlap.
-- Validate before shipping: `layout.checkFits()` returns a boolean; `layout.inspect()` returns a detailed `LayoutReport`. Both are frame-independent and run headless in `@Test`/`grill test` (build cells with `addSized(w, h)`). At runtime, `Log.warn`s fire for zero-size cells and horizontal/vertical overflow (gated by `tableWarnings`).
+- Validate before shipping: `layout.checkFits()` returns a boolean; `layout.inspect()` returns a detailed `LayoutReport`. Both are frame-independent and run headless in `@Test`/`grill test` (build cells with `addSized(w, h)`). Add `..text(text, FONT_*)` after a text cell when you want heuristic width validation; `inspect().textOverflow` is a soft signal and does not make `checkFits()` fail. At runtime, `Log.warn`s fire for zero-size cells, horizontal/vertical overflow, and likely text overflow (gated by `tableWarnings`).
 - `growX()` only affects the most recently added cell.
 - `gap(x, y)` is now reserved correctly in grow distribution, row width, and alignment. Set `legacyGapMath = true` to restore the old (overflowing) behaviour.
 - Vertical alignment within a row: `valign(Align)` per cell, `top()`/`middle()`/`bottom()` per row, `defaultValign(Align)` per table.
