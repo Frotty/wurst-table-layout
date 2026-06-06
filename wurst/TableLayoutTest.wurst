@@ -121,7 +121,7 @@ function buildDisplayPanel()
     let mana = statBar("Mana", inner)..setValue(0.5)..setValueText("150/300")
     let tipButton = textButton("Hover me", inner, 0.024)
     buildRichTooltip(tipButton)
-    let disabledCard = barCard("Upgrade", "Locked", 0.5, inner)
+    let disabledCard = barCard("Upgrade", muted("Locked"), 0.5, inner)
 
     let layout = new TableLayout(dw, dh, "Display")
     layout.padding = padding(PANEL_BORDER_INSET, PANEL_BORDER_INSET, PANEL_BORDER_INSET, PANEL_BORDER_INSET)

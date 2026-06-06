@@ -138,20 +138,6 @@ function disableDescendants(framehandle frame, int depth)
             child.disable()
             disableDescendants(child, depth + 1)
 
-// Fades every descendant of `frame` (recursively) via setAlpha. Used by disabledOverlay so the CONTENT
-// dims too: WC3 draws text strings ABOVE backdrops, so the dark scrim cannot cover text - fading the
-// text frame itself is the only way to dim it. Backdrops/images get faded as well (they sit under the
-// scrim, so it does not matter). Must run after the target is laid out, like disabledOverlay itself.
-function dimDescendants(framehandle frame, int alpha, int depth)
-    if frame == null or depth >= 8
-        return
-    let count = frame.getChildrenCount()
-    for i = 0 to count - 1
-        let child = frame.getChild(i)
-        if child != null
-            child.setAlpha(alpha)
-            dimDescendants(child, alpha, depth + 1)
-
 /** Overlays a transparent, clickable glue button covering `target`, showing the WC3 mouse-over glow on
     hover; the target's own content shows through. Returns the overlay, so add behaviour with onClick().
     Use to make a whole card / panel / row clickable instead of only an inner button.
@@ -179,18 +165,19 @@ public function selectionHighlight(framehandle target) returns framehandle
         ..disable()
         ..hide()
 
-/** Overlays a "disabled" scrim over `target`: a grey glue button (no hover) that dims the content and
-    SWALLOWS clicks, so the whole component reads as disabled and is non-interactive (it sits above a
-    clickableOverlay too). Returns the overlay; hide() it to re-enable. Also disable the real controls
-    underneath for correctness; this guarantees the visual + blocks input. Apply it AFTER the target is
-    laid out, since the dimming uses setAlpha (which a later layout pass would otherwise wipe). */
+constant DISABLED_SCRIM_ALPHA = 185     // darkness of the scrim over the target
+
+/** Overlays a grey scrim over `target`: a glue button (at a level above the content and any
+    clickableOverlay) that dims it and swallows clicks, so the component reads as disabled and is
+    non-interactive. Returns the scrim - **hide() it to re-enable, show() it to disable again**: fully
+    reversible with no descendant state to record or restore. NOTE: WC3 draws text above backdrops, so
+    text shows through the scrim rather than being dimmed; colour the text muted() yourself if you want
+    it greyed too. */
 public function disabledOverlay(framehandle target) returns framehandle
-    disableDescendants(target, 0)
-    dimDescendants(target, 110, 0)   // text renders above the scrim, so fade the content directly too
     let overlay = createFrame("TableUiDisabledOverlay", target, 0, nextUiContext())
         ..setAllPoints(target)
         ..setLevel(OVERLAY_DISABLED_LEVEL)
-        ..setAlpha(185)
+        ..setAlpha(DISABLED_SCRIM_ALPHA)
     // Catch the click so it never reaches the content; release focus and do nothing else.
     overlay.onClick() ->
         overlay.releaseKeyboardFocus(GetTriggerPlayer())
