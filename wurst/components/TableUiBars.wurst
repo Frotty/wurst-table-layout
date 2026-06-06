@@ -5,7 +5,6 @@ package TableUiBars
 import TableLayout
 import TableUiImages
 import TableUiText
-import TableUiButtons
 
 public class UIBar
     private var width = 0.
@@ -15,36 +14,34 @@ public class UIBar
     framehandle treeBarAc
     framehandle treeBarBg
 
-    TableLayout layout = null
-
-    private function makeDisplayOnly()
-        if frame != null
-            frame.disable()
-            disableDisplayDescendants(frame)
-        if treeBarAc != null
-            treeBarAc.disable()
-        if treeBarBg != null
-            treeBarBg.disable()
-
     construct(real width, real height)
         this.width = width
         this.height = height
-        // Start the active fill at a hair's width (matching setValue's 0.001 floor) rather than 0, so
-        // the layout does not see a zero-size cell and warn at create() for an empty (0%) bar.
+        // Start the active fill at a hair's width (matching setValue's 0.001 floor) rather than 0.
         treeBarAc = img("bar-active.dds")..setWidth(0.001)..setHeight(height)
         treeBarBg = img("bar-bg.dds")..setWidth(width)..setHeight(height)
 
     function create() returns framehandle
         if frame != null
             return frame
-        layout = new TableLayout(width + 0.002, height, "uibar #" + (this castTo int).toString())
-        layout.padding = padding(0, 0, 0, 0)
-
-        frame = layout..row()
-        ..add(treeBarAc)
-        ..add(treeBarBg)
-        .createContainer(defaultFrameParent)
-        makeDisplayOnly()
+        frame = layoutFrame(defaultFrameParent)..setSize(width, height)
+        // Place the two fills BY HAND - NO nested TableLayout. The active fill anchors to the container's
+        // top-left; the background fill is pinned to the active fill's right edge, so it follows
+        // automatically as the active fill is resized. This is the whole point: setValue() then only
+        // resizes the two images. It never re-runs a layout (which would re-parent / re-anchor / re-
+        // enable cells), so it can NOT disturb an interactivity overlay on a parent card. The fills are
+        // disabled (display-only) and parented exactly once here, never touched again on update.
+        treeBarAc
+        ..setParent(frame)
+        ..clearAllPoints()
+        ..setPoint(FRAMEPOINT_TOPLEFT, frame, FRAMEPOINT_TOPLEFT, vec2(0., 0.))
+        ..disable()
+        treeBarBg
+        ..setParent(frame)
+        ..clearAllPoints()
+        ..setPoint(FRAMEPOINT_TOPLEFT, treeBarAc, FRAMEPOINT_TOPRIGHT, vec2(0., 0.))
+        ..disable()
+        applyValue()
         return frame
 
     function getActiveTexture() returns string
@@ -57,25 +54,23 @@ public class UIBar
     function getBgTexture() returns string
         return "bar-bg.dds"
 
-    function setValue(real value)
-        let clampedValue = value.clamp(0., 1.)
-        if (this.value - clampedValue).abs() <= 0.0001
-            makeDisplayOnly()
-            return
-        this.value = clampedValue
-        treeBarAc.show()
+    private function applyValue()
         treeBarAc
+        ..show()
         ..setTexture(getActiveTexture(), 0, false)
-        ..setWidth(max(0.001, clampedValue * width))
-        treeBarBg.setWidth(max(0.001, (1 - clampedValue) * width))
-        if clampedValue < 1.0
+        ..setWidth(max(0.001, value * width))
+        treeBarBg.setWidth(max(0.001, (1. - value) * width))
+        if value < 1.0
             treeBarBg..setTexture(getBgTexture(), 0, false)..show()
         else
             treeBarBg.hide()
 
-        if layout != null
-            layout.layout()
-        makeDisplayOnly()
+    /** Sets the fill (0..1). Only resizes the two images - no layout pass, no re-parent, so it never
+        disturbs an interactivity overlay on a parent frame. */
+    function setValue(real newValue)
+        value = newValue.clamp(0., 1.)
+        if frame != null
+            applyValue()
 
 // --- Stat bar ----------------------------------------------------------------
 // A labelled bar: [label .......... value] over [====fill====].

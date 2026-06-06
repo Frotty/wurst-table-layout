@@ -121,7 +121,8 @@ function buildDisplayPanel()
     let mana = statBar("Mana", inner)..setValue(0.5)..setValueText("150/300")
     let tipButton = textButton("Hover me", inner, 0.024)
     buildRichTooltip(tipButton)
-    let disabledCard = barCard("Upgrade", muted("Locked"), 0.5, inner)
+    let lockBar = new UIBar(inner - 0.012, 0.006)..setValue(0.5)
+    let disabledCard = barCard("Upgrade", muted("Locked"), lockBar, inner)
 
     let layout = new TableLayout(dw, dh, "Display")
     layout.padding = padding(PANEL_BORDER_INSET, PANEL_BORDER_INSET, PANEL_BORDER_INSET, PANEL_BORDER_INSET)
@@ -173,13 +174,12 @@ function buildTypographyPanel()
 
 // A small selectable resource card: muted caption, a coloured value, and a fill bar - richer content
 // than a plain statCard, so the selectable overlay must stay above the bar to keep catching clicks.
-function barCard(string label, string value, real pct, real width) returns framehandle
+function barCard(string label, string value, UIBar bar, real width) returns framehandle
     let h = 0.05
     let prev = defaultFrameParent
     let root = card(width, h)
     defaultFrameParent = root
     let iw = width - 0.012
-    let bar = new UIBar(iw, 0.006)..setValue(pct)
     let l = new TableLayout(width, h, "BarCard")
     l.padding = padding(0.004, 0.004, 0.004, 0.004)
     l.gap(0, 0.003)
@@ -240,15 +240,26 @@ function buildShowcasePanel()
     // click) plus a selection border, with radio behaviour. CAVEAT: the overlay covers the WHOLE card,
     // so a selectable card must be display-only - an inner button under the overlay would not get clicks.
     let cardGroup = new UISelectableGroup
-    let goldCard = barCard("Gold", gold("1,250"), 0.7, cardW)
-    let woodCard = barCard("Lumber", lumber("640"), 0.4, cardW)
+    // LIVE TEST for the UIBar / overlay interaction: each card holds a UIBar we animate every 0.3s
+    // (below). Clicking a card must keep toggling its selection border even while the bars update - that
+    // asserts UIBar.setValue no longer disturbs the click overlay.
+    let barInner = cardW - 0.012
+    let goldBar = new UIBar(barInner, 0.006)..setValue(0.7)
+    let woodBar = new UIBar(barInner, 0.006)..setValue(0.4)
+    let goldCard = barCard("Gold", gold("1,250"), goldBar, cardW)
+    let woodCard = barCard("Lumber", lumber("640"), woodBar, cardW)
     cardGroup.add(goldCard).setSelected(true)   // pre-select one so it is obvious the cards are clickable
     cardGroup.add(woodCard)
+    cardGroup.onSelect(idx -> print("|cff40ff40clicked card " + idx.toString() + " while its bar animates -> overlay still works|r"))
     let statsLayout = new TableLayout(inner, 0.058, "StatsTab")
     statsLayout.padding = padding(0.002, 0.002, 0.002, 0.002)
     statsLayout.gap(0.004, 0)
     statsLayout..row()..add(goldCard)..add(woodCard)
     statsLayout.applyTo(statsTab)
+    // Drive the bars continuously. Click the cards during this to confirm the overlay keeps responding.
+    doPeriodically(0.3) cb ->
+        goldBar.setValue((1. + currentTime.cos()) / 2.)
+        woodBar.setValue((1. - currentTime.cos()) / 2.)
     let infoTab = showTabs.addTab("Info")
     defaultFrameParent = infoTab
     let infoLayout = new TableLayout(inner, 0.058, "InfoTab")
