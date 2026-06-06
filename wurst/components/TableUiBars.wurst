@@ -17,6 +17,15 @@ public class UIBar
 
     TableLayout layout = null
 
+    private function makeDisplayOnly()
+        if frame != null
+            frame.disable()
+            disableDisplayDescendants(frame)
+        if treeBarAc != null
+            treeBarAc.disable()
+        if treeBarBg != null
+            treeBarBg.disable()
+
     construct(real width, real height)
         this.width = width
         this.height = height
@@ -35,8 +44,7 @@ public class UIBar
         ..add(treeBarAc)
         ..add(treeBarBg)
         .createContainer(defaultFrameParent)
-        frame.disable()
-        disableDisplayDescendants(frame)
+        makeDisplayOnly()
         return frame
 
     function getActiveTexture() returns string
@@ -52,6 +60,7 @@ public class UIBar
     function setValue(real value)
         let clampedValue = value.clamp(0., 1.)
         if (this.value - clampedValue).abs() <= 0.0001
+            makeDisplayOnly()
             return
         this.value = clampedValue
         treeBarAc.show()
@@ -66,9 +75,7 @@ public class UIBar
 
         if layout != null
             layout.layout()
-        if frame != null
-            frame.disable()
-            disableDisplayDescendants(frame)
+        makeDisplayOnly()
 
 // --- Stat bar ----------------------------------------------------------------
 // A labelled bar: [label .......... value] over [====fill====].
