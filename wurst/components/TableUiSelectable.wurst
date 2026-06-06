@@ -15,9 +15,10 @@ public interface SelectableListener
 public interface SelectableGroupListener
     function onSelect(int index)
 
-/** General-purpose interaction directive for display-only frames: whole-frame hover/click, optional
-    selected border, optional disabled scrim. It is not card-specific; apply it after building any
-    display-only target (row, card, panel, icon tile, shop item, ...). */
+/** General-purpose interaction directive for display-only frames: whole-frame hover/click plus an
+    optional disabled scrim. Click + disable only by DEFAULT - a selected/active border is opt-in via
+    withSelection() (selectable() / UISelectableGroup turn it on). It is not card-specific; apply it after
+    building any display-only target (row, card, panel, icon tile, shop item, ...). */
 public class UIInteractionDirective
     private framehandle target = null
     private framehandle highlight = null
@@ -30,9 +31,19 @@ public class UIInteractionDirective
         this.target = target
         if target != null
             target.disable()
-            highlight = selectionHighlight(target)
             overlay = clickableOverlay(target)
             disabledScrim = disabledOverlay(target)..hide()
+        // No selection highlight by default: interactive() is click + disable only. Opt in with
+        // withSelection() when a visible selected/active state is wanted (selectable() / UISelectableGroup
+        // do this for you). Keeps a plain clickable card from sprouting an unwanted selected border.
+
+    /** Opt in to a selected/active border (off by default). Safe to call once right after construction;
+        the highlight uses a lower setLevel than the click overlay, so clicks still reach the overlay. */
+    function withSelection() returns thistype
+        if highlight == null and target != null
+            highlight = selectionHighlight(target)
+            highlight.setVisible(selectedState)
+        return this
 
     function getClickFrame() returns framehandle
         return overlay
@@ -65,19 +76,23 @@ public class UIInteractionDirective
             disabledScrim.withTooltip(text, width)
         return this
 
+    /** Re-assert the directive after the target's content or visibility changes (call from your update /
+        setData path). Safety latch: besides re-disabling content, it re-anchors each overlay to the target
+        and re-applies its draw level + enabled state, so a re-parent, a build-while-hidden then reveal, or
+        an external setLevel cannot leave the hit area stale or content capturing the mouse above the click
+        overlay. Idempotent - safe to call every update. */
     function refresh() returns thistype
         if target != null
             target.disable()
             disableDisplayDescendants(target)
         if highlight != null
-            highlight.disable()
-            highlight.setVisible(selectedState)
+            highlight..clearAllPoints()..setAllPoints(target)..setLevel(OVERLAY_SELECT_LEVEL)..disable()..setVisible(selectedState)
         if overlay != null
-            overlay.enable()
+            overlay..clearAllPoints()..setAllPoints(target)..setLevel(OVERLAY_CLICK_LEVEL)..enable()
         if disabledScrim != null
+            disabledScrim..clearAllPoints()..setAllPoints(target)..setLevel(OVERLAY_DISABLED_LEVEL)
             if disabledState
-                disabledScrim.enable()
-                disabledScrim.show()
+                disabledScrim..enable()..show()
             else
                 disabledScrim.hide()
         return this
@@ -99,7 +114,7 @@ public class UISelectable
 
     construct(framehandle target)
         this.target = target
-        interaction = interactive(target)
+        interaction = interactive(target)..withSelection()
         let overlay = interaction.getClickFrame()
         overlay.onClick() ->
             overlay.releaseKeyboardFocus(GetTriggerPlayer())

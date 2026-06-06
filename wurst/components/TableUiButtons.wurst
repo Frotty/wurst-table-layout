@@ -121,9 +121,9 @@ public function closeButton(framehandle target, real size) returns framehandle
 // not support tinting UI textures). A transparent glue button shows the native mouse-over glow and
 // fires clicks; a separate backdrop is a togglable persistent "selected" glow. Both are raised above
 // the target's content (setLevel) so clicks reach the overlay even when content is added afterwards.
-constant OVERLAY_CLICK_LEVEL = 5
-constant OVERLAY_SELECT_LEVEL = 4
-constant OVERLAY_DISABLED_LEVEL = 6   // above the click overlay, so disabling also blocks a clickableOverlay
+public constant OVERLAY_CLICK_LEVEL = 5
+public constant OVERLAY_SELECT_LEVEL = 4
+public constant OVERLAY_DISABLED_LEVEL = 6   // above the click overlay, so disabling also blocks a clickableOverlay
 
 // Disables every descendant of `frame` (recursively) so none of them capture the mouse. An ENABLED
 // child frame (e.g. an image backdrop) swallows clicks over its own area, so without this only the GAPS
