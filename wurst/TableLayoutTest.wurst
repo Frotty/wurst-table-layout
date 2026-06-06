@@ -140,7 +140,9 @@ function buildDisplayPanel()
     ..row()..add(h5("Disabled card")..setSize(inner, 0.012)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))..growX()
     ..row()..add(disabledCard)..growX()
     layout.applyTo(root)
-    disabledOverlay(disabledCard)   // applied AFTER layout so its dim alpha is not wiped
+    interactive(disabledCard)
+        ..setDisabled(true)
+        ..withTooltip("interactive(target) can dim and block a display-only frame.", 0.18)
     defaultFrameParent = prev
 
 // ===== Typography scale =====

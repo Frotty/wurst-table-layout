@@ -96,3 +96,64 @@ public function ellipsize(string text, real fontSize, real maxWidth) returns str
     while result.length() > 0 and estimateTextWidth(result, fontSize) > target
         result = result.substring(0, result.length() - 1)
     return result + "..."
+
+function appendMetricLine(string existing, string line) returns string
+    if existing == ""
+        return line
+    return existing + "\n" + line
+
+function fittingPrefixLength(string text, real fontSize, real maxWidth) returns int
+    var best = 0
+    var bestSpace = -1
+    for i = 1 to text.length()
+        let prefix = text.substring(0, i).trim()
+        if textFits(prefix, fontSize, maxWidth)
+            best = i
+            if text.substring(i - 1, i) == " "
+                bestSpace = i - 1
+        else if best > 0
+            break
+    if bestSpace > 0
+        return bestSpace
+    return best
+
+/** Greedily wraps `text` into at most `maxLines`, fitting each line to `maxWidth` using the same
+    heuristic as ellipsize(). Existing newlines force line breaks. The final visible line is ellipsized
+    when remaining text still overflows. Colour codes are ignored for measurement. */
+public function ellipsizeLines(string text, real fontSize, real maxWidth, int maxLines) returns string
+    if text == null or maxLines <= 0
+        return ""
+
+    var output = ""
+    var lines = 0
+    var remaining = text
+    while remaining.length() > 0 and lines < maxLines
+        let newlineIndex = remaining.indexOf("\n")
+        let paragraph = newlineIndex >= 0 ? remaining.substring(0, newlineIndex) : remaining
+        remaining = newlineIndex >= 0 ? remaining.substring(newlineIndex + 1) : ""
+
+        var rest = paragraph.trim()
+        while rest.length() > 0 and lines < maxLines
+            if textFits(rest, fontSize, maxWidth)
+                output = appendMetricLine(output, rest)
+                lines++
+                rest = ""
+            else
+                if lines == maxLines - 1
+                    output = appendMetricLine(output, ellipsize(rest, fontSize, maxWidth))
+                    return output
+
+                let cut = fittingPrefixLength(rest, fontSize, maxWidth)
+                if cut <= 0
+                    output = appendMetricLine(output, ellipsize(rest, fontSize, maxWidth))
+                    return output
+
+                output = appendMetricLine(output, rest.substring(0, cut).trim())
+                lines++
+
+                var consume = cut
+                while consume < rest.length() and rest.substring(consume, consume + 1) == " "
+                    consume++
+                rest = rest.substring(consume).trim()
+
+    return output

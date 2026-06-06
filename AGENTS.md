@@ -48,6 +48,8 @@ end)
 - Spacing scale: use `SPACE_XS`/`SPACE_S`/`SPACE_M`/`SPACE_L`/`SPACE_XL` in `gap`/`padding`/`spacer` instead of magic numbers. `gap(all)` and `spacer(size)` take one value.
 - Minimum sizes: `textButton`/`iconButton`/`checkbox` clamp to `MIN_BUTTON_WIDTH`/`MIN_BUTTON_HEIGHT`/`MIN_ICON_SIZE` so controls can't render broken.
 - Container hierarchy: `panel` (window) > `card` (section, sparingly) > `container`/`section` (no backdrop, default nesting). Never nest backdrops more than one level: box with `container`/`section`, not `card`.
+- Whole-frame interaction: use `interactive(target)` for display-only frames that need full-area click, selected, disabled, and tooltip states. Build all display content first; call `refresh()` after adding or changing display children later. Use low-level overlays only for escape hatches.
+- `UIBar` is display-only by default and safe inside clickable/interactive display frames.
 - Safe placement: use `frame.placeSafe(vec2, w, h)` (clamps into `SAFE_AREA_MIN`..`SAFE_AREA_MAX`) instead of raw `setAbsPoint`, to avoid the melee HUD.
 - Layering / z-order: WC3 stacking follows the frame tree (no global z-index); `setLevel` orders siblings within one parent. Verified in-game: `GAME_UI` (the default parent) renders on top of the HUD console, `WORLD_UI` and `CONSOLE_UI`. So custom UI lives in `GAME_UI`, and on-top UI uses two `GAME_UI` child layers raised by `setLevel`: `Layer.DIALOG` (modal dialogs) and `Layer.OVERLAY` (dropdowns/menus/tooltips, above dialogs). Create into the layer (`inLayer(Layer.DIALOG) -> ...`) rather than reparenting later (`setParent` after creation can desync hit areas). `defaultFrameParent` stays `GAME_UI` (`Layer.CONTENT`). `confirmDialog` uses `DIALOG`, `select` uses `OVERLAY`.
 - Keyboard focus: library clickables auto-release focus on click (`autoReleaseFocus`, default true) so Enter still opens chat and can't re-fire a button; no manual `unfocus()` needed. For foreign frames call `onClickReleaseFocus()`; for decorative frames `disable()`. There is no FDF "unfocusable" flag and no `GetFocus`/focus event, so focus is handled at creation/click, not globally.
@@ -79,5 +81,5 @@ Run everything through `grill` (it locates the bundled WurstScript compiler and 
 - Keep layout behavior backward-compatible. New spacing/sizing behavior should be opt-in.
 
 ## Tests and Demos
-- `wurst/TableLayoutValidationTest.wurst` is the headless `@Test` suite (layout fit, overflow, grid, safe-area clamp). Run it with `grill test`; add cases here for new layout/validation behaviour.
+- `wurst/TableLayoutValidationTest.wurst` is the headless `@Test` suite (layout fit, overflow, grid, safe-area clamp). `wurst/TableUiTextMetricsTest.wurst` covers `estimateTextWidth`, `ellipsize`, and `ellipsizeLines`. Run relevant focused tests or `grill test`; add cases here for new layout/validation behaviour.
 - `wurst/TableLayoutTest.wurst` is the manual/visual demo: it builds on-screen frames, so it needs a real map run (`grill build ExampleMap.w3x`, then launch in WC3), not `grill test`. Keep it updated when you add features.

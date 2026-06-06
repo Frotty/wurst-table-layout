@@ -36,7 +36,7 @@ Use these helpers instead of custom frame construction:
 - Text: `p`, `p2`, `p3`, `h1`, `h2`, `h3`, `h4`, `h5`
 - Images: `img`
 - Buttons: `btn`, `imgBtn`, `textButton`, `iconButton`
-- Selectable / state: `selectable(frame)`, `UISelectableGroup` (radio); `clickableOverlay`/`selectionHighlight` (clickable + active state), `disabledOverlay` (grey out + swallow input) - all overlay a display frame
+- Selectable / state: `interactive(frame)` for whole-frame click/selected/disabled/tooltip state on display-only frames; `selectable(frame)`, `UISelectableGroup` (radio); low-level `clickableOverlay`/`selectionHighlight`/`disabledOverlay` for escape hatches
 - Colour / type: `muted`, `accent`, `success`/`warning`/`danger`, `gold`/`lumber`/`mana`/`health`, `colored(text, COLOR_*)`; `underline(text)`
 - Layout roots: `defaultFrame`, `panel`, `card`, `layoutFrame`, `spacer`
 - Dividers: `separator`, `vSeparator`
@@ -171,6 +171,28 @@ start.withTooltip("Starts the selected mode.")
 ```
 
 Use `withTooltip` instead of repeatedly calling `setTooltip`. Reusing the same owner/tooltip pair directly can crash on hover in Warcraft III.
+
+### Whole-Frame Interaction
+
+Use `interactive(target)` when a display-only frame (card, row, panel, icon tile) should be clickable
+across its full visual area or needs selected/disabled state. Build all display children first, then add
+the directive:
+
+```wurst
+let row = card(0.16, 0.05)
+// build display-only text/images/bars into row
+let hit = interactive(row)
+    ..setSelected(false)
+    ..setDisabled(false)
+    ..withTooltip("Select this row.", 0.18)
+
+hit.getClickFrame().onClick() ->
+    hit.setSelected(true)
+```
+
+The directive disables display descendants so text/images/bars do not swallow mouse input. If display
+children are added or relaid out later, call `hit.refresh()`. Do not use it on a frame containing inner
+buttons that must remain independently clickable.
 
 ### Dynamic Select
 
@@ -328,6 +350,7 @@ The library can sanity-check a layout WITHOUT a running game, so you (and CI) ca
 - `layout.inspect() returns LayoutReport`: the detailed report (`ok`, `zeroSizeCount`, `rowOverflowCount`, `verticalOverflow`, `worstOverflowX`, `summary`, plus soft `textOverflow` / `textOverflowSummary`). Destroy the report when done.
 - `layout.validateAndWarn()`: at runtime, logs any problems via `Log.warn` (gated by `tableWarnings`) without aborting layout.
 - `..text(text, FONT_*)` after `add(...)` / `addSized(...)` records text metadata for heuristic width validation. Text overflow is soft: it warns through `validateAndWarn()` and appears in `inspect().textOverflow`, but it does not make `checkFits()` fail.
+- Use `ellipsizeLines(text, FONT_*, width, maxLines)` for constrained multiline labels; it wraps greedily on spaces and ellipsizes the final visible line.
 
 Self-check pattern: runs headless via `grill test` (no frames needed). Use `addSized(w, h)` to model declared cell sizes:
 

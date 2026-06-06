@@ -42,3 +42,39 @@ function longTextGetsEllipsisAndFits()
 @Test
 function tinyWidthReturnsEllipsis()
     ellipsize("Hello world", FONT_P, 0.0).assertEquals("...")
+
+@Test
+function ellipsizeLinesZeroLinesIsEmpty()
+    ellipsizeLines("Hello world", FONT_P, 1.0, 0).assertEquals("")
+
+@Test
+function ellipsizeLinesShortTextPassesThrough()
+    ellipsizeLines("Short text", FONT_P, 1.0, 2).assertEquals("Short text")
+
+@Test
+function ellipsizeLinesWrapsOnSpaces()
+    let maxW = estimateTextWidth("Alpha beta", FONT_P) + 0.0000001
+    let result = ellipsizeLines("Alpha beta gamma", FONT_P, maxW, 2)
+    let split = result.indexOf("\n")
+    (split > 0).assertTrue()
+    textFits(result.substring(0, split), FONT_P, maxW + 0.0000001).assertTrue()
+    textFits(result.substring(split + 1), FONT_P, maxW + 0.0000001).assertTrue()
+
+@Test
+function ellipsizeLinesFinalLineGetsEllipsis()
+    let maxW = estimateTextWidth("Alpha beta", FONT_P) + 0.0000001
+    let result = ellipsizeLines("Alpha beta gamma delta epsilon", FONT_P, maxW, 2)
+    result.endsWith("...").assertTrue()
+    let split = result.indexOf("\n")
+    (split > 0).assertTrue()
+    textFits(result.substring(split + 1), FONT_P, maxW + 0.0000001).assertTrue()
+
+@Test
+function ellipsizeLinesRespectsManualNewlines()
+    ellipsizeLines("Alpha\nBeta", FONT_P, 1.0, 2).assertEquals("Alpha\nBeta")
+
+@Test
+function ellipsizeLinesIgnoresColorCodesForMeasurement()
+    let maxW = estimateTextWidth("Hello world", FONT_P) + 0.0000001
+    let result = ellipsizeLines("|cffff0000Hello|r world", FONT_P, maxW, 1)
+    result.assertEquals("|cffff0000Hello|r world")

@@ -6,6 +6,7 @@ package TableUiSelectable
 // use display-only targets (not ones with their own inner buttons that need to stay clickable).
 import TableLayout
 import TableUiButtons
+import TableUiTooltip
 import LinkedList
 
 public interface SelectableListener
@@ -14,6 +15,76 @@ public interface SelectableListener
 public interface SelectableGroupListener
     function onSelect(int index)
 
+/** General-purpose interaction directive for display-only frames: whole-frame hover/click, optional
+    selected border, optional disabled scrim. It is not card-specific; apply it after building any
+    display-only target (row, card, panel, icon tile, shop item, ...). */
+public class UIInteractionDirective
+    private framehandle target = null
+    private framehandle highlight = null
+    private framehandle overlay = null
+    private framehandle disabledScrim = null
+    private var selectedState = false
+    private var disabledState = false
+
+    construct(framehandle target)
+        this.target = target
+        if target != null
+            target.disable()
+            highlight = selectionHighlight(target)
+            overlay = clickableOverlay(target)
+            disabledScrim = disabledOverlay(target)..hide()
+
+    function getClickFrame() returns framehandle
+        return overlay
+
+    function getFrame() returns framehandle
+        return target
+
+    function setSelected(bool flag) returns thistype
+        selectedState = flag
+        if highlight != null
+            highlight.setVisible(flag)
+        return this
+
+    function setDisabled(bool flag) returns thistype
+        disabledState = flag
+        if disabledScrim != null
+            if flag
+                disabledScrim.enable()
+                disabledScrim.show()
+            else
+                disabledScrim.hide()
+        if overlay != null
+            overlay.enable()
+        return this
+
+    function withTooltip(string text, real width) returns thistype
+        if overlay != null
+            overlay.withTooltip(text, width)
+        if disabledScrim != null
+            disabledScrim.withTooltip(text, width)
+        return this
+
+    function refresh() returns thistype
+        if target != null
+            target.disable()
+            disableDisplayDescendants(target)
+        if highlight != null
+            highlight.disable()
+            highlight.setVisible(selectedState)
+        if overlay != null
+            overlay.enable()
+        if disabledScrim != null
+            if disabledState
+                disabledScrim.enable()
+                disabledScrim.show()
+            else
+                disabledScrim.hide()
+        return this
+
+public function interactive(framehandle target) returns UIInteractionDirective
+    return new UIInteractionDirective(target)
+
 /** Wraps a display frame so the WHOLE frame is hoverable + clickable, with a selected/active state.
     Standalone it toggles its selection on click; added to a UISelectableGroup it behaves as a radio
     member (selecting it clears the others).
@@ -21,17 +92,15 @@ public interface SelectableGroupListener
     receiving clicks. Use on display-only content (cards, rows, panels without their own buttons). */
 public class UISelectable
     private framehandle target = null
-    private framehandle highlight = null
-    private framehandle overlay = null
+    private UIInteractionDirective interaction = null
     private var selectedState = false
     private SelectableListener listener = null
     UISelectableGroup ownerGroup = null
 
     construct(framehandle target)
         this.target = target
-        target.disable()                       // so the overlay, not the target, receives clicks
-        highlight = selectionHighlight(target) // created first => below the overlay
-        overlay = clickableOverlay(target)     // on top => hover glow + clicks
+        interaction = interactive(target)
+        let overlay = interaction.getClickFrame()
         overlay.onClick() ->
             overlay.releaseKeyboardFocus(GetTriggerPlayer())
             if ownerGroup != null
@@ -44,7 +113,7 @@ public class UISelectable
     /** Shows or hides the selection border. */
     function setSelected(bool flag)
         selectedState = flag
-        highlight.setVisible(flag)
+        interaction.setSelected(flag)
 
     function isSelected() returns bool
         return selectedState

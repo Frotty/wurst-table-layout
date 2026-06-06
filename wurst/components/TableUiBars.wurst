@@ -5,11 +5,13 @@ package TableUiBars
 import TableLayout
 import TableUiImages
 import TableUiText
+import TableUiButtons
 
 public class UIBar
     private var width = 0.
     private var height = 0.
     private var value = 0.
+    framehandle frame = null
     framehandle treeBarAc
     framehandle treeBarBg
 
@@ -24,13 +26,18 @@ public class UIBar
         treeBarBg = img("bar-bg.dds")..setWidth(width)..setHeight(height)
 
     function create() returns framehandle
+        if frame != null
+            return frame
         layout = new TableLayout(width + 0.002, height, "uibar #" + (this castTo int).toString())
         layout.padding = padding(0, 0, 0, 0)
 
-        return layout..row()
+        frame = layout..row()
         ..add(treeBarAc)
         ..add(treeBarBg)
         .createContainer(defaultFrameParent)
+        frame.disable()
+        disableDisplayDescendants(frame)
+        return frame
 
     function getActiveTexture() returns string
         if value <= 0.3
@@ -43,19 +50,25 @@ public class UIBar
         return "bar-bg.dds"
 
     function setValue(real value)
-        this.value = value
+        let clampedValue = value.clamp(0., 1.)
+        if (this.value - clampedValue).abs() <= 0.0001
+            return
+        this.value = clampedValue
         treeBarAc.show()
         treeBarAc
         ..setTexture(getActiveTexture(), 0, false)
-        ..setWidth(max(0.001, value * width))
-        treeBarBg.setWidth(max(0.001, (1 - value) * width))
-        if value < 1.0
+        ..setWidth(max(0.001, clampedValue * width))
+        treeBarBg.setWidth(max(0.001, (1 - clampedValue) * width))
+        if clampedValue < 1.0
             treeBarBg..setTexture(getBgTexture(), 0, false)..show()
         else
             treeBarBg.hide()
 
         if layout != null
             layout.layout()
+        if frame != null
+            frame.disable()
+            disableDisplayDescendants(frame)
 
 // --- Stat bar ----------------------------------------------------------------
 // A labelled bar: [label .......... value] over [====fill====].

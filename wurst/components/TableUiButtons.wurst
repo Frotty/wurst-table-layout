@@ -138,6 +138,11 @@ function disableDescendants(framehandle frame, int depth)
             child.disable()
             disableDescendants(child, depth + 1)
 
+/** Disables display-only descendants so they cannot swallow mouse input above an interaction overlay.
+    Use this when a component adds/updates display children after creating clickableOverlay/interactive. */
+public function disableDisplayDescendants(framehandle frame)
+    disableDescendants(frame, 0)
+
 /** Overlays a transparent, clickable glue button covering `target`, showing the WC3 mouse-over glow on
     hover; the target's own content shows through. Returns the overlay, so add behaviour with onClick().
     Use to make a whole card / panel / row clickable instead of only an inner button.
