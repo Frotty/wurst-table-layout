@@ -66,6 +66,18 @@ public function inLayer(Layer layer, LayerScope body)
     body.run()
     defaultFrameParent = previous
 
+/** Runs `body` with defaultFrameParent set to `parent`, then restores the previous parent (a stack, via
+    nesting). Use this to CREATE helper frames (p / img / btn / UIBar / ...) directly under their eventual
+    base parent, instead of assigning defaultFrameParent globally and never reverting (which leaks into
+    every later package) or creating under a global default and re-parenting later (a post-creation
+    setParent can desync a frame's hit area from its visual). Usage: withParent(myPanel) -> buildContent().
+    Nests safely: an inner withParent restores to the outer parent, not the global default. */
+public function withParent(framehandle parent, LayerScope body)
+    let previous = defaultFrameParent
+    defaultFrameParent = parent
+    body.run()
+    defaultFrameParent = previous
+
 /** Moves an already-created frame into a z-band. Prefer creating in the band (inLayer / the
     layer-aware helpers): reparenting after creation can desync a frame's clickable area in WC3. */
 public function framehandle.setLayer(Layer layer)

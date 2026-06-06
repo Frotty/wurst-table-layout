@@ -17,30 +17,25 @@ public class UIBar
     construct(real width, real height)
         this.width = width
         this.height = height
-        // Start the active fill at a hair's width (matching setValue's 0.001 floor) rather than 0.
-        treeBarAc = img("bar-active.dds")..setWidth(0.001)..setHeight(height)
-        treeBarBg = img("bar-bg.dds")..setWidth(width)..setHeight(height)
 
     function create() returns framehandle
         if frame != null
             return frame
         frame = layoutFrame(defaultFrameParent)..setSize(width, height)
-        // Place the two fills BY HAND - NO nested TableLayout. The active fill anchors to the container's
-        // top-left; the background fill is pinned to the active fill's right edge, so it follows
-        // automatically as the active fill is resized. This is the whole point: setValue() then only
-        // resizes the two images. It never re-runs a layout (which would re-parent / re-anchor / re-
-        // enable cells), so it can NOT disturb an interactivity overlay on a parent card. The fills are
-        // disabled (display-only) and parented exactly once here, never touched again on update.
-        treeBarAc
-        ..setParent(frame)
-        ..clearAllPoints()
-        ..setPoint(FRAMEPOINT_TOPLEFT, frame, FRAMEPOINT_TOPLEFT, vec2(0., 0.))
-        ..disable()
-        treeBarBg
-        ..setParent(frame)
-        ..clearAllPoints()
-        ..setPoint(FRAMEPOINT_TOPLEFT, treeBarAc, FRAMEPOINT_TOPRIGHT, vec2(0., 0.))
-        ..disable()
+        // Create the two fills LAZILY here, directly UNDER the bar frame - NOT eagerly in the constructor
+        // under whatever the ambient global defaultFrameParent happened to be (e.g. a consumer's
+        // ConsoleUIBackdrop) and then re-parented. Creating them in their final parent from the start avoids
+        // a re-parent, which can desync a frame's clickable area. The active fill anchors to the frame's
+        // top-left; the bg fill is pinned to the active fill's right edge so it follows on resize. Both are
+        // display-only (disabled), anchored once, never re-parented / re-levelled - so setValue() only
+        // resizes them and can't disturb an interactivity overlay on a parent card.
+        let prevParent = defaultFrameParent
+        defaultFrameParent = frame
+        treeBarAc = img("bar-active.dds")..setHeight(height)..setWidth(0.001)
+            ..clearAllPoints()..setPoint(FRAMEPOINT_TOPLEFT, frame, FRAMEPOINT_TOPLEFT, vec2(0., 0.))..disable()
+        treeBarBg = img("bar-bg.dds")..setHeight(height)..setWidth(width)
+            ..clearAllPoints()..setPoint(FRAMEPOINT_TOPLEFT, treeBarAc, FRAMEPOINT_TOPRIGHT, vec2(0., 0.))..disable()
+        defaultFrameParent = prevParent
         applyValue()
         return frame
 
