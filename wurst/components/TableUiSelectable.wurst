@@ -76,23 +76,21 @@ public class UIInteractionDirective
             disabledScrim.withTooltip(text, width)
         return this
 
-    /** Re-assert the directive after the target's content or visibility changes (call from your update /
-        setData path). Safety latch: besides re-disabling content, it re-anchors each overlay to the target
-        and re-applies its draw level + enabled state, so a re-parent, a build-while-hidden then reveal, or
-        an external setLevel cannot leave the hit area stale or content capturing the mouse above the click
-        overlay. Idempotent - safe to call every update. */
+    /** Re-assert the directive after content is added/updated under the target: re-disables descendants so
+        none capture the mouse above the overlay, and re-applies the selected / disabled state. */
     function refresh() returns thistype
         if target != null
             target.disable()
             disableDisplayDescendants(target)
         if highlight != null
-            highlight..clearAllPoints()..setAllPoints(target)..setLevel(OVERLAY_SELECT_LEVEL)..disable()..setVisible(selectedState)
+            highlight.disable()
+            highlight.setVisible(selectedState)
         if overlay != null
-            overlay..clearAllPoints()..setAllPoints(target)..setLevel(OVERLAY_CLICK_LEVEL)..enable()
+            overlay.enable()
         if disabledScrim != null
-            disabledScrim..clearAllPoints()..setAllPoints(target)..setLevel(OVERLAY_DISABLED_LEVEL)
             if disabledState
-                disabledScrim..enable()..show()
+                disabledScrim.enable()
+                disabledScrim.show()
             else
                 disabledScrim.hide()
         return this
