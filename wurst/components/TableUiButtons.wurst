@@ -77,7 +77,13 @@ public class UICheckbox
             if listener != null
                 listener.onChange(value)
 
-        check = img(checkTexture, true)..setVisible(checked)..setParent(bg)..setAllPoints(bg)..setWidth(width)..setHeight(height)
+        // Create the check overlay UNDER bg from the start, instead of under the ambient defaultFrameParent
+        // and then ..setParent(bg). A post-creation setParent desyncs a frame's clickable/hit area in WC3 -
+        // the exact 'born far away, re-parented in' pattern behind the earlier click-stealing bug.
+        let prevParent = defaultFrameParent
+        defaultFrameParent = bg
+        check = img(checkTexture, true)..setVisible(checked)..setAllPoints(bg)..setWidth(width)..setHeight(height)
+        defaultFrameParent = prevParent
 
     function addListener(CheckboxListener listener)
         this.listener = listener

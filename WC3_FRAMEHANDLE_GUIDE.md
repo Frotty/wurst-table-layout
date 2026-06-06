@@ -33,8 +33,8 @@ function createMyUi()
     let layout = new TableLayout(0.18, 0.08, "MyUi")
     layout.padding = padding(0.006, 0.008, 0.006, 0.008)
     layout
-    ..row()..add(h3("Status"))
-    ..row()..add(p("Ready"))
+    ..row()..add(h3("Status")..setSize(0.16, 0.02))..growX()
+    ..row()..add(p("Ready")..setSize(0.16, 0.014))..growX()
     ..row()..add(btn("Close")..setSize(0.08, 0.024))
 
     root = layout.createFrame()
@@ -125,7 +125,7 @@ Create frames in their band; do not reparent into it afterwards. `BlzFrameSetPar
 // scoped: everything created inside is parented into OVERLAY
 inLayer(Layer.OVERLAY) ->
     let dialog = panelTable(0.24, 0.12, "MyDialog")
-        ..row()..add(h3("Confirm"))
+        ..row()..add(h3("Confirm")..setSize(0.20, 0.02))..growX()
         .build()
     dialog.placeSafe(vec2(0.4, 0.4), 0.24, 0.12)
 
@@ -152,10 +152,10 @@ Verified in-game (`Wc3QuirkProbe`, a 3-column ref / before-layout / after-layout
 let layout = new TableLayout(0.22, 0.10, "Panel")
 layout.padding = padding(0.006, 0.012, 0.006, 0.012)
 layout
-..row()..center()..add(h2("Inventory"))
+..row()..center()..add(h2("Inventory")..setSize(0.18, 0.022))
 ..row()
 ..add(img("ReplaceableTextures\\CommandButtons\\BTNFootman.blp", 0.024, 0.024))
-..add(p("Footman"))..growX()
+..add(p("Footman")..setSize(0.10, 0.014))..growX()
 ..row()
 ..add(btn("Select")..setSize(0.08, 0.024))
 let panel = layout.createFrame()
@@ -169,18 +169,16 @@ Important behavior:
 - If child sizes change later, call `layout.layout()` again.
 - Use `defaultFrameParent` when helpers must be created under an existing parent from the start.
 
-Temporary parent override:
+Build nested content under its parent with `withParent` (a scoped, nestable push/pop of `defaultFrameParent` that auto-restores), so frames are created in place instead of created globally and re-parented in (a post-creation `setParent` can desync a frame's hit area from its visual):
 
 ```wurst
-let oldParent = defaultFrameParent
-defaultFrameParent = someExistingFrame
-
-let nested = new TableLayout(0.12, 0.05, "Nested")
-nested..row()..add(p("Inside"))
-nested.applyTo(someExistingFrame)
-
-defaultFrameParent = oldParent
+withParent(someExistingFrame) ->
+    let nested = new TableLayout(0.12, 0.05, "Nested")
+    nested..row()..add(p("Inside")..setSize(0.10, 0.014))
+    nested.applyTo(someExistingFrame)
 ```
+
+`inLayer(Layer.DIALOG)` / `inLayer(Layer.OVERLAY) -> ...` do the same for floating UI. Setting `defaultFrameParent` by hand still works, but restore the *previous* value (not a hardcoded `GAME_UI`) so an intentional baseline parent is not clobbered.
 
 For reusable widgets, follow existing helper style in `wurst/TableLayout.wurst`: return a sized `framehandle` and let the table position it.
 
@@ -190,8 +188,8 @@ Use opt-in layout conveniences for new code:
 let layout = new TableLayout(0.24, 0.12, "Options")
 layout
 ..gap(0.004, 0.003)
-..row()..add(p("Name"))..add(textInput("", 0.12).create())..growX()
-..row()..add(p("Select"))..add(select("Difficulty", 0.12)..addOption("Easy")..addOption("Hard").create())
+..row()..add(label("Name", 0.06))..add(textInput("", 0.12).create())..growX()
+..row()..add(label("Select", 0.06))..add(select("Difficulty", 0.12)..addOption("Easy")..addOption("Hard").create())..growX()
 ```
 
 Do not change defaults that would make old layouts render differently. Add new behavior behind explicit calls such as `gap`, `growY`, `minWidth`, `minHeight`, `fixedWidth`, `fixedHeight`, or `fixedSize`.
@@ -212,8 +210,8 @@ let difficulty = select("Difficulty", 0.12)
 
 new TableLayout(0.24, 0.16, "UiDemo")
 ..gap(0.004, 0.004)
-..row()..add(h2("Setup"))
-..row()..add(p("Select"))..add(difficulty.create())..growX()
+..row()..add(h2("Setup")..setSize(0.20, 0.022))..growX()
+..row()..add(label("Select", 0.06))..add(difficulty.create())..growX()
 ..row()..add(textButton("Start", 0.08, 0.024).withTooltip("Begin the selected mode."))
 ..applyTo(root)
 ```
@@ -340,8 +338,8 @@ attachToMultiboard(mb, "DemoMb", 0.22, 0.08, true, (uiParent, anchor) -> begin
     let layout = new TableLayout(0.22, 0.08, "DemoMbLayout")
     layout.padding = padding(0.006, 0.012, 0.006, 0.012)
     layout
-    ..row()..add(h3("Score"))
-    ..row()..add(p("Player"))..add(p("10"))..growX()
+    ..row()..add(h3("Score")..setSize(0.18, 0.02))..growX()
+    ..row()..add(p("Player")..setSize(0.12, 0.012))..add(p("10")..setSize(0.04, 0.012))..growX()
     layout.applyTo(anchor)
     return anchor
 end)

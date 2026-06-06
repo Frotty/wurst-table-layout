@@ -5,8 +5,9 @@ This repo is a UI toolkit for WurstScript Warcraft III frames: a flexbox-inspire
 Core layout concept: a TableLayout has rows, rows contain cells, cells contain framehandles.
 
 ## Key Files
-- `wurst/TableLayout.wurst` Core layout engine and UI helpers (text, image, button, checkbox, bar).
-- `wurst/TableUi.wurst` Small higher-level UI helpers (panel/card, tooltip, edit box, textarea, dynamic select).
+- `wurst/TableLayout.wurst` Core layout engine: TableLayout/Row/Cell, grow, gap, columns/colspan, and the frame-independent validation (`checkFits`/`inspect`).
+- `wurst/TableUi.wurst` Facade package: re-exports the whole component library so consumers `import TableUi` once.
+- `wurst/components/*.wurst` The component library: text presets, buttons, panels/cards, bars, sliders, tabs, select, inputs, dialogs, tooltips, layers, safe-area, selectable. The `p`/`img`/`btn`/`UIBar`/... helpers live here, not in TableLayout.wurst.
 - `wurst/MultiboardAttach.wurst` Helpers to attach layout content to the default multiboard UI.
 - `wurst/TableLayoutTest.wurst` Example usage and manual test harness.
 - `README.md` High-level overview and examples.
@@ -20,9 +21,9 @@ let layout = new TableLayout(0.22, 0.1, "Demo")
 layout.padding = padding(0.006, 0.012, 0.006, 0.012)
 layout
 ..row()
-..add(p("Hello"))
+..add(p("Hello")..setSize(0.18, 0.014))..growX()
 ..row()
-..add(btn("Click")..setWidth(0.1))..growX()
+..add(btn("Click")..setSize(0.1, 0.024))..growX()
 layout.applyTo(someFrame)
 ```
 
@@ -30,7 +31,7 @@ Multiboard attach pattern:
 ```wurst
 attachToMultiboard(mb, "DemoMb", 0.22, 0.08, true, (uiParent, anchor) -> begin
     let layout = new TableLayout(0.22, 0.1, "DemoMbLayout")
-    layout..row()..add(p("Hello"))
+    layout..row()..add(p("Hello")..setSize(0.18, 0.014))..growX()
     layout.applyTo(anchor)
     return anchor
 end)
@@ -55,7 +56,8 @@ end)
 - Keyboard focus: library clickables auto-release focus on click (`autoReleaseFocus`, default true) so Enter still opens chat and can't re-fire a button; no manual `unfocus()` needed. For foreign frames call `onClickReleaseFocus()`; for decorative frames `disable()`. There is no FDF "unfocusable" flag and no `GetFocus`/focus event, so focus is handled at creation/click, not globally.
 - Flatter setup: `panelTable`/`cardTable` + `.build()` (no duplicated dimensions); `label(text,w)`/`value(text,w)` for sized text.
 - If content size changes later, call `layout()` again to recompute positions.
-- Free transient layouts with `destroy layout` (frees Row/Cell wrappers and lists; does not destroy the shared framehandles).
+- Free transient layouts with `destroy layout` (frees Row/Cell wrappers and lists; does not destroy the shared framehandles). The built-in display helpers (`statCard`/`iconCard`/`labelValue`/`iconLabel`/`section`/`underline`/`statBar`/`slider`/`select`/`tabs`/`confirmDialog`/...) already free their own internal layout after applying it, so rebuilding them in a dynamic HUD does not leak. Widget classes that own lists (`UISelect`/`UITabs`/`UISelectableGroup`) free those lists in `ondestroy`.
+- Tooltips are cached per owner: call `removeTooltip(owner)` when discarding a transient owner (e.g. rebuilding a shop/inventory list), or `clearTooltips()` on full teardown, so the cache does not grow unbounded.
 - **Parenting & hierarchy - READ THIS, it caused a real, hard-to-find overlay bug.** Every helper (`p`/`btn`/`img`/`UIBar`/...) creates its frame under the *current* `defaultFrameParent`, and `TableLayout.applyTo(base)` then RE-PARENTS each cell to `base`. In WC3 a post-creation `setParent` can desync a frame's clickable/hit area from where it renders. The bug we hit: a card's `UIBar`s silently stole clicks from the card's `interactive()` overlay because the bars were born under a far global parent (a consumer's `ConsoleUIBackdrop`) and then re-parented into the card. Rules that prevent it:
   - **Build frames UNDER their eventual parent.** Wrap a build block in `withParent(theParent) -> ...` (a scoped push/pop of `defaultFrameParent`, nestable). Do this for any sub-panel whose content you build (e.g. a stats panel holding bars), so nothing is created far away and re-parented in.
   - **A deliberate *baseline* default is fine** (e.g. a consumer setting `defaultFrameParent` to `ConsoleUIBackdrop` so its UI sits under the game's menus instead of over them). What bites is creating *nested* content under that far baseline and letting `applyTo` re-parent it into a deep container. So: pick the right parent AT CREATION - wrap each sub-tree's build in `withParent(itsContainer)` (or `inLayer(...)` for floating UI); both auto-restore and nest. Set a permanent global default only as an intentional baseline, never as a substitute for parenting nested content correctly.
@@ -75,7 +77,7 @@ Run everything through `grill` (it locates the bundled WurstScript compiler and 
 - Read `AI_USAGE.md` before creating new UI. Follow its decision tree and recipes.
 - Read `WC3_FRAMEHANDLE_GUIDE.md` before adding or changing Warcraft III UI/framehandle behavior.
 - Prefer editing or extending `wurst/TableLayout.wurst` for new layout features.
-- Prefer adding common components to `wurst/TableUi.wurst` unless they are core layout primitives.
+- Prefer adding common components to `wurst/components/*.wurst` (and re-export them from the `TableUi` facade) unless they are core layout primitives, which belong in `wurst/TableLayout.wurst`.
 - Keep API changes small and chain-friendly (`..row()..add(...)` style).
 - If you add new helpers (e.g., new widget types), follow the existing `p`, `img`, `btn` helpers.
 - If you touch multiboard behavior, verify maximize/minimize still restores layout sizing.

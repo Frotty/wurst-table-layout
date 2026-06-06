@@ -50,6 +50,7 @@ public function section(string title, real width, real headerHeight) returns fra
     ..row()..add(h4(title)..setSize(width, headerHeight)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
     ..row()..add(separator(width))
     layout.applyTo(root)
+    destroy layout
     root.disable()
     return root
 

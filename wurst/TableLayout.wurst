@@ -216,7 +216,8 @@ public class TableLayout
         return this
 
     /** Makes the latest cell span the given number of columns (grid mode only).
-        A spanning cell does not size its spanned columns; ensure other rows define those columns. */
+        A spanning cell only widens its spanned columns when it is wider than their combined width;
+        otherwise the other rows define those columns. */
     function colspan(int span)
         let cell = getLastCellOrWarn("colspan")
         if cell != null
@@ -225,6 +226,7 @@ public class TableLayout
     /** Recomputes per-column widths from the current declared cell sizes. Frame-independent. */
     function recomputeColumns()
         columnWidths.clear()
+        // Pass 1: base column widths from non-spanning cells; spanning cells only reserve slots.
         for row in rows
             var col = 0
             for cell in row.cells
@@ -239,6 +241,22 @@ public class TableLayout
                     while columnWidths.size() < col + cell.colspan
                         columnWidths.add(0.)
                     col += cell.colspan
+        // Pass 2: a spanning cell wider than the columns it covers expands them, so gridTotalWidth()
+        // (the grid overflow check) and the runtime advance both account for its real width. Without
+        // this a wide colspan header overflows in-game while checkFits() falsely passes (#colspan-overflow).
+        for row in rows
+            var col = 0
+            for cell in row.cells
+                if cell.colspan > 1
+                    let surplus = (cell.declaredWidth() + cell.padding.getWidth()) - columnSlotWidth(col, cell.colspan)
+                    if surplus > 0.
+                        let per = surplus / cell.colspan.toReal()
+                        for i = col to col + cell.colspan - 1
+                            if i >= 0 and i < columnWidths.size()
+                                columnWidths.set(i, columnWidths.get(i) + per)
+                    col += cell.colspan
+                else
+                    col++
         if uniformColumns and not columnWidths.isEmpty()
             var mx = 0.
             for w in columnWidths
@@ -471,42 +489,68 @@ public class TableLayout
         var contentHeight = 0.
         var rowIndex = 0
         for row in rows
-            var fixedPortion = 0.
             var rowHeight = 0.
             var cellIndex = 0
             let gapBudget = legacyGapMath ? 0. : max(0, row.cells.size() - 1).toReal() * gapX
-            var growCells = 0
+            var fixedWidths = 0.
+            var paddingTotal = 0.
+            // Allocated lazily: rows with no grow cells (the common case) do zero allocation.
+            LinkedList<Cell> growList = null
             for cell in row.cells
                 let cw = cell.declaredWidth()
                 let ch = cell.declaredHeight()
-                if cw <= 0. and not cell.growX
+                // growX is ignored in grid mode, so a 0-width grow cell there really does collapse and
+                // must still be flagged - growX is only a zero-size excuse when grow actually applies (#grid-grow-zero).
+                if cw <= 0. and (gridMode or not cell.growX)
                     report.reportZeroSize(rowIndex, cellIndex, true)
                 if ch <= 0. and not cell.growY
                     report.reportZeroSize(rowIndex, cellIndex, false)
+                paddingTotal += cell.padding.getWidth()
                 if cell.growX and cell.fixedWidth < 0. and not gridMode
-                    growCells++
-                    fixedPortion += cell.padding.getWidth()
+                    if growList == null
+                        growList = new LinkedList<Cell>()
+                    growList.add(cell)
                 else
-                    fixedPortion += cw + cell.padding.getWidth()
+                    fixedWidths += cw
                 rowHeight = max(rowHeight, ch + cell.padding.getHeight())
                 cellIndex++
-            fixedPortion += gapBudget
-            if not gridMode and fixedPortion > avail + 0.0001
-                report.reportRowOverflow(rowIndex, fixedPortion - avail)
-            let growWidth = growCells > 0 and fixedPortion < avail ? (avail - fixedPortion) / growCells.toReal() : 0.
-            cellIndex = 0
-            var col = 0
-            for cell in row.cells
-                var cellWidth = cell.declaredWidth()
-                if gridMode
-                    cellWidth = columnSlotWidth(col, cell.colspan) - cell.padding.getWidth()
-                    col += cell.colspan
-                else if cell.growX and cell.fixedWidth < 0.
-                    cellWidth = growWidth
-                if cellWidth < 0.
-                    cellWidth = 0.
-                cell.inspectText(report, rowIndex, cellIndex, cellWidth)
-                cellIndex++
+
+            if not gridMode
+                // Identical grow solve to runtime Row.invalidate(), so checkFits() and the in-game layout
+                // can never disagree about grow+minWidth distribution or grow-row overflow.
+                var growVal = 0.
+                var reservedMin = 0.
+                var unpinned = 0
+                if growList != null
+                    growVal = solveGrow(growList, avail - fixedWidths - paddingTotal - gapBudget)
+                    for c in growList
+                        if c.growPinned
+                            reservedMin += c.minWidth
+                        else
+                            unpinned++
+                let requiredWidth = fixedWidths + reservedMin + paddingTotal + gapBudget + unpinned.toReal() * growVal
+                if requiredWidth > avail + 0.0001
+                    report.reportRowOverflow(rowIndex, requiredWidth - avail)
+                cellIndex = 0
+                for cell in row.cells
+                    var cellWidth = cell.declaredWidth()
+                    if cell.growX and cell.fixedWidth < 0.
+                        cellWidth = cell.growPinned ? cell.minWidth : growVal
+                    if cellWidth < 0.
+                        cellWidth = 0.
+                    cell.inspectText(report, rowIndex, cellIndex, cellWidth)
+                    cellIndex++
+            else
+                // Grid mode: the runtime renders each cell at its OWN width (it never resizes a cell to
+                // its column slot), so the text-fit check must use the cell width, not the slot (#grid-text-slot).
+                cellIndex = 0
+                for cell in row.cells
+                    let cellWidth = max(0., cell.declaredWidth())
+                    cell.inspectText(report, rowIndex, cellIndex, cellWidth)
+                    cellIndex++
+
+            if growList != null
+                destroy growList
             contentHeight += rowHeight
             rowIndex++
         if gridMode
@@ -561,6 +605,37 @@ public class TableLayout
         destroy columnWidths
 
 
+/** Distributes the grow space across `growCells`, iteratively PINNING any grow cell whose minWidth
+    exceeds its computed share (so it is sized to minWidth and removed from the distribution) and
+    returning the share for the remaining unpinned cells. Marks each pinned cell via cell.growPinned.
+    Pure math shared by runtime Row.invalidate() and headless inspect(), so the in-game layout and
+    checkFits() can never disagree about grow + minWidth. `slack` = availableSpace - fixedWidths -
+    paddingTotal - gapBudget (the space left for grow cells). */
+function solveGrow(LinkedList<Cell> growCells, real slack) returns real
+    for c in growCells
+        c.growPinned = false
+    var remaining = slack
+    var growVal = 0.
+    var stable = false
+    while not stable
+        stable = true
+        var denom = 0
+        for c in growCells
+            if not c.growPinned
+                denom++
+        if denom == 0
+            growVal = 0.
+        else
+            growVal = remaining / denom.toReal()
+            if growVal < 0.
+                growVal = 0.
+            for c in growCells
+                if not c.growPinned and c.minWidth > growVal
+                    c.growPinned = true
+                    remaining -= c.minWidth
+                    stable = false
+    return growVal
+
 
 public class Row
     constant cells = new LinkedList<Cell>()
@@ -608,45 +683,56 @@ public class Row
     function invalidate(real availableSpace)
         height = 0.
         width = 0.
-        var growCells = 0
-        var growVal = 0.
-        var otherCellWidths = 0.
+        var fixedWidths = 0.
+        var paddingTotal = 0.
+        // Allocated lazily: rows with no grow cells (the common case) do zero allocation. Each cell is
+        // invalidated ONCE here; grow cells get their final width assigned directly below, so there is no
+        // second per-cell invalidate() pass re-reading frame natives.
+        LinkedList<Cell> growList = null
         for cell in cells
             cell.invalidate()
             if tableWarnings and not cell.warnedEmpty and cell.frame != null and ((not cell.growX and cell.fixedWidth < 0. and cell.width <= 0.) or (not cell.growY and cell.fixedHeight < 0. and cell.height <= 0.))
                 cell.warnedEmpty = true
                 Log.warn("TableLayout " + parent.name + ": a cell has 0 measured size. Text presets (p/p2/p3/h1-h5) are FIXEDSIZE and report 0 until sized - set a size via prefSize/setSize/fixedWidth/minWidth, or use growX/growY.")
-            // A growX cell that also has a fixedWidth is resolved to that fixed width, so it must be
-            // treated as a fixed (non-distributed) cell here, otherwise sibling grow cells are mis-sized (#4).
-            // grow is also ignored in grid mode, where columns drive widths.
+            paddingTotal += cell.padding.getWidth()
+            // A growX cell that also has a fixedWidth is resolved to that fixed width, so it counts as
+            // fixed here, otherwise sibling grow cells are mis-sized (#4). grow is also ignored in grid
+            // mode, where columns drive widths.
             if cell.growX and cell.fixedWidth < 0. and not parent.gridMode
-                growCells++
-                otherCellWidths += cell.padding.getWidth()
+                if growList == null
+                    growList = new LinkedList<Cell>()
+                growList.add(cell)
             else
-                otherCellWidths += cell.width + cell.padding.getWidth()
+                fixedWidths += cell.width
+            let cellHeight = cell.height + cell.padding.getHeight()
+            if cellHeight > height
+                height = cellHeight
 
         let gapBudget = legacyGapMath ? 0. : max(0, cells.size() - 1).toReal() * parent.gapX
-        if growCells > 0
-            growVal = (availableSpace - otherCellWidths - gapBudget) / growCells
-            if growVal < 0.
-                growVal = 0.
-            width = availableSpace
-
-        for cell in cells
-            if cell.growX and cell.fixedWidth < 0. and cell.frame != null and not parent.gridMode
-                cell.frame.setWidth(growVal)
-
-            cell.invalidate()
-            if cell.height + cell.padding.getHeight() > height
-                height = cell.height + cell.padding.getHeight()
-
-            if growCells == 0
-                width += cell.width + cell.padding.getWidth()
-
-        // Reserve the inter-cell gaps in row width too, so the overflow warning and CENTER/END
-        // alignment (which derive freeSpace from row.width) account for gaps (#2, #3).
-        if growCells == 0
-            width += gapBudget
+        if growList == null
+            // No grow cells: the row is its fixed cells plus the inter-cell gaps. Reserving the gaps here
+            // keeps the overflow warning and CENTER/END alignment (which derive freeSpace from row.width)
+            // gap-aware (#2, #3).
+            width = fixedWidths + paddingTotal + gapBudget
+        else
+            // Distribute grow space, pinning any grow cell whose minWidth exceeds its share so it is not
+            // silently bumped past its slot (#growx-minwidth). Same helper as inspect() for parity.
+            let growVal = solveGrow(growList, availableSpace - fixedWidths - paddingTotal - gapBudget)
+            var reservedMin = 0.
+            var unpinned = 0
+            for cell in growList
+                let value = cell.growPinned ? cell.minWidth : growVal
+                if cell.frame != null
+                    cell.frame.setWidth(value)
+                cell.width = value
+                if cell.growPinned
+                    reservedMin += cell.minWidth
+                else
+                    unpinned++
+            // True content width including grow cells pinned up to their minWidth, so an over-full grow
+            // row is detectable (warning + checkFits) instead of being masked by width = availableSpace (#grow-row-pinned).
+            width = fixedWidths + reservedMin + paddingTotal + gapBudget + unpinned.toReal() * growVal
+            destroy growList
 
 
                 
@@ -705,6 +791,8 @@ public class Cell
     var hasTextMetric = false
     var valign = Align.UNSET
     var colspan = 1
+    /** Transient flag set by solveGrow(): true when this grow cell was clamped to its minWidth. */
+    var growPinned = false
 
     var padding = padding(0, 0, 0, 0)
 

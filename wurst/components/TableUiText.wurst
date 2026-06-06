@@ -111,5 +111,6 @@ public function underline(string text) returns framehandle
     // trimmed estimate to hug the glyphs rather than overrun to the cell edge.
     ..row()..add(img("Textures\\white.blp", w * 0.9, 0.0014, true)..disable())
     layout.applyTo(root)
+    destroy layout
     root.disable()
     return root

@@ -92,6 +92,7 @@ public class UISlider
         layout..add(sliderFrame)..growX()
         layout..add(valueFrame)
         layout.applyTo(root)
+        destroy layout
         defaultFrameParent = prevParent
         return root
 

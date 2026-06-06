@@ -89,6 +89,12 @@ public class UIStatBar
 
         frame = layoutFrame(defaultFrameParent)
             ..setSize(width, 0.032)
+        // Build every child (value text, label, inner bar) UNDER frame so applyTo's re-parent is a no-op
+        // and no hit area desyncs - the same discipline UIBar/UISelect/UISlider/UITabs/UIConfirmDialog
+        // already follow. Previously these were built under the ambient defaultFrameParent and re-parented
+        // in, the exact pattern that caused the click-stealing overlay bug.
+        let prevParent = defaultFrameParent
+        defaultFrameParent = frame
         valueFrame = p(valueText)
             ..setSize(width * 0.34, 0.014)
             ..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_RIGHT)
@@ -104,6 +110,8 @@ public class UIStatBar
         ..row()
         ..add(bar.create())..growX()
         layout.applyTo(frame)
+        destroy layout
+        defaultFrameParent = prevParent
         bar.setValue(value)
         frame.disable()
         return frame

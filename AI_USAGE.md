@@ -109,7 +109,7 @@ let root = panel(0.24, 0.12)
 
 new TableLayout(0.24, 0.12, "BasicPanel")
 ..gap(0.004, 0.004)
-..row()..add(h2("Status"))..growX()..add(closeButton(root))
+..row()..add(h2("Status")..setSize(0.16, 0.022))..growX()..add(closeButton(root))
 ..row()..add(separator(0.21))
 ..row()..add(labelValue("State", "Ready", 0.20))
 ..row()..add(textButton("Close", 0.08, 0.024))
@@ -130,7 +130,7 @@ let difficulty = select("Difficulty", 0.12)
 
 new TableLayout(0.26, 0.16, "SettingsForm")
 ..gap(0.004, 0.004)
-..row()..add(h2("Settings"))..growX()
+..row()..add(h2("Settings")..setSize(0.22, 0.022))..growX()
 ..row()..add(p("Select")..setSize(0.06, 0.024))..add(difficulty.create())..growX()
 ..row()..add(p("Name")..setSize(0.06, 0.024))..add(textInput("", 0.12).create())..growX()
 ..row()..add(textButton("Apply", 0.08, 0.024).withTooltip("Apply these settings."))
@@ -194,6 +194,27 @@ The directive disables display descendants so text/images/bars do not swallow mo
 children are added or relaid out later, call `hit.refresh()`. Do not use it on a frame containing inner
 buttons that must remain independently clickable.
 
+### Building nested content under its parent (`withParent`)
+
+When you build a sub-panel's *content* (e.g. a stats panel holding bars), create it UNDER its eventual
+parent so `applyTo`'s re-parent is a no-op and no hit area desyncs. Wrap the build in `withParent`:
+
+```wurst
+import TableLayout
+import TableUi
+
+let stats = card(0.18, 0.08)
+withParent(stats) ->
+    new TableLayout(0.18, 0.08, "Stats")
+    ..row()..add(statBar("Health", 0.16).getFrame())..growX()
+    ..applyTo(stats)
+```
+
+`withParent(parent) -> ...` scopes `defaultFrameParent` (a nestable push/pop that auto-restores), so
+everything created inside is born under `parent` instead of being created globally and re-parented in
+(a post-creation `setParent` can desync a frame's clickable area - the cause of a real overlay click-steal
+bug). Use `inLayer(Layer.DIALOG)` / `inLayer(Layer.OVERLAY) -> ...` the same way for floating UI.
+
 ### Dynamic Select
 
 ```wurst
@@ -207,8 +228,10 @@ let difficulty = select("Difficulty", 0.12)
 
 new TableLayout(0.22, 0.08, "SelectExample")
 ..gap(0.004, 0.004)
-..row()..add(p("Difficulty"))..add(difficulty.create())..growX()
+..row()..add(label("Difficulty", 0.08))..add(difficulty.create())..growX()
 ..createFrame()
+// the label is sized (0.08); the select takes the rest via growX. A bare unsized p("Difficulty") here
+// would collapse to 0 and overlap the select (and fail checkFits()).
 ```
 
 Use this custom select for dynamic options. Native `POPUPMENU` options are FDF-defined and are better for fixed menus.
@@ -248,7 +271,7 @@ attachToMultiboard(mb, "ScoreMb", 0.22, 0.08, true, (uiParent, anchor) -> begin
     let layout = new TableLayout(0.22, 0.08, "ScoreLayout")
     layout.padding = padding(0.006, 0.012, 0.006, 0.012)
     layout
-    ..row()..add(h3("Score"))..growX()
+    ..row()..add(h3("Score")..setSize(0.20, 0.02))..growX()
     ..row()..add(p("Player")..setSize(0.12, 0.012))..add(p("10")..setSize(0.04, 0.012))..growX()
     layout.applyTo(anchor)
     return anchor

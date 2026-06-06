@@ -102,11 +102,18 @@ public class UISelect
             menuLayout..row()..add(option)
 
         menuLayout.applyTo(menu)
+        destroy menuLayout
         defaultFrameParent = prevParent
         return root
 
     function getFrame() returns framehandle
         return create()
+
+    // Frees the option/value-frame lists. The frames themselves are shared and MP-sensitive, so they are
+    // not destroyed here (hide/reuse instead); this just releases the wrapper lists.
+    ondestroy
+        destroy options
+        destroy optionFrames
 
     function toggle()
         setOpen(not open)

@@ -183,3 +183,8 @@ public class UISelectableGroup
     function onSelect(SelectableGroupListener cb) returns thistype
         listener = cb
         return this
+
+    // Frees the members list. The member UISelectables are not destroyed here: add(UISelectable) accepts
+    // externally-owned ones, so ownership is ambiguous and destroying them could double-free.
+    ondestroy
+        destroy members

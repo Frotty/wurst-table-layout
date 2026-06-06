@@ -23,6 +23,9 @@ public function iconLabel(string path, string text, real width, real height) ret
     ..add(img(path, height, height))
     ..add(label)..growX()
     layout.applyTo(root)
+    // The wrapper graph is dead once applied (positions are baked into the frames); free it so repeated
+    // helper calls in a dynamic HUD do not leak Row/Cell wrappers. Shared framehandles are untouched.
+    destroy layout
     root.disable()
     return root
 
@@ -47,5 +50,6 @@ public function labelValue(string label, string value, real width, real height) 
     ..add(labelFrame)..growX()
     ..add(valueFrame)
     layout.applyTo(root)
+    destroy layout
     root.disable()
     return root

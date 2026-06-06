@@ -83,12 +83,20 @@ public class UITabs
             buttons.add(tabBtn)
             layout..add(tabBtn)..growX()
         layout.applyTo(tabRoot)
+        destroy layout
         showTab(0)
         defaultFrameParent = prevParent
         return root
 
     function getFrame() returns framehandle
         return build()
+
+    // Frees the title/content/button lists. Frames are shared and MP-sensitive, so they are not
+    // destroyed here (hide/reuse instead); this just releases the wrapper lists.
+    ondestroy
+        destroy titles
+        destroy contents
+        destroy buttons
 
 public function tabs(real width, real contentHeight) returns UITabs
     return new UITabs(width, contentHeight)

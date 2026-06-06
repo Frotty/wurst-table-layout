@@ -153,6 +153,91 @@ function gridWidthAccountsForGaps()
     destroy t
 
 @Test
+function growXMinWidthOverflowIsDetected()
+    // growX cell whose share (0.15) is below its minWidth (0.20): at runtime it is clamped UP to minWidth
+    // and overruns the row. inspect() must pin it the same way and report the overflow (#growx-minwidth).
+    let t = new TableLayout(0.2, 0.05, "GrowMinOverflow")
+    t.padding = padding(0, 0, 0, 0)
+    t..row()..addSized(0.05, 0.02)
+    t..addSized(0., 0.02)..growX()..minWidth(0.20)
+    let report = t.inspect()
+    report.ok.assertFalse()
+    report.rowOverflowCount.assertGreaterThanOrEqual(1)
+    // 0.05 fixed + 0.20 pinned minWidth = 0.25 in a 0.20 table -> overflow 0.05
+    report.worstOverflowX.assertEquals(0.05, 0.0001)
+    destroy report
+    destroy t
+
+@Test
+function growXMinWidthFitsWhenShareIsEnough()
+    // The same shape but minWidth (0.05) below the share (0.15) must NOT be flagged: grow fills the rest.
+    let t = new TableLayout(0.2, 0.05, "GrowMinFits")
+    t.padding = padding(0, 0, 0, 0)
+    t..row()..addSized(0.05, 0.02)
+    t..addSized(0., 0.02)..growX()..minWidth(0.05)
+    t.checkFits().assertTrue()
+    destroy t
+
+@Test
+function colspanWiderThanColumnsOverflows()
+    // A header spanning 2 columns but wider than their combined width must expand them, so the grid
+    // total reflects its real width and checkFits() fails when it overflows the table (#colspan-overflow).
+    let t = new TableLayout(0.12, 0.2, "SpanWide")
+    t.padding = padding(0, 0, 0, 0)
+    t..columns()
+    t..row()..addSized(0.16, 0.02)..colspan(2)
+    t..row()..addSized(0.04, 0.02)..addSized(0.05, 0.02)
+    t.checkFits().assertFalse()
+    destroy t
+
+@Test
+function colspanWiderThanColumnsExpandsThemWhenItFits()
+    // In a table wide enough to hold the spanning header, the columns are widened to fit it, so the grid
+    // total grows to the header width (0.16) and both columns grow past their 0.04/0.05 base.
+    let t = new TableLayout(0.2, 0.2, "SpanFit")
+    t.padding = padding(0, 0, 0, 0)
+    t..columns()
+    t..row()..addSized(0.16, 0.02)..colspan(2)
+    t..row()..addSized(0.04, 0.02)..addSized(0.05, 0.02)
+    t.checkFits().assertTrue()
+    // surplus is conserved across the spanned columns, so the grid total grows to ~the header width
+    // (delta is loose because the compile-time VM's 32-bit-float split drifts by ~0.002)
+    t.gridTotalWidth().assertEquals(0.16, 0.005)
+    // both columns grew well past their 0.04 / 0.05 base to make room for the header
+    t.columnWidthAt(0).assertGreaterThanOrEqual(0.07)
+    t.columnWidthAt(1).assertGreaterThanOrEqual(0.08)
+    destroy t
+
+@Test
+function growXInGridZeroWidthIsFlagged()
+    // growX is ignored in grid mode, so a 0-width grow cell collapses in-game; it must still be flagged
+    // zero-size rather than excused by growX as in normal rows (#grid-grow-zero).
+    let t = new TableLayout(0.2, 0.05, "GridGrowZero")
+    t.padding = padding(0, 0, 0, 0)
+    t..columns()
+    t..row()..addSized(0.05, 0.02)..addSized(0., 0.02)..growX()
+    let report = t.inspect()
+    report.zeroSizeCount.assertGreaterThanOrEqual(1)
+    report.ok.assertFalse()
+    destroy report
+    destroy t
+
+@Test
+function gridTextOverflowUsesCellWidthNotSlot()
+    // The runtime renders a grid cell at its OWN width, not its (sibling-widened) column slot. A narrow
+    // cell with long text in a wide column must be flagged against the cell width, not the slot (#grid-text-slot).
+    let t = new TableLayout(0.3, 0.1, "GridText")
+    t.padding = padding(0, 0, 0, 0)
+    t..columns()
+    t..row()..addSized(0.03, 0.02)..text("AAAAAAAAAAAAAAAAAAAA", FONT_P)
+    t..row()..addSized(0.12, 0.02)
+    // column 0 = max(0.03, 0.12) = 0.12, but the text cell renders at 0.03 -> overflow against 0.03
+    let report = t.inspect()
+    report.textOverflow.assertEquals(1)
+    destroy report
+    destroy t
+
+@Test
 function colspanSkipsSpannedColumns()
     let t = new TableLayout(0.3, 0.2, "GridSpan")
     t.padding = padding(0, 0, 0, 0)

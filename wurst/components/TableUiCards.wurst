@@ -22,6 +22,8 @@ public function statCard(string label, string value, real width) returns frameha
     ..row()..add(p3(muted(label))..setSize(innerW, 0.012)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
     ..row()..add(h2(accent(value))..setSize(innerW, 0.022)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
     layout.applyTo(root)
+    // Wrapper graph is baked into the frames now; free it so dashboards rebuilding cards do not leak.
+    destroy layout
     root.disable()
     defaultFrameParent = prevParent
     return root
@@ -45,12 +47,14 @@ public function iconCard(string iconPath, string title, string subtitle, real wi
     ..row()..add(p(title)..setSize(textWidth, 0.014)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
     ..row()..add(p3(muted(subtitle))..setSize(textWidth, 0.012)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
     textLayout.applyTo(textCol)
+    destroy textLayout
 
     let layout = new TableLayout(width, height, "IconCard")
     layout.padding = padding(inset, inset, inset, inset)
     layout.gap(0.006, 0)
     layout..row()..middle()..add(img(iconPath, iconSize, iconSize))..add(textCol)..growX()
     layout.applyTo(root)
+    destroy layout
     root.disable()
     defaultFrameParent = prevParent
     return root

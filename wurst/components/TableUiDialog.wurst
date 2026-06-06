@@ -85,6 +85,7 @@ public class UIConfirmDialog
         ..add(cancel)
         ..add(accept)
         layout.applyTo(frame)
+        destroy layout
         defaultFrameParent = prevParent
         return frame
 

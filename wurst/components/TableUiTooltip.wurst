@@ -2,9 +2,17 @@ package TableUiTooltip
 // Reusable boxed tooltips: one tooltip frame per owner, cached so repeated withTooltip() calls update
 // the text rather than creating duplicates (calling setTooltip twice for a pair can crash on hover).
 import TableLayout
+import TableUiLayers
 import HashMap
 
-constant tooltipByOwner = new HashMap<framehandle, UITooltip>
+// Tooltips render in the OVERLAY band, above dropdown menus (level 20), so a tooltip is never occluded
+// by its own owner's panel/dialog/menu on hover.
+constant TOOLTIP_OVERLAY_LEVEL = 30
+
+// Iterable so clearTooltips() can free every cached wrapper on teardown. Cached per owner so repeated
+// withTooltip() calls update the text rather than leaking duplicates; transient owners must be evicted
+// with removeTooltip() or the cache grows unbounded.
+constant tooltipByOwner = new IterableMap<framehandle, UITooltip>
 
 public class UITooltip
     framehandle owner
@@ -16,7 +24,11 @@ public class UITooltip
         this.owner = owner
         this.width = width
         let context = nextUiContext()
-        box = createFrame("TableUiTooltipBackdrop", defaultFrameParent, 0, context)
+        // Parent into the OVERLAY band (not the ambient defaultFrameParent) so the tooltip's z-band is
+        // decoupled from the owner's container: it is anchored to the owner by point below, but always
+        // renders on top instead of behind a dialog/menu the owner lives in.
+        box = createFrame("TableUiTooltipBackdrop", Layer.OVERLAY.getFrame(), 0, context)
+            ..setLevel(TOOLTIP_OVERLAY_LEVEL)
         textFrame = createTextFrame("TableUiTooltipText", box, context)
         textFrame
         ..setSize(width, 0.)
@@ -36,6 +48,33 @@ public class UITooltip
 
     function getFrame() returns framehandle
         return box
+
+    // Detaches the tooltip from its owner and hides its frames. The box/text frames are pooled (hidden),
+    // not destroyed, matching the library's MP-safe hide/reuse convention; this frees the wrapper object.
+    ondestroy
+        if owner != null
+            owner.setTooltip(null)
+        if box != null
+            box.hide()
+        if textFrame != null
+            textFrame.hide()
+
+/** Evicts and frees the cached tooltip for `owner` (detaches it and hides its frames). Call this when
+    discarding a transient owner (e.g. rebuilding a shop / inventory list) so the cache never grows
+    unbounded. No-op if the owner has no tooltip. */
+public function removeTooltip(framehandle owner)
+    if owner == null
+        return
+    let tooltip = tooltipByOwner.get(owner)
+    if tooltip != null
+        tooltipByOwner.remove(owner)
+        destroy tooltip
+
+/** Evicts and frees every cached tooltip (for full UI teardown). */
+public function clearTooltips()
+    for owner in tooltipByOwner
+        destroy tooltipByOwner.get(owner)
+    tooltipByOwner.flush()
 
 public function boxedTooltip(framehandle owner, string text) returns framehandle
     return boxedTooltip(owner, text, 0.18)

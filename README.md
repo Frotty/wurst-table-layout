@@ -223,12 +223,12 @@ Since the table is just a layout container, you can modify the contained frameha
 You can use the cascade operator for inline notation or simply save the framehandle in a variable.
 
 ```
-let titleHandle = h1("Hello")
+let titleHandle = h1("Hello")..setSize(0.18, 0.03)
 new TableLayout(0.2, 0.25)
 ..row()..center()
 ..add(titleHandle)
 ..row()
-..add(btn("button")..setWidth(0.125))
+..add(btn("button")..setSize(0.125, 0.024))
 ..createFrame()
 ```
 
@@ -237,7 +237,7 @@ You can combine this with the `ClosureFrames` package to add event listeners.
 ```
 new TableLayout(0.5, 0.25)
 ..row()..center()
-..add(btn("button")..onClick(() -> print("clicked")))
+..add(btn("button")..setSize(0.125, 0.024)..onClick(() -> print("clicked")))
 ..createFrame()
 ```
 
@@ -258,9 +258,9 @@ let difficulty = select("Difficulty", 0.12)
 
 new TableLayout(0.24, 0.16, "SetupPanel")
 ..gap(0.004, 0.004)
-..row()..add(h2("Setup"))..growX()..add(closeButton(root))
+..row()..add(h2("Setup")..setSize(0.16, 0.022))..growX()..add(closeButton(root))
 ..row()..add(separator(0.21))
-..row()..add(p("Select"))..add(difficulty.create())..growX()
+..row()..add(label("Select", 0.06))..add(difficulty.create())..growX()
 ..row()..add(labelValue("Status", "Ready", 0.18))
 ..row()..add(textButton("Start", 0.08, 0.024).withTooltip("Begin the selected mode."))
 ..applyTo(root)
@@ -275,17 +275,17 @@ Layout additions such as `gap`, `growY`, `minWidth`, `minHeight`, `fixedWidth`, 
 By default a table has no columns: each row is laid out independently, so cells in different rows do not line up. Call `columns()` to opt into grid alignment: every cell lines up into a column sized to the widest cell in that column index, which is what you want for forms, rosters and stat tables. `uniformColumns()` makes every column take the single widest column width, and `colspan(n)` lets a cell (e.g. a header) span several columns.
 
 ```
-let p = panel(0.2, 0.13)
+let roster = panel(0.2, 0.13)
 new TableLayout(0.2, 0.13, "Roster")
 ..columns()
 ..gap(0.006, 0.004)
 ..row()..add(h4("Roster")..setSize(0.12, 0.016))..colspan(2)
 ..row()..add(iconLabel(Icons.bTNAcolyte, "Acolyte", 0.11))..add(p("x12")..setSize(0.03, 0.014))
 ..row()..add(iconLabel(Icons.bTNAbomination, "Abomination", 0.11))..add(p("x3")..setSize(0.03, 0.014))
-..applyTo(p)
+..applyTo(roster)
 ```
 
-Grid mode is opt-in and back-compatible (tables render exactly as before unless you call `columns()`). `growX()` is ignored in grid mode: size cells, and the columns do the aligning. A `colspan` cell does not size the columns it spans, so make sure other rows define those columns.
+Grid mode is opt-in and back-compatible (tables render exactly as before unless you call `columns()`). `growX()` is ignored in grid mode: size cells, and the columns do the aligning. A `colspan` cell only widens the columns it spans when it is wider than their combined width (so a spanning header that overruns its columns is caught by `checkFits()` and laid out to fit); otherwise the other rows define those columns. (Note: don't shadow the `p()` text helper with a local named `p` as in older snippets - name the root `roster`/`root` instead.)
 
 ## Spacing, containers and safe placement
 
@@ -368,13 +368,22 @@ There currently is no change detection. If you changed the contained frames and 
 
 ## Changing the default frame parent
 
-Due to quirks in Warcraft III's handling of frames, frames created by the presets are created as children of `GAME_UI` by default. The parent is then changed to the table's base frame after layouting. However, this can cause problems if you're trying to use a table layout inside an existing frame. To work around this, you can set `defaultFrameParent` to your custom frame so that all new framehandles are created with the correct parent from the start. Make sure to reset the variable afterward to prevent side effects.
+Due to quirks in Warcraft III's handling of frames, frames created by the presets are created as children of `GAME_UI` by default. The parent is then changed to the table's base frame after layouting. However, this can cause problems if you're trying to use a table layout inside an existing frame. The clean way is `withParent(parent) -> ...`, a scoped, nestable push/pop of `defaultFrameParent` that creates everything inside under `parent` and restores the previous value automatically (use `inLayer(Layer.DIALOG/OVERLAY) -> ...` for floating UI):
 
 ```
+withParent(getFrame("SimpleInfoPanelUnitDetail", 0)) ->
+    new TableLayout(...)
+    ..applyTo(getFrame("SimpleInfoPanelUnitDetail", 0))
+```
+
+If you set `defaultFrameParent` manually instead, restore the **previous** value rather than hardcoding `GAME_UI`, so you don't clobber an intentional baseline parent:
+
+```
+let prev = defaultFrameParent
 defaultFrameParent = getFrame("SimpleInfoPanelUnitDetail", 0)
 
 new TableLayout(...)
 ..applyTo(defaultFrameParent)
 
-defaultFrameParent = GAME_UI
+defaultFrameParent = prev
 ```
