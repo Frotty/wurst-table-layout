@@ -1,0 +1,178 @@
+package TableUiDefaultUi
+// Named access to the DEFAULT Warcraft III UI (origin frames + named console frames), so maps can
+// hide or modify individual pieces - or all of it - without memorising frame names, child indices
+// and patch quirks. Everything here is verified against Tasyen's Hive research (Big UI-Frame
+// Tutorial, UI: OriginFrames, "Hiding/Showing original UI frames nightmare").
+//
+// RULES (these are WC3 facts, not style):
+//   - Call these at elapsed time 0.00+, not in blocking init (frames mis-pose / crash at init).
+//   - Handle acquisition must happen synchronously for ALL players. Every getter here caches its
+//     handle on first call; if you plan per-player (localPlayer) show/hide, call
+//     reserveDefaultUiHandles() once for everyone first, then BlzFrameSetVisible-style changes
+//     inside localPlayer blocks are safe (visuals may differ per player; handles may not).
+//   - Command card / inventory buttons REAPPEAR on every unit selection, even while hidden via
+//     BlzHideOriginFrames. A one-shot hide of those is not permanent; re-hide on selection.
+//   - Hiding a container hides its children, and a child cannot be shown while its container is
+//     hidden (upper menu buttons need upperButtonBar visible, minimap buttons need their bar, ...).
+//   - Reforged 2.0 changed the console: BlzHideOriginFrames no longer hides the console art
+//     (ConsoleTopBar/ConsoleBottomBar), and 2.0.1 cannot re-show the resource bar after a full
+//     hide. Treat hideDefaultUi() as effectively ONE-WAY and design the map accordingly.
+import TableLayout
+import FramehandleNames
+
+// --- Cached named access -------------------------------------------------------
+// Getters cache on first call (the handleId reservation pattern). They return null when the frame
+// does not exist on the running patch; null-check before modifying.
+
+framehandle dayNightClockFrame = null
+framehandle resourceBarFrame = null
+framehandle upperButtonBarFrame = null
+framehandle cachedMinimap = null
+framehandle cachedPortrait = null
+framehandle heroBarFrame = null
+
+/** The day/night cycle dial. It has NO frame name: it is GAME_UI child [5] -> child [0]
+    (1.32.6+ only; returns null before that). Its parent [5] is ALSO the minimap's ancestor,
+    so this getter deliberately exposes only the dial, never the parent. */
+public function dayNightClock() returns framehandle
+    if dayNightClockFrame == null and GAME_UI.getChildrenCount() > 5
+        let clockParent = GAME_UI.getChild(5)
+        if clockParent != null and clockParent.getChildrenCount() > 0
+            dayNightClockFrame = clockParent.getChild(0)
+    return dayNightClockFrame
+
+/** The top gold/lumber/food/upkeep bar ("ResourceBarFrame", a SimpleFrame). Its texts are the
+    named frames resourceBarGoldText/LumberText/SupplyText/UpkeepText in FramehandleDefaultNames. */
+public function resourceBar() returns framehandle
+    if resourceBarFrame == null
+        resourceBarFrame = getFrame(FramehandleDefaultNames.resourceBarFrame)
+    return resourceBarFrame
+
+/** The Quests/Menu/Allies/Log button container ("UpperButtonBarFrame"). Hiding it does NOT
+    disable the hotkeys (F9-F12); disable the individual buttons to stop those, and note the game
+    re-enables them whenever a menu closes. */
+public function upperButtonBar() returns framehandle
+    if upperButtonBarFrame == null
+        upperButtonBarFrame = getFrame(FramehandleDefaultNames.upperButtonBarFrame)
+    return upperButtonBarFrame
+
+/** The minimap (ORIGIN_FRAME_MINIMAP). The five minimap buttons live in their own container
+    ("MiniMapButtonBar", ConsoleUI child [4]) and are hidden separately. */
+public function minimapFrame() returns framehandle
+    if cachedMinimap == null
+        cachedMinimap = getOriginFrame(ORIGIN_FRAME_MINIMAP)
+    return cachedMinimap
+
+/** The selected-unit portrait (ORIGIN_FRAME_PORTRAIT). Quirk: it uses WHOLE-SCREEN coordinates
+    (bottom-left of the physical screen), not the 4:3 system every other frame uses. */
+public function portraitFrame() returns framehandle
+    if cachedPortrait == null
+        cachedPortrait = getOriginFrame(ORIGIN_FRAME_PORTRAIT)
+    return cachedPortrait
+
+/** The left hero-icon stack (ORIGIN_FRAME_HERO_BAR): parent of all hero buttons, which share its
+    visibility - toggle the bar, not the buttons. Skill-point indicators reappear on level-up even
+    while hidden. */
+public function heroBar() returns framehandle
+    if heroBarFrame == null
+        heroBarFrame = getOriginFrame(ORIGIN_FRAME_HERO_BAR)
+    return heroBarFrame
+
+/** Command card button 0..11 ("CommandButton_N", 1.32+): 0 is top-left, 11 bottom-right. Move/hide
+    via these named frames (the origin frames glitch when moved in 1.32+). They reappear/update on
+    every unit selection. */
+public function commandButton(int index) returns framehandle
+    return getFrame("CommandButton_" + index.toString())
+
+/** Inventory item button 0..5 ("InventoryButton_N", 1.32+). Same reappear-on-selection rule as
+    command buttons. */
+public function inventoryButton(int index) returns framehandle
+    return getFrame("InventoryButton_" + index.toString())
+
+// --- Visibility helpers ----------------------------------------------------------
+
+/** Shows/hides the day/night dial. No-op (with a warning) before 1.32.6, where the dial is not
+    reachable; there the only option is blanking its textures in gameplay interface settings. */
+public function setDayNightClockVisible(bool visible)
+    let clock = dayNightClock()
+    if clock != null
+        clock.setVisible(visible)
+    else if tableWarnings
+        Log.warn("dayNightClock(): not reachable (needs WC3 1.32.6+); cannot change its visibility.")
+
+public function hideDayNightClock()
+    setDayNightClockVisible(false)
+
+public function setResourceBarVisible(bool visible)
+    resourceBar().setVisible(visible)
+
+public function setUpperButtonBarVisible(bool visible)
+    upperButtonBar().setVisible(visible)
+
+public function setMinimapVisible(bool visible)
+    minimapFrame().setVisible(visible)
+    // The five filter buttons live in their own container next to the minimap; toggle it too.
+    let buttonBar = getFrame("MiniMapButtonBar") // in stdlib FramehandleDefaultNames upstream
+    if buttonBar != null
+        buttonBar.setVisible(visible)
+
+public function setPortraitVisible(bool visible)
+    portraitFrame().setVisible(visible)
+
+public function setHeroBarVisible(bool visible)
+    heroBar().setVisible(visible)
+
+// --- Full custom-UI mode ----------------------------------------------------------
+
+/** Hides the default game UI for fully custom-UI maps (Tasyen's verified recipe):
+    BlzHideOriginFrames + collapsing the black console backdrop (collapsed, not hidden: it stays a
+    useful console-level Frame parent) + hiding the invisible mouse dead zone at the command card +
+    on Reforged 2.0+ also the console art (ConsoleTopBar/ConsoleBottomBar), reparenting the
+    tooltip frame out first so ability/item tooltips keep working.
+
+    Treat as ONE-WAY: re-showing everything afterwards is not reliable across patches (2.0.1
+    cannot re-show the resource bar at all). Re-show single pieces with the setXVisible helpers
+    where supported. The world remains fully clickable where the console was. */
+public function hideDefaultUi()
+    // Stop the game re-positioning default frames on resolution/window changes.
+    enableUIAutoPosition(false)
+    // Hides portrait, minimap (+buttons), command card, inventory, hero bar, info panel, resource
+    // bar, menu buttons, clock and idle worker. NOT the console art or the backdrop, handled below.
+    hideOriginFrames()
+    // The black box behind the bottom console: collapse instead of hide.
+    getFrame(FramehandleDefaultNames.consoleUIBackdrop).setSize(0, 0.0001)
+    // A textureless SimpleFrame still eats mouse input at the command card's position (child [5]
+    // of ConsoleUI); hide it so the freed area is clickable world (1.32.6+).
+    let console = getFrame(FramehandleDefaultNames.consoleUI)
+    if console.getChildrenCount() > 5
+        let deadZone = console.getChild(5)
+        if deadZone != null
+            deadZone.hide()
+    // Reforged 2.0+: the console art is no longer covered by BlzHideOriginFrames. The tooltip
+    // frame is a ConsoleBottomBar child, so move it out before hiding, or tooltips die with it.
+    // ("ConsoleTopBar"/"ConsoleBottomBar" are in stdlib FramehandleDefaultNames upstream.)
+    let topBar = getFrame("ConsoleTopBar")
+    if topBar != null
+        getOriginFrame(ORIGIN_FRAME_UBERTOOLTIP).setParent(console)
+        topBar.hide()
+        let bottomBar = getFrame("ConsoleBottomBar")
+        if bottomBar != null
+            bottomBar.hide()
+
+/** Touches every handle this package manages, once, synchronously - the handleId reservation
+    pattern. Call this at elapsed 0.00 for ALL players if you later show/hide default UI inside
+    localPlayer blocks (e.g. observer-only HUD); after reserving, local visibility changes cannot
+    desync handle counters. */
+public function reserveDefaultUiHandles()
+    dayNightClock()
+    resourceBar()
+    upperButtonBar()
+    minimapFrame()
+    portraitFrame()
+    heroBar()
+    getFrame(FramehandleDefaultNames.consoleUI)
+    getFrame(FramehandleDefaultNames.consoleUIBackdrop)
+    for i = 0 to 11
+        commandButton(i)
+    for i = 0 to 5
+        inventoryButton(i)

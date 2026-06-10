@@ -1,7 +1,7 @@
 # AGENTS.md
 
 ## Purpose
-This repo is the source for `wurst-table-layout`, a WurstScript Warcraft III UI toolkit. It provides `TableLayout`, `TableUi` components, frame-safe helpers, validation tests, and documentation. Keep this file short and operational; detailed recipes live in `AI_USAGE.md`, native frame rules in `WC3_FRAMEHANDLE_GUIDE.md`, and public examples in `README.md`.
+This repo is the source for `wurst-table-layout`, a WurstScript Warcraft III UI toolkit: the one-stop shop for programmatic WC3 UI. It provides `TableLayout`, `TableUi` components, SimpleFrame helpers (`TableUiSimple`), named default-HUD control (`TableUiDefaultUi`), frame-safe helpers, validation tests, and documentation. Keep this file short and operational; detailed recipes live in `AI_USAGE.md`, native frame rules in `WC3_FRAMEHANDLE_GUIDE.md`, and public examples in `README.md`.
 
 ## Context Refresh
 Before editing this repo, and again after any context compaction/resume, re-read this file first. Then open only the task-relevant deeper doc:
@@ -21,10 +21,11 @@ If you are modifying a downstream map's `_build/dependencies/wurst-table-layout`
 - Do not destroy Warcraft III frames in multiplayer cleanup. Hide and reuse them.
 - Do not create first-time frame handles inside `localPlayer` blocks.
 - Do not use local UI getters (`getText`, `getValue`, `getWidth`, `getHeight`, `isVisible`, `BlzGetLocalClientWidth/Height`, etc.) as synced game logic or layout authority.
-- Build frames under their eventual parent with `withParent(...)` / `inLayer(...)`; avoid post-creation `setParent`, which can desync hit areas.
+- Build frames under their eventual parent with `withParent(...)` / `inLayer(...)`; avoid post-creation `setParent`, which leaves the frame in both parents' child lists and can misalign hit areas.
 - Keep ordinary roots in the strict safe band with `placeSafe(...)`; use `placeVisuallySafe(...)` only for deliberate sidecars/status UI where left idle-button overlap is acceptable.
 - Do not move Blizzard chat/message frames with arbitrary coordinates. Create map-owned UI in a safe band instead.
 - Size every non-grow cell. Text presets measure `0` until sized; use `setSize`, `prefSize`, `fixedWidth`, `minWidth`, or `growX/growY`.
+- SimpleFrame components (`simpleBar`/`simpleTexture`, `TableUiSimple`) never go inside `TableLayout` cells or under Frame-group parents; they render below all Frame-group UI and are placed absolutely with `placeAt`. Use them only for boss/HUD bars, tinted textures, and off-4:3 band art.
 - Validate layout math with `checkFits()` / `inspect()` and headless tests before calling WC3 "done".
 
 ## Core Files

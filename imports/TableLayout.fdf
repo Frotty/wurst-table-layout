@@ -229,3 +229,27 @@ Frame "GLUEBUTTON" "TableUiDisabledOverlay" {
         BackdropBackground "Textures\Black32.blp",
     }
 }
+
+// -- SimpleFrames (TableUiSimple) --------------------------------------------
+// The OTHER frame family. SimpleFrames render in their own band BELOW all Frame-group UI and cannot
+// be parented under Frame-group frames, so these templates are NOT usable inside TableLayout cells.
+// They exist for what Frames cannot do: leave the 4:3 band and be vertex-colour tinted at runtime.
+
+// Native status bar with a fill driven by setValue and tintable with setVertexColor (the boss-bar
+// primitive). Grey fill by default: the tint MULTIPLIES the texture, so a light/neutral base shows
+// any hue; swap via setBarTexture for custom art.
+Frame "SIMPLESTATUSBAR" "TableUiSimpleBar" {
+    Width 0.2,
+    Height 0.012,
+    BarTexture "ReplaceableTextures\TeamColor\TeamColor08.blp",
+}
+
+// A plain tintable texture. The File is a placeholder; simpleTexture(path, ...) always replaces it
+// at creation. The unanchored Texture child fills the parent SimpleFrame.
+Frame "SIMPLEFRAME" "TableUiSimpleTexture" {
+    Width 0.1,
+    Height 0.1,
+    Texture "TableUiSimpleTextureFile" {
+        File "Textures\Black32.blp",
+    }
+}

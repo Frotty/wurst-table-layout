@@ -5,22 +5,26 @@
 
 # wurst-table-layout
 
-**A batteries-included UI toolkit for WurstScript**: a flexbox-style layout engine *plus* a library of ready-made, EscMenu-styled components, sane defaults and built-in validation. Add elegant Warcraft III frame UI to your map in minutes, without hand-rolling frame maths.
+**The one-stop shop for quick, consistent, programmatic Warcraft III UI in WurstScript**: a flexbox-style layout engine, a library of ready-made EscMenu-styled components, SimpleFrame helpers (boss bars, tinted art), named control of the default WC3 HUD, sane defaults, built-in validation, and first-class agent support so an LLM can build correct UI on the first try. Add elegant frame UI to your map in minutes, without hand-rolling frame maths.
 
-![chrome_EkMQO3cJuA](https://user-images.githubusercontent.com/1486037/142081152-42348ece-7cfb-47db-a4e2-c9d552537f02.png)
+<img width="820" alt="The demo map (wurst/TableLayoutTest.wurst): component, display, typography and showcase panels, multiboard attachment, an animated SimpleFrame HUD bar, and the day/night clock hidden via TableUiDefaultUi" src="https://github.com/user-attachments/assets/0edc2743-2f3a-4f10-862d-3f20f3263d41" />
 
-It began as a table/flexbox layout (rows → cells → framehandles, with optional column alignment) and now ships a full component set on top, so most UIs are a few cascade lines instead of raw `BlzCreateFrame` calls. Build a layout, drop in components, apply it to any framehandle.
+*The demo map ([`wurst/TableLayoutTest.wurst`](wurst/TableLayoutTest.wurst)): interactive components, display rows, the type scale, nested-table/grid/tabs showcase and multiboard attachment - plus an animated SimpleFrame bar in the HUD band and the day/night clock removed with one call.*
+
+It began as a table/flexbox layout (rows → cells → framehandles, with optional column alignment) and now covers the whole WC3 UI surface: custom Frame-group UI through layouts and components, the SimpleFrame band for what Frames cannot do, and named access to the default HUD - so most UIs are a few cascade lines instead of raw `BlzCreateFrame` calls. Build a layout, drop in components, apply it to any framehandle.
 
 > Note: The table layout cannot be used with scaling.
 
 ### What you get
 
-- **Ready-made components**: panels & cards, buttons, icon buttons, checkboxes, select menus, sliders, tabs, edit boxes, text areas, tooltips, confirm dialogs, progress & stat bars, stat/icon cards, icon-label and label-value rows, separators and spacers.
+- **Ready-made components**: panels & cards, buttons, icon buttons, checkboxes, select menus, sliders, tabs, edit boxes, text areas, tooltips, confirm dialogs, progress & stat bars, stat/icon cards, icon-label and label-value rows, separators and spacers, and whole-frame interaction (`interactive` / `selectable` / radio groups).
 - **A layout engine**: flexbox-style rows and cells with padding, gaps, horizontal & vertical alignment and `grow`, plus opt-in column/grid alignment (`columns()`, `colspan`).
 - **Text presets**: `h1`-`h5`, `p`-`p3`, and sized `label` / `value` helpers.
+- **SimpleFrame helpers**: `simpleBar` (boss/HUD bars with native fill + runtime tinting) and `simpleTexture` (tintable, full-width band art) for what Frame-group UI cannot do.
+- **Default-HUD control**: hide or modify the day/night clock, resource bar, menu buttons, minimap, portrait, hero bar and command card by name (`TableUiDefaultUi`), or go fully custom-UI with `hideDefaultUi()`.
 - **Sane defaults**: a spacing scale (`SPACE_*`), automatic component minimums, automatic keyboard-focus release, a container hierarchy, and safe-area placement that keeps panels clear of the melee HUD.
 - **Built-in validation**: `checkFits()` / `inspect()` catch overflow and unsized cells, at runtime and headless in `grill test`.
-- **AI-ready**: ships agent instructions so an LLM can generate correct UI fast (see [AI readiness](#ai-readiness)).
+- **Agent support**: ships agent instruction files (decision tree, recipes, verified WC3 frame rules) and a headless feedback loop, so an LLM can generate correct UI on the first try (see [AI readiness](#ai-readiness)).
 
 ![Diagram](https://user-images.githubusercontent.com/1486037/141851102-390b7136-41b1-4b8f-9197-be286a7a4ba5.png)
 
@@ -268,6 +272,36 @@ new TableLayout(0.24, 0.16, "SetupPanel")
 
 `select` is implemented as a custom code-driven list of buttons so options can be generated in code. Native `POPUPMENU` is still useful for fixed FDF-defined menus, but its options are not dynamic.
 
+Library buttons release keyboard focus automatically after a click, so Enter keeps opening chat instead of re-firing the last clicked button. This is controlled by the `autoReleaseFocus` flag (default `true`); set it to `false` to opt out, and call `onClickReleaseFocus()` on foreign or Blizzard frames you want to behave the same way.
+
+## SimpleFrame helpers (boss bars, tinted and full-width art)
+
+WC3's second frame family, SimpleFrames, can do three things ordinary frames cannot: leave the 4:3 band without malforming, be tinted at runtime with `setVertexColor`, and drive a native fill via `SIMPLESTATUSBAR`. `TableUiSimple` wraps them as `simpleBar` and `simpleTexture`:
+
+```
+let boss = simpleBar(0.30, 0.012)
+..setValue(0.65)
+..setColor(color(220, 60, 60))
+..placeAt(vec2(0.4, 0.575))
+```
+
+The trade-off: SimpleFrames render **below** all ordinary frames and cannot be parented under them, so these helpers can never go inside a `TableLayout` cell or panel; they are free-floating HUD furniture placed absolutely with `placeAt`. For bars and images inside layouts, keep using `UIBar`/`statBar` and `img`. See [`WC3_FRAMEHANDLE_GUIDE.md`](WC3_FRAMEHANDLE_GUIDE.md) ("SimpleFrames") for the full rules.
+
+## Taming the default WC3 UI
+
+`TableUiDefaultUi` gives named, cached access to the default game UI so you can hide or move pieces without memorising frame names, child indices and patch quirks:
+
+```
+hideDayNightClock()                  // the clock has no frame name; this knows the child path
+setResourceBarVisible(false)
+setMinimapVisible(false)
+
+// or go fully custom-UI (one-way on recent patches):
+hideDefaultUi()
+```
+
+Individual elements: `dayNightClock()`, `resourceBar()`, `upperButtonBar()`, `minimapFrame()`, `portraitFrame()`, `heroBar()`, `commandButton(0..11)`, `inventoryButton(0..5)`, each with a `setXVisible` helper. Call `reserveDefaultUiHandles()` once at elapsed `0.` before any per-player (local) show/hide. The quirks (command buttons reappearing on selection, menu hotkeys surviving a hide, Reforged 2.0 console changes) are documented in [`WC3_FRAMEHANDLE_GUIDE.md`](WC3_FRAMEHANDLE_GUIDE.md).
+
 Layout additions such as `gap`, `growY`, `minWidth`, `minHeight`, `fixedWidth`, `fixedHeight`, and `fixedSize` are opt-in and do not alter existing layouts unless called.
 
 ## Columns (grid mode)
@@ -304,7 +338,7 @@ let p = panelTable(0.24, 0.12, "Setup")
 p.placeSafe(vec2(0.5, 0.5), 0.24, 0.12)
 ```
 
-For z-order, parent into the right layer rather than fighting `setLevel` (which only orders siblings within one parent). WC3 has no global z-index, and of the origin frames `GAME_UI` (the default parent) renders on top, above the HUD console and the other bands. So on-top UI uses two `GAME_UI` child layers raised with `setLevel`: `Layer.DIALOG` for modal dialogs and `Layer.OVERLAY` (above it) for dropdowns, menus and tooltips; ordinary panels stay in `Layer.CONTENT` (`GAME_UI`). Create frames in their layer with `inLayer(Layer.DIALOG) -> ...` rather than reparenting later, since a post-creation `setParent` can desync a frame's hit area. `confirmDialog` uses `DIALOG` and `select` uses `OVERLAY`.
+For z-order, parent into the right layer rather than fighting `setLevel` (which only orders siblings within one parent). WC3 has no global z-index, and of the origin frames `GAME_UI` (the default parent) renders on top, above the HUD console and the other bands. So on-top UI uses two `GAME_UI` child layers raised with `setLevel`: `Layer.DIALOG` for modal dialogs and `Layer.OVERLAY` (above it) for dropdowns, menus and tooltips; ordinary panels stay in `Layer.CONTENT` (`GAME_UI`). Create frames in their layer with `inLayer(Layer.DIALOG) -> ...` rather than reparenting later, since a post-creation `setParent` leaves the frame in both parents' child lists and can misalign its hit area. `confirmDialog` uses `DIALOG` and `select` uses `OVERLAY`.
 
 ## Nested Tables
 
@@ -357,8 +391,9 @@ It ships agent instruction files. Point your agent at these first:
 What makes it agent-friendly:
 
 - **A real feedback loop.** `layout.checkFits()` / `inspect()` validate a layout (overflow, zero-size cells) *without a running game*, so the agent can verify its own output: at runtime and headless via `grill test`. Runtime `Log.warn`s flag the common mistakes (unsized text, gap+grow overflow, vertical overflow).
-- **Guard rails and sane defaults.** Zero-size/overflow warnings, component minimums, a consistent spacing scale, a container hierarchy, and opt-in safe-area placement keep generated UI inside the lines.
+- **Guard rails and sane defaults.** Zero-size/overflow warnings, component minimums, a consistent spacing scale, a container hierarchy, and opt-in safe-area placement keep generated UI inside the lines. APIs that desync or crash in multiplayer (frame destruction, post-creation reparenting, fragile SimpleFrame children) are simply not exposed.
 - **A streamlined, cascade-friendly API** where the boring choice is the correct choice: nest tables and reuse helpers instead of computing frame points.
+- **The whole UI surface, with the quirks encoded.** Custom panels (Frame group), boss bars and band art (SimpleFrames), and the default HUD (`TableUiDefaultUi`) are all reachable through named helpers whose documentation carries the verified WC3 facts (what reappears on selection, what is one-way, what crashes), so the agent does not have to know Warcraft III folklore.
 
 When working with an agent, tell it to read `AGENTS.md` and `AI_USAGE.md`, then run `grill test` (or call `checkFits()`) after building UI and fix anything the report flags.
 

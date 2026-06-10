@@ -406,9 +406,12 @@ public class TableLayout
         for row in rows
             
             let rowPercentage = availableSpace == 0. ? 1. : row.width / availableSpace
-            
-            if tableWarnings and rowPercentage > 1.
-                Log.warn("Row #" + count.toString() + " width: " + row.width.toString() + " exceeding table " + name + " availableSpace " + availableSpace.toString() + " width: " + width.toString())
+
+            // Absolute epsilon, matching inspect()/the vertical check above: a row that fills its width
+            // EXACTLY via growX computes fixed + (available - fixed) in float32 and can land one ulp
+            // above available, which a bare `rowPercentage > 1.` reports as a (spurious) overflow.
+            if tableWarnings and row.width > availableSpace + 0.0001
+                Log.warn("Row #" + count.toString() + " width " + row.width.toString() + " exceeds table " + name + " availableSpace " + availableSpace.toString() + " (table width " + width.toString() + ")")
                 
             let freeSpace = (1. - rowPercentage) * availableSpace
 
@@ -584,14 +587,18 @@ public class TableLayout
         remove(row, false)
 
     /** Removes a row and invalidates the layout.
-        With destroyFrames the contained framehandles are destroyed (unsafe in MP; prefer hide/reuse).
+        With hideFrames the contained framehandles are hidden, so they do not linger visibly at their
+        last anchor; they are never destroyed (destroying frames desyncs in MP, and WC3 handles even
+        hundreds of hidden frames without measurable cost - hide and reuse instead).
         The Row and its Cell wrappers are always freed via ondestroy, so removal does not leak. */
-    function remove(Row row, boolean destroyFrames)
+    function remove(Row row, boolean hideFrames)
         this.rows.remove(row)
         if row.contains(lastCell)
             lastCell = null
-        if destroyFrames
-            row.cells.forEach(cell -> cell.frame.destroyUnsafe())
+        if hideFrames
+            for cell in row.cells
+                if cell.frame != null
+                    cell.frame.hide()
         destroy row
         if baseFrame != null
             layout()
@@ -744,7 +751,10 @@ public class Row
             celloffset.y = offset.y
             celloffset += vec2(cell.padding.left, -cell.padding.top)
             if cell.growY
-                cell.frame.setHeight(max(0., height - cell.padding.getHeight()))
+                // Frameless addSized() cells carry no frame to stretch; Cell.invalidate/layout already
+                // guard null, this branch must too.
+                if cell.frame != null
+                    cell.frame.setHeight(max(0., height - cell.padding.getHeight()))
                 cell.invalidate()
             else
                 // Vertical alignment within a taller row (y decreases downward, so push DOWN = subtract).

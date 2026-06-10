@@ -22,3 +22,5 @@ import public TableUiSelect
 import public TableUiSliders
 import public TableUiTabs
 import public TableUiCards
+import public TableUiSimple
+import public TableUiDefaultUi

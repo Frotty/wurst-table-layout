@@ -82,7 +82,8 @@ Rules:
 - `setPoint` anchors one frame point to another frame point.
 - `setAllPoints(a)` copies another frame's size/position and follows later changes.
 - `+x` moves right, `+y` moves up.
-- `setScale` affects relative offsets and children; this library's table layout does not support scaling.
+- `setScale` affects relative offsets and children; this library's table layout does not support scaling. `setScale` can also break a custom font set on the frame, so if you must scale, scale late (after creation and text setup), not at creation.
+- With only a single point set, a frame expands away from that point: points containing LEFT extend rightwards, RIGHT extends leftwards, CENTER extends both ways, TOP extends downwards, BOTTOM extends upwards. A single-point `TEXT` frame near the 4:3 border silently truncates, so size text frames explicitly (this library's `setSize`/`prefSize` rules exist for this reason).
 
 **Verified quirk: multiple live anchors collapse a frame.** Anchors are not "last wins". A frame given two conflicting anchors at once (e.g. a creation-time `setAbsPoint` plus a later `setPoint`) makes WC3 try to satisfy both, stretching or collapsing the frame toward a corner; a decorated frame's border art then shows as a small stray mark (this was the long-hunted "cross"). Always `clearAllPoints()` before re-anchoring a frame that may already carry a point. The `TableLayout` engine now does this for every cell, so `card()`/`panel()` (which carry a creation-time `setAbsPoint`) can be dropped into a layout safely.
 
@@ -106,7 +107,7 @@ frameA.setPoint(FRAMEPOINT_BOTTOM, frameB, FRAMEPOINT_TOP, vec2(0, 0))
 
 WC3 has no global z-index. Stacking follows the frame tree: a child draws above its parent, siblings draw in creation order, and `setLevel` (`BlzFrameSetLevel`) only reorders siblings *within the same parent*. You cannot lift a deeply nested frame above an unrelated branch just by raising its level.
 
-What decides z-order is the parent you choose. Verified in-game (`LayerProbeTest`): of the three origin frames, `GAME_UI` renders on top — above the HUD console and above `WORLD_UI` and `CONSOLE_UI`.
+What decides z-order is the parent you choose. Verified in-game (`LayerProbeTest`): of the three root parents, `GAME_UI` renders on top, above the HUD console and above `WORLD_UI` and `CONSOLE_UI`. (Strictly, only `GAME_UI` and `WORLD_UI` are origin frames; `CONSOLE_UI` is the named frame `BlzGetFrameByName("ConsoleUIBackdrop", 0)`. Do not try to fetch it with `BlzGetOriginFrame`.)
 
 | `Layer` | Frame | Renders |
 |---------|-------|---------|
@@ -119,7 +120,7 @@ Because custom `GAME_UI` content already sits on top of the HUD and the other ba
 
 These layer frames are deliberately **tiny corner frames, not full-screen**: a full-screen transparent frame blocks mouse interaction with everything beneath it. WC3 does not clip children to a parent's bounds, so the dialog/dropdown content overflows the small frame and renders at its absolute position regardless.
 
-Create frames in their band; do not reparent into it afterwards. `BlzFrameSetParent` after creation is unreliable and can leave a frame's clickable area desynced from its visual. Set the band as the parent from the start:
+Create frames in their band; do not reparent into it afterwards. `BlzFrameSetParent` does not remove the frame from its old parent's child list, so the frame ends up a child of BOTH parents (Tasyen documents this; SimpleFrames are unaffected). The dual parentage produces local input/visual bugs such as a clickable area that no longer matches the visual (the click-stealing bug this library hit). This is a local rendering/input problem, not a network desync. Set the band as the parent from the start:
 
 ```wurst
 // scoped: everything created inside is parented into OVERLAY
@@ -129,7 +130,7 @@ inLayer(Layer.OVERLAY) ->
         .build()
     dialog.placeSafe(vec2(0.4, 0.4), 0.24, 0.12)
 
-// or move an existing frame (last resort; may desync the hit area)
+// or move an existing frame (last resort; the dual-parent bug may misalign the hit area)
 myFrame.setLayer(Layer.OVERLAY)
 ```
 
@@ -146,15 +147,54 @@ Library policy:
 - Avoid creating complex UI on demand in response to gameplay when any player might be tabbed. Create/cache hidden frame trees after map load, then show/hide/update them.
 - Do not move Blizzard chat/unit/top message frames with arbitrary sizes or coordinates. Bad values are known crash territory; create a map-owned chat/status area in the strict or visual safe band instead.
 - If a widget intentionally uses SimpleFrames or fullscreen math to leave the 4:3 area, document it locally and guard against zero/invalid local dimensions.
+- The sanctioned escape hatch for Frame-group UI that must leave the 4:3 band (full-width bars, edge HUDs): parent it to `BlzGetFrameByName("ConsoleUIBackdrop", 0)`. Children of that frame may span the whole physical screen without malforming, but render BELOW SimpleFrames (so below the default HUD art). Parenting to a created Leaderboard frame is the equivalent above-SimpleFrames variant. Use deliberately and document it; ordinary panels stay in the safe band.
 
 ## Texture, colour and opacity
 
 Verified in-game (`Wc3QuirkProbe`, a 3-column ref / before-layout / after-layout matrix across image, backdrop and glue button):
 
-- **`setVertexColor` does not tint UI textures.** It applies to model/sprite frames only (the stdlib comment says "the model frame"). It had no visible effect on a `BACKDROP`, an image (which is a backdrop), or a glue button, in any column. To recolour a UI element, swap its texture (`setTexture`) or use a differently-coloured FDF backdrop. Text colour is a separate mechanism: `FontColor` in the FDF, or `|cAARRGGBB ... |r` colour codes in the string.
+- **`setVertexColor` does not tint Frame-group UI textures.** It had no visible effect on a `BACKDROP`, an image (which is a backdrop), or a glue button, in any column. It DOES work on model/sprite frames, on SimpleFrame `Texture` children, and on `SIMPLESTATUSBAR` fills (the standard boss-bar colouring technique); this library wraps those as `simpleTexture` / `simpleBar` (see "SimpleFrames" below). To recolour a Frame-group element, swap its texture (`setTexture`), use `coloredRect` (team-colour textures), or a differently-coloured FDF backdrop. Text colour is a separate mechanism: `FontColor` in the FDF, or `|cAARRGGBB ... |r` colour codes in the string.
 - **`setAlpha` works on backdrops, images and glue buttons, but only after the frame is laid out.** Alpha set on a bare frame before it is parented, anchored and sized (before `applyTo` / `createFrame` places it) is wiped; the identical call made afterwards takes and persists. So apply opacity once the frame is in its final position, not at creation. On a glue button the fade covers the whole button, child backdrops included. This is exactly why `UITabs` dims tabs from `showTab()` (post-layout) rather than at button creation.
 - **Opacity reads as "disabled / unavailable"** to players, so reserve it for genuinely inactive elements. For a "selected / active" state, use a distinct backdrop, a border, or a swapped texture, not alpha alone. You cannot brighten an active item by tinting it.
-- **Making non-button frames clickable / selectable.** Only glue buttons fire click events, and you cannot tint a UI texture for an active state, so overlay a transparent glue button (it shows the native hover glow and fires clicks while the content shows through) and toggle a selection-border backdrop for the active state. Prefer `interactive(target)` for display-only frames that need whole-area click, selected, disabled, or tooltip state; `selectable(target)` and `UISelectableGroup` build on the same mechanism for radio-style selection. `clickableOverlay(target)` / `selectionHighlight(target)` / `disabledOverlay(target)` are the low-level primitives. **Caveat (build order matters):** an enabled content frame (e.g. an image backdrop) swallows the mouse over its own area, so `setLevel` alone is not enough - the overlay must be the *only* mouse-capturing frame, or you can click only the gaps between content. `interactive(target)` and `clickableOverlay(target)` ensure this by disabling the target's existing descendants, so call them AFTER the display content is built, on display-only content only (inner buttons get disabled too). If you add/change display children later, call `directive.refresh()` to re-disable descendants and restore the directive-owned overlay states. Note the blend modes: a PERSISTENT overlay needs a texture with a TRUE alpha channel. A black-background glow (e.g. `human-options-button-highlight`) only reads correctly through the **additive** hover `HIGHLIGHT` (where black is transparent); through a normal-blend `BACKDROP` the black shows. So use a **selection-border** texture with a transparent interior (e.g. `human-multipleselection-border`, `iconselection-border-active`) for the selected state.
+- **Making non-button frames clickable / selectable.** `BACKDROP`s and plain `FRAME`s fire no click events (button-type frames do, and so do `TEXT` frames, but text makes a poor hit area), and you cannot tint a UI texture for an active state, so overlay a transparent glue button (it shows the native hover glow and fires clicks while the content shows through) and toggle a selection-border backdrop for the active state. Prefer `interactive(target)` for display-only frames that need whole-area click, selected, disabled, or tooltip state; `selectable(target)` and `UISelectableGroup` build on the same mechanism for radio-style selection. `clickableOverlay(target)` / `selectionHighlight(target)` / `disabledOverlay(target)` are the low-level primitives. **Caveat (build order matters):** an enabled content frame (e.g. an image backdrop) swallows the mouse over its own area, so `setLevel` alone is not enough - the overlay must be the *only* mouse-capturing frame, or you can click only the gaps between content. `interactive(target)` and `clickableOverlay(target)` ensure this by disabling the target's existing descendants, so call them AFTER the display content is built, on display-only content only (inner buttons get disabled too). If you add/change display children later, call `directive.refresh()` to re-disable descendants and restore the directive-owned overlay states. Note the blend modes: a PERSISTENT overlay needs a texture with a TRUE alpha channel. A black-background glow (e.g. `human-options-button-highlight`) only reads correctly through the **additive** hover `HIGHLIGHT` (where black is transparent); through a normal-blend `BACKDROP` the black shows. So use a **selection-border** texture with a transparent interior (e.g. `human-multipleselection-border`, `iconselection-border-active`) for the selected state.
+
+## SimpleFrames (TableUiSimple)
+
+SimpleFrames are WC3's second frame family (the default HUD is built from them). They are NOT an upgrade for layout content; they are a separate rendering band with three native abilities Frames lack, and hard composition limits. The library wraps them in `TableUiSimple`.
+
+What only SimpleFrames can do:
+
+- **Leave the 4:3 band without malforming**: full-width banners, edge HUDs, screen-spanning strips.
+- **Runtime tinting**: `setVertexColor` works on `SIMPLESTATUSBAR` fills and `Texture` children (it is a no-op on Frame-group backdrops/images/buttons). The tint is multiplicative: light/grey art shows any hue, dark art only darkens.
+- **Native value-driven fill**: `SIMPLESTATUSBAR` + `setValue` is the standard boss-bar primitive.
+
+The fence (each of these is a hard limit, not a preference):
+
+- A SimpleFrame **cannot be parented under a Frame-group frame**; the engine assigns a substitute parent. They can therefore NEVER go inside `TableLayout` cells, panels or cards: `withParent`/`inLayer`/cell anchoring simply do not apply.
+- The whole SimpleFrame band renders **below all Frame-group UI** (`GAME_UI` children draw on top). A SimpleFrame "inside" a panel would be invisible behind the panel backdrop, and no `setLevel` can fix it: levels only order within a family. WITHIN the SimpleFrame family, however, `setLevel` does work: new SimpleFrames start at level 0 (below the default HUD art), raising the level draws them above the melee HUD, and level 2+ also covers unit lifebars. Both wrappers expose `setLevel` for this.
+- `Texture`/`String` children are fragile: visibility/alpha/level/enable/parent natives can crash on them. The wrappers keep the child private and expose only the safe pair (`setTexture`, `setVertexColor`); show/hide and positioning go through the main frame (`getFrame()`).
+- `checkFits()`/`inspect()` do not cover SimpleFrames; placement is absolute (`placeAt`). Visual verification needs a real WC3 run.
+
+Choosing between the two families:
+
+| Need | Use |
+|------|-----|
+| Bar inside a layout/panel (stat rows, resource panels) | `UIBar` / `statBar` (Frame group) |
+| Free-floating boss/HUD bar, runtime-tinted fill | `simpleBar` (SIMPLESTATUSBAR) |
+| Image inside a layout | `img` (Frame group) |
+| Full-width / off-4:3 band art, runtime-tinted texture | `simpleTexture` |
+| Solid colour block inside a layout | `coloredRect` (team-colour textures) |
+
+```wurst
+// Boss bar: native fill + tint, placed absolutely, never inside a TableLayout.
+// setLevel raises it above the default HUD art (within the SimpleFrame family only).
+let boss = simpleBar(0.30, 0.012)
+..setValue(0.65)
+..setColor(color(220, 60, 60))
+..setLevel(5)
+..placeAt(vec2(0.4, 0.575))
+boss.setValue(0.4)   // update later; getFrame() for show/hide
+```
 
 ## TableLayout Patterns
 
@@ -181,7 +221,7 @@ Important behavior:
 - If child sizes change later, call `layout.layout()` again.
 - Use `defaultFrameParent` when helpers must be created under an existing parent from the start.
 
-Build nested content under its parent with `withParent` (a scoped, nestable push/pop of `defaultFrameParent` that auto-restores), so frames are created in place instead of created globally and re-parented in (a post-creation `setParent` can desync a frame's hit area from its visual):
+Build nested content under its parent with `withParent` (a scoped, nestable push/pop of `defaultFrameParent` that auto-restores), so frames are created in place instead of created globally and re-parented in (a post-creation `setParent` leaves the frame in both parents' child lists, which can misalign its hit area from its visual):
 
 ```wurst
 withParent(someExistingFrame) ->
@@ -262,6 +302,14 @@ Use `loadTOCFile("TableLayout.toc")` once before creating FDF-backed frames. Thi
 
 Use `createContext` intentionally for repeated instances or per-player copies. Created frames and named children are stored by `(name, createContext)`.
 
+Crash-prone setups (verified community findings):
+
+- A `TEXTAREA` must have a height of at least `0.03` and never `0`, or the game crashes when it is displayed. `textArea(...)` in this library always sizes it; keep that invariant if you touch it.
+- Creating `BACKDROP`, `TEXTAREA`, `SIMPLEMESSAGEFRAME`, `DIALOG` or `CONTROL` frames with a wrong setup (bad FDF, missing required fields) can crash the game outright. Prefer the library templates in `imports/TableLayout.fdf`.
+- `BlzFrameGetChild` does no bounds checking; always iterate `0 .. getChildrenCount() - 1`. Child counts and indices of default UI change with game state (a created multiboard, leaderboard or quest dialog shifts them), so do not hardcode child indices of default frames.
+
+There is no practical hard cap on frame count: thousands of cached, hidden, reused frames are fine. The real hazards are handle churn and destroying frames, not the count, so do not invent pooling or aggressive cleanup.
+
 ## Frame Events and Focus
 
 `TableLayout` imports `ClosureFrames` publicly, so packages importing `TableLayout` can use event helpers.
@@ -288,6 +336,8 @@ How this library handles it:
 - **Opt out** project-wide with `autoReleaseFocus = false`, or per-component by creating that component while the flag is false (reset it afterwards, like `defaultFrameParent`).
 - **Foreign / Blizzard frames** the library did not create: call `frame.onClickReleaseFocus()` on a clickable you want to behave, or `frame.disable()` on a purely decorative frame so it never grabs focus in the first place (the library already disables its own `panel`/`card` backdrops for this reason). There is **no FDF flag** for "unfocusable": disabling is the structural equivalent.
 - Manual `unfocus()` / `releaseKeyboardFocus(player)` is still available when you need to release focus from a specific frame yourself.
+- **ESC is the player-side escape**: pressing Escape releases keyboard focus from an edit box. It is the only thing a player can do themselves against a focus trap, so never bind destructive behaviour to a focused control re-firing.
+- **Known side effect of the release trick**: the disable/enable focus-release (what `onClickReleaseFocus()` does) can leave the camera panning if an arrow key is released at nearly the same moment as the click. The fix is to call `StopCamera()` for the triggering player after releasing focus. If users report a "stuck scrolling camera" after clicking library buttons, this is the cause.
 
 ## Multiplayer Safety
 
@@ -319,6 +369,10 @@ Rules:
 
 Be careful with these getters in MP because their values can differ locally: `getText`, `getValue`, `isEnabled`, `getAlpha`, `getHeight`, `getWidth`, `getParent`, `isVisible`, `BlzGetLocalClientWidth()`, and `BlzGetLocalClientHeight()`.
 
+**The handleId reservation pattern** (the safe way to touch frames locally): acquire every frame handle once, synchronously for all players (as in the safe pattern above). Once the handle exists in the map script, getting and using that frame inside a `localPlayer` block no longer allocates a handleId, so it cannot desync handle counters. The unsafe pattern is unsafe precisely because the FIRST acquisition happens locally.
+
+**Frames that do not exist until locally triggered** are a handleId trap: quest dialog frames only exist after the quest button was clicked, chat frames only exist in multiplayer, the log dialog only in single player, and the portrait HP text only after a unit was selected. Touching these "on demand" acquires handles at different times on different clients. If you must use one, force-create it synchronously for everyone first (e.g. `BlzFrameClick` on the quest button) or avoid it entirely; this library builds its own panels instead.
+
 ## Default UI and Named Frames
 
 Prefer stdlib constants instead of stringly-typed names:
@@ -340,6 +394,25 @@ someDefaultFrame.setAbsPoint(FRAMEPOINT_BOTTOMLEFT, vec2(0.0, 0.0))
 ```
 
 Do not assume changes to default UI survive selection, resource, minimize/maximize, or resolution refreshes. Reapply geometry after the native UI settles when needed.
+
+### Hiding / modifying the default UI (`TableUiDefaultUi`)
+
+Use `TableUiDefaultUi` instead of memorising frame names, child indices and patch quirks. It gives cached, null-safe, named access plus visibility helpers (all verified against Tasyen's Hive research):
+
+- `dayNightClock()` / `hideDayNightClock()` / `setDayNightClockVisible(bool)`: the clock has **no frame name**; it is `GAME_UI` child `[5]` child `[0]`, reachable only on 1.32.6+. Never hide its *parent* `[5]`: that is also the minimap's ancestor.
+- `resourceBar()`, `upperButtonBar()`, `minimapFrame()`, `portraitFrame()`, `heroBar()`, `commandButton(0..11)`, `inventoryButton(0..5)` with matching `setXVisible(bool)` helpers.
+- `hideDefaultUi()`: the full custom-UI recipe (`enableUIAutoPosition(false)` + `BlzHideOriginFrames` + collapsing `ConsoleUIBackdrop` to `0 x 0.0001` rather than hiding it + hiding the invisible mouse dead zone at the command card + on Reforged 2.0 also the `ConsoleTopBar`/`ConsoleBottomBar` art, reparenting the tooltip frame out first so tooltips survive).
+- `reserveDefaultUiHandles()`: touches every handle once, synchronously: call it at elapsed 0.00 for all players BEFORE any per-player (`localPlayer`) show/hide of default UI.
+
+Facts that shape correct usage (do not fight these):
+
+- **Hide-all is effectively one-way.** Re-showing after `BlzHideOriginFrames(true)` is patch-dependent; Reforged 2.0.1 cannot re-show the resource bar at all. Hide individual pieces if the map ever needs them back.
+- **Command/inventory buttons reappear on every unit selection**, even while origin frames are hidden. A permanent hide needs re-hiding on selection events.
+- **A child cannot be shown while its container is hidden**: upper menu buttons need `upperButtonBar()` visible, minimap buttons need their bar, hero buttons share `heroBar()`'s visibility.
+- **Hiding the upper menu buttons does not disable their hotkeys** (F9-F12); disable the button frames to stop those, and note the game re-enables them whenever a menu closes.
+- **The portrait uses whole-screen coordinates**, not the 4:3 system.
+- **Never hide `"InventoryText"`'s parent** (GAME_UI child `[4]`): it makes ALL SimpleFrames invisible yet still clickable.
+- Visibility changes on default frames are local-state and safe per-player AFTER handles are reserved; handle acquisition inside `localPlayer` blocks desyncs.
 
 ## Multiboard Attach
 
@@ -397,6 +470,14 @@ This repo uses `imports/TableLayout.toc` and `imports/TableLayout.fdf` for text 
 
 Only main frames defined outside another `Frame {}` block can be created or inherited directly. Child frames are created as side effects of their parent.
 
+Failure diagnostics, in the order to check when an FDF-backed frame silently fails:
+
+1. `BlzLoadTOCFile` returns a boolean; check it and log a failure instead of discovering it later as invisible frames.
+2. A TOC missing its trailing blank line silently drops only the LAST listed FDF, so "everything works except one template" is the signature of this bug. Line endings matter: CRLF needs at least one empty trailing line, LF needs two.
+3. A syntax error inside an FDF skips the REMAINDER of that file; templates above the error still load, and a frame mid-definition still gets created half-built. A duplicate main-frame name also aborts the rest of the file.
+4. TOC paths are case-insensitive, and a TOC cannot include another TOC. FDF comments are `//` and `/* */`; do not put comments in the TOC.
+5. Frame errors are logged to `Documents\Warcraft III\Logs\War3Log.txt`; read it when a frame fails with no visible symptom.
+
 ## Save/Load
 
 Custom UI frames are not reliably preserved by Warcraft III save/load in affected versions. After loading, old frame handles can be hidden, broken, or crash-prone.
@@ -419,7 +500,7 @@ Library policy:
 - Do not use local-only UI getters for synced game logic.
 - Do not blindly call frame APIs on SimpleFrame `String` or `Texture` children.
 - Do not call `setTooltip` twice for the same frame/tooltip pair.
-- Do not let invisible enabled frames block mouse input.
+- Do not let shown-but-transparent enabled frames block mouse input. (A `hide()`-hidden frame takes no mouse input and is safe; a SHOWN transparent or zero-alpha enabled frame still swallows clicks over its whole area.)
 - Do not forget to clear keyboard focus after clickable UI.
 - Do not assume default UI changes survive game-driven refreshes.
 - Do not use scaling with this table layout.

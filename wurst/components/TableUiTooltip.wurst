@@ -9,6 +9,11 @@ import HashMap
 // by its own owner's panel/dialog/menu on hover.
 constant TOOLTIP_OVERLAY_LEVEL = 30
 
+// Box inset around the tooltip text and the gap between the tooltip and its owner.
+constant TOOLTIP_PAD_X = 0.008
+constant TOOLTIP_PAD_Y = 0.006
+constant TOOLTIP_OFFSET_Y = 0.008
+
 // Iterable so clearTooltips() can free every cached wrapper on teardown. Cached per owner so repeated
 // withTooltip() calls update the text rather than leaking duplicates; transient owners must be evicted
 // with removeTooltip() or the cache grows unbounded.
@@ -36,10 +41,10 @@ public class UITooltip
         ..disable()
 
         box
-        ..setPoint(FRAMEPOINT_BOTTOMLEFT, textFrame, FRAMEPOINT_BOTTOMLEFT, vec2(-0.008, -0.006))
-        ..setPoint(FRAMEPOINT_TOPRIGHT, textFrame, FRAMEPOINT_TOPRIGHT, vec2(0.008, 0.006))
+        ..setPoint(FRAMEPOINT_BOTTOMLEFT, textFrame, FRAMEPOINT_BOTTOMLEFT, vec2(-TOOLTIP_PAD_X, -TOOLTIP_PAD_Y))
+        ..setPoint(FRAMEPOINT_TOPRIGHT, textFrame, FRAMEPOINT_TOPRIGHT, vec2(TOOLTIP_PAD_X, TOOLTIP_PAD_Y))
 
-        textFrame.setPoint(FRAMEPOINT_BOTTOM, owner, FRAMEPOINT_TOP, vec2(0, 0.008))
+        textFrame.setPoint(FRAMEPOINT_BOTTOM, owner, FRAMEPOINT_TOP, vec2(0, TOOLTIP_OFFSET_Y))
         owner.setTooltip(box)
 
     function setText(string text)

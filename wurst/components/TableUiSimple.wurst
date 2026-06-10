@@ -1,0 +1,157 @@
+package TableUiSimple
+// SimpleFrame components: WC3's OTHER frame family, exposed for the things Frame-group UI cannot do.
+//
+// What SimpleFrames offer that Frames cannot:
+//   1. Leave the 4:3 band without malforming (full-width banners, edge HUDs).
+//   2. Runtime vertex-colour tinting (setVertexColor works on SIMPLESTATUSBAR fills and Texture
+//      children; it is a no-op on Frame-group backdrops/images/buttons).
+//   3. Native value-driven fill (SIMPLESTATUSBAR + setValue): the standard boss-bar primitive.
+//
+// THE FENCE (why these are wrappers, not raw framehandles in a layout):
+//   - SimpleFrames CANNOT be parented under Frame-group frames (the engine assigns a substitute
+//     parent), so they can NEVER go inside TableLayout cells, panels or cards. For bars/images
+//     inside layouts keep using UIBar / img.
+//   - The whole SimpleFrame band renders BELOW all Frame-group UI (GAME_UI children draw on top),
+//     so anything here is background/HUD furniture, not dialog content.
+//   - Texture/String children are fragile: visibility/alpha/level/enable/parent natives can crash on
+//     them. The wrappers keep the child private and expose only the two safe operations (setTexture,
+//     setVertexColor). Position, show and hide go through the main frame (getFrame()).
+//   - checkFits()/inspect() do not cover these; placement is absolute. Verify in a real WC3 run.
+import TableLayout
+
+// Stdlib getFrame(name, context) is shadowed inside the wrapper classes by their own getFrame()
+// method, so the FDF child lookup goes through this free function.
+function namedChild(string name, int context) returns framehandle
+    return getFrame(name, context)
+
+/** A native SIMPLESTATUSBAR: value-driven fill (0..1) plus runtime tinting. Free-floating boss/HUD
+    bar placed absolutely with placeAt; NOT usable inside TableLayout cells (see package fence).
+    The tint multiplies the fill texture, so hues show best over the default grey fill. */
+public class UISimpleBar
+    private var width = 0.
+    private var height = 0.
+    private var value = 1.
+    private framehandle frame = null
+
+    construct(real width, real height)
+        this.width = width
+        this.height = height
+
+    function create() returns framehandle
+        if frame != null
+            return frame
+        frame = createSimpleFrame("TableUiSimpleBar", WORLD_UI, nextUiContext())
+            ..setSize(width, height)
+            ..setMinMax(0., 1.)
+            ..setValue(value)
+        return frame
+
+    /** Anchors the bar's centre at an absolute screen position. SimpleFrames may leave the 0..0.8
+        band, so off-4:3 coordinates are fine here. */
+    function placeAt(vec2 pos) returns thistype
+        create()
+        ..clearAllPoints()
+        ..setAbsPoint(FRAMEPOINT_CENTER, pos)
+        return this
+
+    /** Sets the fill (0..1). */
+    function setValue(real newValue) returns thistype
+        value = newValue.clamp(0., 1.)
+        if frame != null
+            frame.setValue(value)
+        return this
+
+    /** Tints the fill texture (multiplicative, so light/neutral fill textures show any hue). */
+    function setColor(color tint) returns thistype
+        create().setVertexColor(tint)
+        return this
+
+    /** Swaps the fill texture (for custom bar art instead of the flat default). */
+    function setBarTexture(string path) returns thistype
+        create().setTexture(path, 0, false)
+        return this
+
+    /** Raises the bar within the SimpleFrame family: levels start at 0 (below the default HUD art);
+        2+ also draws above unit lifebars. No level can climb above Frame-group UI. */
+    function setLevel(int level) returns thistype
+        create().setLevel(level)
+        return this
+
+    /** The main SimpleFrame: safe for show/hide and positioning. Do NOT add it to a TableLayout. */
+    function getFrame() returns framehandle
+        return create()
+
+    // Hides the frame and frees the wrapper. The frame is pooled (hidden), never destroyed,
+    // matching the library's MP-safe hide/reuse convention.
+    ondestroy
+        if frame != null
+            frame.hide()
+
+public function simpleBar(real width, real height) returns UISimpleBar
+    return new UISimpleBar(width, height)
+
+/** A tintable SimpleFrame texture: full-width band art, edge HUD decoration, team-coloured accents.
+    Free-floating and placed absolutely with placeAt; NOT usable inside TableLayout cells (see
+    package fence). For images inside layouts keep using img(). */
+public class UISimpleTexture
+    private var path = ""
+    private var width = 0.
+    private var height = 0.
+    private framehandle frame = null
+    // Fragile Texture child: only setTexture / setVertexColor are safe on it, so it stays private.
+    private framehandle texture = null
+
+    construct(string path, real width, real height)
+        this.path = path
+        this.width = width
+        this.height = height
+
+    function create() returns framehandle
+        if frame != null
+            return frame
+        let context = nextUiContext()
+        frame = createSimpleFrame("TableUiSimpleTexture", WORLD_UI, context)
+            ..setSize(width, height)
+        texture = namedChild("TableUiSimpleTextureFile", context)
+        texture.setTexture(path, 0, true)
+        return frame
+
+    /** Anchors the texture's centre at an absolute screen position. SimpleFrames may leave the
+        0..0.8 band, so full-width / off-4:3 placement is fine here. */
+    function placeAt(vec2 pos) returns thistype
+        create()
+        ..clearAllPoints()
+        ..setAbsPoint(FRAMEPOINT_CENTER, pos)
+        return this
+
+    /** Tints the texture (multiplicative: white/grey art shows any hue, dark art only darkens). */
+    function setColor(color tint) returns thistype
+        create()
+        texture.setVertexColor(tint)
+        return this
+
+    /** Swaps the displayed texture. */
+    function setTexture(string newPath) returns thistype
+        path = newPath
+        if frame != null
+            texture.setTexture(path, 0, true)
+        return this
+
+    /** Raises the texture within the SimpleFrame family: levels start at 0 (below the default HUD art);
+        2+ also draws above unit lifebars. No level can climb above Frame-group UI. */
+    function setLevel(int level) returns thistype
+        create().setLevel(level)
+        return this
+
+    /** The main SimpleFrame: safe for show/hide and positioning. Do NOT add it to a TableLayout. */
+    function getFrame() returns framehandle
+        return create()
+
+    // Hides the frame and frees the wrapper. The frame is pooled (hidden), never destroyed.
+    // The fragile Texture child is left untouched (visibility natives can crash on it).
+    ondestroy
+        if frame != null
+            frame.hide()
+
+public function simpleTexture(string path, real width, real height) returns UISimpleTexture
+    return new UISimpleTexture(path, width, height)

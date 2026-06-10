@@ -22,6 +22,32 @@ init
         buildDisplayPanel()
         buildTypographyPanel()
         buildShowcasePanel()
+        buildSimpleFrameDemo()
+        // TableUiDefaultUi: named default-UI control. Visual check: the day/night dial top-centre
+        // is gone (which also un-crowds the SimpleFrame demo bar next to it).
+        hideDayNightClock()
+
+// ===== SimpleFrames (TableUiSimple): free-floating, render BELOW all Frame-group UI ====
+// Visual checks (needs a real WC3 run): the red bar top-centre drains and refills continuously
+// (proves runtime setValue drives the native SIMPLESTATUSBAR fill) and draws ABOVE the melee top
+// HUD art (setLevel raises within the SimpleFrame family; verified the Frame-group panels still
+// cover it, which is why it sits in the HUD band, not the panel area); the gold strip below it
+// spans visibly PAST the 4:3 band on a widescreen resolution without malforming.
+function buildSimpleFrameDemo()
+    let boss = simpleBar(0.30, 0.012)
+    ..setValue(1.0)
+    ..setColor(color(220, 60, 60))
+    ..setLevel(5)
+    ..placeAt(vec2(0.4, 0.575))
+    simpleTexture(teamColorPath(TC_GRAY), 0.9, 0.003)
+    ..setColor(color(255, 200, 60))
+    ..setLevel(5)
+    ..placeAt(vec2(0.4, 0.564))
+    // Drain and refill on a 6-second triangle wave driven by the game clock (stateless).
+    doPeriodically(0.05) cb ->
+        let t = getElapsedGameTime()
+        let phase = t - ((t / 6.).toInt()).toReal() * 6.
+        boss.setValue(phase < 3. ? phase / 3. : 2. - phase / 3.)
 
 // A blank dialogFrame (UIDialog) filled with our own layout via build(); closed by its own closeButton.
 function buildCustomDialog() returns UIDialog

@@ -18,13 +18,16 @@ Before creating any UI, follow this order:
 3. Need a common component such as a panel, card, tooltip, input, text area, or select?
    Use `TableUi`: `panel`, `card`, `textButton`, `iconButton`, `withTooltip`, `boxedTooltip`, `textInput`, `textArea`, `select`.
 
-4. Need default Warcraft III UI integration?
-   Use the documented stdlib helpers and this repo's wrappers. For multiboards, use `attachToMultiboard`.
+4. Need a free-floating boss/HUD bar, a runtime-tinted texture, or UI outside the 4:3 band?
+   Use `TableUiSimple`: `simpleBar` (native SIMPLESTATUSBAR fill + tint) and `simpleTexture` (tintable band art). These are SimpleFrames: they render BELOW all Frame-group UI, cannot be parented under panels, and can NEVER go inside `TableLayout` cells; place them absolutely with `placeAt`. For bars/images INSIDE layouts keep using `UIBar`/`statBar`/`img`.
 
-5. Need FDF-only behavior?
+5. Need to hide or modify the DEFAULT Warcraft III UI (day/night clock, resource bar, menu buttons, minimap, portrait, hero bar, command card - or all of it)?
+   Use `TableUiDefaultUi`: named getters (`dayNightClock()`, `resourceBar()`, `commandButton(i)`, ...), `setXVisible(...)` helpers, `hideDefaultUi()` for fully custom-UI maps (treat as one-way), and `reserveDefaultUiHandles()` before any per-player show/hide. Do NOT hand-roll `BlzGetFrameByName`/child-index lookups; the package encodes the verified names, child indices and patch quirks. For multiboards, use `attachToMultiboard`.
+
+6. Need FDF-only behavior?
    Add a minimal reusable template to `imports/TableLayout.fdf`, then expose it through a Wurst helper in `TableUi.wurst` or `TableLayout.wurst`.
 
-6. Still need custom frame code?
+7. Still need custom frame code?
    Add a small reusable helper instead of inline one-off frame construction.
 
 Raw `BlzCreateFrame*` / `createFrameByType` code should be the last step, not the first draft.
@@ -45,6 +48,8 @@ Use these helpers instead of custom frame construction:
 - Forms: `textInput`, `select`, `checkbox`, `UICheckbox`, `slider(label, w, min, max)`
 - Navigation: `tabs(w, contentHeight)` (`addTab(title)` returns a content frame to build into, then `build()`)
 - Feedback: `UIBar`, `statBar`, `textArea`
+- HUD band / off-4:3 (SimpleFrames, never inside layouts): `simpleBar` (boss bar, tintable), `simpleTexture` (tintable band art)
+- Default WC3 UI: `hideDayNightClock`, `setResourceBarVisible`, `setMinimapVisible`, `hideDefaultUi`, `reserveDefaultUiHandles` (TableUiDefaultUi; never raw `BlzGetFrameByName` + child indices)
 - Tooltips: `withTooltip`, `boxedTooltip`
 - Dialogs: `confirmDialog`, `closeButton` for the EscMenu-styled X close control
 - Multiboard UI: `attachToMultiboard`
@@ -197,7 +202,7 @@ buttons that must remain independently clickable.
 ### Building nested content under its parent (`withParent`)
 
 When you build a sub-panel's *content* (e.g. a stats panel holding bars), create it UNDER its eventual
-parent so `applyTo`'s re-parent is a no-op and no hit area desyncs. Wrap the build in `withParent`:
+parent so `applyTo`'s re-parent is a no-op and no hit area misaligns. Wrap the build in `withParent`:
 
 ```wurst
 import TableLayout
@@ -212,8 +217,9 @@ withParent(stats) ->
 
 `withParent(parent) -> ...` scopes `defaultFrameParent` (a nestable push/pop that auto-restores), so
 everything created inside is born under `parent` instead of being created globally and re-parented in
-(a post-creation `setParent` can desync a frame's clickable area - the cause of a real overlay click-steal
-bug). Use `inLayer(Layer.DIALOG)` / `inLayer(Layer.OVERLAY) -> ...` the same way for floating UI.
+(a post-creation `setParent` leaves the frame in BOTH parents' child lists, which can misalign its
+clickable area from its visual - the cause of a real overlay click-steal bug; a local input bug, not a
+network desync). Use `inLayer(Layer.DIALOG)` / `inLayer(Layer.OVERLAY) -> ...` the same way for floating UI.
 
 ### Dynamic Select
 
@@ -260,6 +266,26 @@ let hp = statBar("Health", 0.16)
 
 let frame = hp.create()
 ```
+
+### Boss / HUD Bar (SimpleFrame)
+
+For a free-floating bar OUTSIDE any layout (boss health, objective progress at the top of the screen), use `simpleBar`: a native `SIMPLESTATUSBAR` with value-driven fill and runtime tinting, which Frame-group bars cannot do. It renders below all Frame-group UI and can NEVER go inside a `TableLayout` cell; for bars inside panels use `statBar`/`UIBar` instead.
+
+```wurst
+import TableUi
+
+let boss = simpleBar(0.30, 0.012)
+..setValue(1.0)
+..setColor(color(220, 60, 60))
+..setLevel(5)            // raise above the default HUD art (SimpleFrame-family levels only)
+..placeAt(vec2(0.4, 0.575))
+
+// later: update the fill; show/hide via the main frame
+boss.setValue(0.4)
+boss.getFrame().hide()
+```
+
+`simpleTexture(path, w, h)` is the matching tintable band-art helper (full-width strips, edge decoration); both may be placed outside the 0..0.8 band. Tinting is multiplicative, so light/grey textures show any hue. `checkFits()` does not cover SimpleFrames: verify placement in a real WC3 run.
 
 ### Multiboard Attachment
 
@@ -338,7 +364,7 @@ WC3 stacking follows the frame tree, with no global z-index; `setLevel` orders s
 - `Layer.OVERLAY` (`GAME_UI` child, above dialogs): dropdowns, menus, tooltips.
 - `Layer.BACKGROUND` (`WORLD_UI`): behind the melee HUD.
 
-Create frames in their layer with `inLayer(Layer.DIALOG) -> ...` rather than reparenting an existing frame (a post-creation `setParent` can desync the clickable area from the visual). `confirmDialog` uses `DIALOG`, `select` uses `OVERLAY`.
+Create frames in their layer with `inLayer(Layer.DIALOG) -> ...` rather than reparenting an existing frame (a post-creation `setParent` keeps the frame in both parents' child lists and can misalign the clickable area from the visual). `confirmDialog` uses `DIALOG`, `select` uses `OVERLAY`.
 
 ### Flatter setup
 

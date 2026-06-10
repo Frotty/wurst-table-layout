@@ -25,7 +25,7 @@ public class UIBar
         // Create the two fills LAZILY here, directly UNDER the bar frame - NOT eagerly in the constructor
         // under whatever the ambient global defaultFrameParent happened to be (e.g. a consumer's
         // ConsoleUIBackdrop) and then re-parented. Creating them in their final parent from the start avoids
-        // a re-parent, which can desync a frame's clickable area. The active fill anchors to the frame's
+        // a re-parent, which can misalign a frame's clickable area. The active fill anchors to the frame's
         // top-left; the bg fill is pinned to the active fill's right edge so it follows on resize. Both are
         // display-only (disabled), anchored once, never re-parented / re-levelled - so setValue() only
         // resizes them and can't disturb an interactivity overlay on a parent card.
@@ -90,7 +90,7 @@ public class UIStatBar
         frame = layoutFrame(defaultFrameParent)
             ..setSize(width, 0.032)
         // Build every child (value text, label, inner bar) UNDER frame so applyTo's re-parent is a no-op
-        // and no hit area desyncs - the same discipline UIBar/UISelect/UISlider/UITabs/UIConfirmDialog
+        // and no hit area misaligns - the same discipline UIBar/UISelect/UISlider/UITabs/UIConfirmDialog
         // already follow. Previously these were built under the ambient defaultFrameParent and re-parented
         // in, the exact pattern that caused the click-stealing overlay bug.
         let prevParent = defaultFrameParent

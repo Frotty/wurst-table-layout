@@ -1,7 +1,7 @@
 package TableUiDialog
 // Code-driven dialogs on the DIALOG layer (above ordinary UI): a yes/no confirm prompt
 // (confirmDialog / UIConfirmDialog) and a blank dialog frame with map-side content (dialogFrame /
-// UIDialog). Content is built in place under the dialog frame to avoid hit-area desync.
+// UIDialog). Content is built in place under the dialog frame to avoid hit-area misalignment.
 import TableLayout
 import TableUiText
 import TableUiButtons
@@ -54,7 +54,7 @@ public class UIConfirmDialog
             ..hide()
 
         // Create the buttons + text UNDER the dialog frame so TableLayout's setParent is a no-op.
-        // Reparenting after creation desyncs a frame's clickable area from its visual in WC3.
+        // A reparented frame stays in both parents' child lists in WC3, which can misalign its clickable area.
         defaultFrameParent = frame
 
         let accept = textButton(acceptText, 0.07, 0.024)
@@ -115,7 +115,7 @@ public interface DialogBody
     yes/no prompts; use this when you need arbitrary dialog content but still want the on-top dialog frame.
 
     Build content INSIDE build() so it is created under the dialog frame (no reparenting / hit-area
-    desync). Pad your layout by at least PANEL_BORDER_INSET to clear the ornate border:
+    misalignment). Pad your layout by at least PANEL_BORDER_INSET to clear the ornate border:
 
         let d = dialogFrame(0.30, 0.20)
         d.build() ->

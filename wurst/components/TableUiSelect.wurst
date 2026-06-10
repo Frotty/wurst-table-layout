@@ -9,6 +9,10 @@ import LinkedList
 public interface SelectListener
     function onSelect(int index, string value)
 
+// Inner inset of the dropdown menu and the vertical gap between option buttons.
+constant MENU_PADDING = 0.003
+constant MENU_GAP_Y = 0.001
+
 public class UISelect
     static constant OVERLAY_LEVEL = 20
 
@@ -58,7 +62,7 @@ public class UISelect
         root = layoutFrame(defaultFrameParent)
             ..setSize(width, optionHeight)
 
-        // Toggle button created UNDER root so it is never reparented (which desyncs hit areas).
+        // Toggle button created UNDER root so it is never reparented (which can misalign hit areas).
         defaultFrameParent = root
         toggleButton = textButton(selectedText(), width, optionHeight)
             ..setAllPoints(root)
@@ -69,8 +73,8 @@ public class UISelect
         // The dropdown lives in the OVERLAY band so it floats above content and the HUD; it is anchored
         // to the toggle by point, so it needs no shared parent with root. The menu must be tall enough
         // for every option PLUS the layout padding and inter-option gaps, or the last option overflows.
-        let menuPad = 0.003
-        let menuGapY = 0.001
+        let menuPad = MENU_PADDING
+        let menuGapY = MENU_GAP_Y
         let optionCount = options.size()
         let menuHeight = optionCount.toReal() * optionHeight
             + max(0, optionCount - 1).toReal() * menuGapY
@@ -120,7 +124,7 @@ public class UISelect
 
     function syncMenuOverlay()
         // menu is created in the OVERLAY band, so on open we only re-anchor it to the toggle and
-        // refresh levels: no reparenting (which would desync the option buttons' hit areas).
+        // refresh levels: no reparenting (which could misalign the option buttons' hit areas).
         menu
         ..clearAndSetPoint(FRAMEPOINT_TOP, root, FRAMEPOINT_BOTTOM, vec2(0, -0.001))
         ..setLevel(OVERLAY_LEVEL)

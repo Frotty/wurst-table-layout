@@ -11,6 +11,9 @@ import TableUiImages
     panel() backdrop should pad by at least this so content does not sit on top of the border. Tunable. */
 public var PANEL_BORDER_INSET = 0.014
 
+/** Thickness of separator() / vSeparator() divider lines. */
+public constant SEPARATOR_THICKNESS = 0.0015
+
 function decoratedFrame(string backdropTemplate, real width, real height) returns framehandle
     let context = nextUiContext()
     let root = layoutFrame(defaultFrameParent)
@@ -41,7 +44,7 @@ public function section(string title, real width) returns framehandle
     return section(title, width, 0.022)
 
 public function section(string title, real width, real headerHeight) returns framehandle
-    let totalHeight = headerHeight + SPACE_XS + 0.0015
+    let totalHeight = headerHeight + SPACE_XS + SEPARATOR_THICKNESS
     let root = layoutFrame(defaultFrameParent)..setSize(width, totalHeight)
     let layout = new TableLayout(width, totalHeight, "Section")
     layout.padding = padding(0, 0, 0, 0)
@@ -72,11 +75,11 @@ public function spacer(real size) returns framehandle
     return spacer(size, size)
 
 public function separator(real width) returns framehandle
-    return separator(width, 0.0015)
+    return separator(width, SEPARATOR_THICKNESS)
 
 public function separator(real width, real height) returns framehandle
     return img("ReplaceableTextures\\TeamColor\\TeamColor27.blp", width, height, true)
         ..disable()
 
 public function vSeparator(real height) returns framehandle
-    return separator(0.0015, height)
+    return separator(SEPARATOR_THICKNESS, height)

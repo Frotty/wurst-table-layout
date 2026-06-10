@@ -58,7 +58,7 @@ public interface LayerScope
     function run()
 
 /** Runs `body` with defaultFrameParent set to `layer`'s frame, so helpers CREATE their frames in
-    that band. Preferred over reparenting later, which can desync a frame's hit area from its visual
+    that band. Preferred over reparenting later, which can misalign a frame's hit area from its visual
     in WC3. Restores the previous parent afterwards. Usage: inLayer(Layer.OVERLAY) -> buildMyDialog(). */
 public function inLayer(Layer layer, LayerScope body)
     let previous = defaultFrameParent
@@ -70,7 +70,7 @@ public function inLayer(Layer layer, LayerScope body)
     nesting). Use this to CREATE helper frames (p / img / btn / UIBar / ...) directly under their eventual
     base parent, instead of assigning defaultFrameParent globally and never reverting (which leaks into
     every later package) or creating under a global default and re-parenting later (a post-creation
-    setParent can desync a frame's hit area from its visual). Usage: withParent(myPanel) -> buildContent().
+    setParent can misalign a frame's hit area from its visual). Usage: withParent(myPanel) -> buildContent().
     Nests safely: an inner withParent restores to the outer parent, not the global default. */
 public function withParent(framehandle parent, LayerScope body)
     let previous = defaultFrameParent
@@ -79,6 +79,7 @@ public function withParent(framehandle parent, LayerScope body)
     defaultFrameParent = previous
 
 /** Moves an already-created frame into a z-band. Prefer creating in the band (inLayer / the
-    layer-aware helpers): reparenting after creation can desync a frame's clickable area in WC3. */
+    layer-aware helpers): a reparented frame stays in BOTH parents' child lists in WC3, which can
+    misalign its clickable area. */
 public function framehandle.setLayer(Layer layer)
     this.setParent(layer.getFrame())

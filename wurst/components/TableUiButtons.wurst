@@ -78,7 +78,8 @@ public class UICheckbox
                 listener.onChange(value)
 
         // Create the check overlay UNDER bg from the start, instead of under the ambient defaultFrameParent
-        // and then ..setParent(bg). A post-creation setParent desyncs a frame's clickable/hit area in WC3 -
+        // and then ..setParent(bg). A post-creation setParent leaves the frame in both parents' child
+        // lists in WC3, which can misalign its clickable/hit area -
         // the exact 'born far away, re-parented in' pattern behind the earlier click-stealing bug.
         let prevParent = defaultFrameParent
         defaultFrameParent = bg
