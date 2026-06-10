@@ -280,6 +280,22 @@ function safeAreaLeavesGoodPositionUnchanged()
     got.y.assertEquals(0.5, 0.00001)
 
 @Test
+function strictSafeAreaReservesLeftIdleButtonBand()
+    let got = vec2(0.0, 0.5).clampToSafeArea(0.02, 0.1)
+    got.x.assertEquals(SAFE_AREA_MIN.x, 0.00001)
+
+@Test
+function visualSafeAreaAllowsFullLeftVisualBand()
+    let got = vec2(0.0, 0.5).clampToVisualSafeArea(0.02, 0.1)
+    got.x.assertEquals(VISUAL_SAFE_AREA_MIN.x, 0.00001)
+
+@Test
+function visualSafeAreaStillRespectsBottomRightAndTopEdges()
+    let got = vec2(0.77, 0.05).clampToVisualSafeArea(0.04, 0.2)
+    got.x.assertEquals(VISUAL_SAFE_AREA_MAX.x - 0.04, 0.00001)
+    got.y.assertEquals(VISUAL_SAFE_AREA_MIN.y + 0.2, 0.00001)
+
+@Test
 function selectMenuHeightMustIncludePaddingAndGaps()
     // Mirrors UISelect's dropdown: the menu must be tall enough for the options PLUS its padding and
     // inter-option gaps, or the last option overflows the bottom (the reported bug).

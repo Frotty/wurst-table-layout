@@ -9,7 +9,7 @@ When adding UI in this repo:
 
 0. Check `AI_USAGE.md` for the component decision tree and recipes.
 1. Use `TableLayout` for layout instead of manual point math.
-2. Create UI at elapsed time `0.00` or later with `ClosureTimers.doAfter`.
+2. Load TOC files in `init` when needed, but create/manipulate frames only at elapsed time `0.00` or later with `ClosureTimers.doAfter`.
 3. Create/get frame handles for all players, cache them, and update/show/hide them.
 4. Do not destroy UI frames in multiplayer code; hide and reuse them.
 5. Use `ClosureFrames` frame events for input.
@@ -133,7 +133,19 @@ inLayer(Layer.OVERLAY) ->
 myFrame.setLayer(Layer.OVERLAY)
 ```
 
-`confirmDialog` and `select` already create themselves in `OVERLAY`, so they render above content and the HUD with correctly aligned hit areas with no extra work.
+`confirmDialog` / `dialogFrame` create themselves in `DIALOG`; `select` / tooltip-style overlays use `OVERLAY`, so they render above content with correctly aligned hit areas with no extra work.
+
+## Safe Areas and Minimized Clients
+
+Tasyen's HiveWorkshop frame guide calls out three hazards that should shape library code: frame manipulation during map init can give wrong results, Frame-group UI can become malformed when it leaves the 4:3 area, and fullscreen-size math based on `BlzGetLocalClientHeight()` can divide by zero while Warcraft III is minimized. Treat minimized / alt-tabbed clients as hostile to local layout measurements.
+
+Library policy:
+
+- TOC loading in `init` is allowed; custom frame creation, movement, sizing, visibility changes, and parent changes happen after map load (`doAfter(0.)` or later).
+- Root panels and dialogs use fixed declared width/height and `placeSafe(...)`, the strict band that also clears the left idle worker / hero button stack. Deliberate left-side sidecars may use `placeVisuallySafe(...)`, the wider visual 4:3 band, when idle-button overlap is acceptable. Do not compute roots from local client width/height or local frame getters.
+- Avoid creating complex UI on demand in response to gameplay when any player might be tabbed. Create/cache hidden frame trees after map load, then show/hide/update them.
+- Do not move Blizzard chat/unit/top message frames with arbitrary sizes or coordinates. Bad values are known crash territory; create a map-owned chat/status area in the strict or visual safe band instead.
+- If a widget intentionally uses SimpleFrames or fullscreen math to leave the 4:3 area, document it locally and guard against zero/invalid local dimensions.
 
 ## Texture, colour and opacity
 
@@ -305,7 +317,7 @@ Rules:
 - Create all per-player copies for all players, then hide/show locally.
 - Cache handles. Do not repeatedly create duplicate UI.
 
-Be careful with these getters in MP because their values can differ locally: `getText`, `getValue`, `isEnabled`, `getAlpha`, `getHeight`, `getWidth`, `getParent`, `isVisible`.
+Be careful with these getters in MP because their values can differ locally: `getText`, `getValue`, `isEnabled`, `getAlpha`, `getHeight`, `getWidth`, `getParent`, `isVisible`, `BlzGetLocalClientWidth()`, and `BlzGetLocalClientHeight()`.
 
 ## Default UI and Named Frames
 
@@ -397,7 +409,10 @@ Library policy:
 
 ## Hard Rules
 
-- Do not create/manipulate custom UI at map init; use `doAfter(0.)`.
+- Do not create/manipulate custom UI at map init; use `doAfter(0.)` or later. TOC loading in `init` is okay.
+- Do not create on-demand complex UI while players may be minimized; create/cache hidden trees after map load and reuse them.
+- Do not size/position custom UI from `BlzGetLocalClientWidth()` / `BlzGetLocalClientHeight()` unless guarded against zero/invalid values and documented.
+- Do not place Frame-group roots outside a documented 4:3 band; use `placeSafe(...)` for ordinary UI or `placeVisuallySafe(...)` for deliberate sidecars, always with declared dimensions.
 - Do not create/get first-time frame handles inside `localPlayer` blocks.
 - Do not destroy frames in MP UI code; hide and reuse them.
 - Do not repeatedly create duplicate UI instead of caching handles.

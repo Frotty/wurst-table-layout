@@ -320,7 +320,14 @@ Pick the lightest container that does the job, and **never nest backdrops more t
 
 ### Safe placement
 
-Don't `setAbsPoint` a root at arbitrary coordinates: it can land on the command card, the resource bar or the day/night clock. Use `frame.placeSafe(vec2(x, y), w, h)` (clamps into `SAFE_AREA_MIN`..`SAFE_AREA_MAX` and warns when it moves the frame), or keep panels in the central band x ∈ [0.05, 0.78], y ∈ [0.17, 0.56].
+Don't `setAbsPoint` a root at arbitrary coordinates: it can land on the command card, the resource bar, the day/night clock, or the 4:3 edge. There are two bands:
+
+- `frame.placeSafe(vec2(x, y), w, h)` / `clampToSafeArea(w, h)` uses `SAFE_AREA_MIN`..`SAFE_AREA_MAX`: the strict band clear of the bottom HUD, top HUD, 4:3 edge, and the left idle worker / hero button stack.
+- `frame.placeVisuallySafe(vec2(x, y), w, h)` / `clampToVisualSafeArea(w, h)` uses `VISUAL_SAFE_AREA_MIN`..`VISUAL_SAFE_AREA_MAX`: the wider visual band clear of the bottom/top HUD and 4:3 edge, but allowed to overlap the left idle-button stack.
+
+Use the strict band for ordinary panels/dialogs. Use the visual band only for UI that intentionally uses the left margin and tolerates possible idle-button overlap, such as custom chat/status sidecars. Both APIs clamp with declared dimensions; do not derive dimensions from local client/frame getters.
+
+For visual debugging, maps can expose `toggleSafeAreaDebugFor(player)` for the strict red outline and `toggleVisualSafeAreaDebugFor(player)` for the wider yellow outline. These helpers create handles for all clients and show/hide owner-scoped.
 
 ### Layering (z-order)
 
@@ -400,6 +407,9 @@ At runtime the library also warns automatically: a `Log.warn` fires once per cel
 - Are new layout behaviors opt-in?
 - Is every non-grow cell sized (no bare unsized text presets in multi-cell rows)?
 - Does `layout.checkFits()` pass (no overflow, no zero-size cells)?
+- Is root placement done with `placeSafe(...)` or an explicitly documented safe-band coordinate?
+- Is all custom frame creation/manipulation delayed until after map load (`doAfter(0.)` or later), with only TOC loading in `init`?
+- Does the layout avoid `BlzGetLocalClientWidth()` / `BlzGetLocalClientHeight()` and other local frame getters for sizing/placement decisions?
 - Are tooltips created through `withTooltip` or `boxedTooltip`?
 - Library buttons release keyboard focus automatically; for any clickable frame the library did NOT create, did it get `onClickReleaseFocus()` (or `disable()` if decorative)?
 - If multiboard code changed, was minimize/maximize considered?

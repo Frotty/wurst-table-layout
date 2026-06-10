@@ -4,18 +4,49 @@ package TableUiSafeArea
 // the day/night clock. Exact occupancy varies with multiboard / leaderboard / aspect ratio, so this is
 // a sensible default, not a guarantee. Measured in-game against the default melee HUD.
 import TableLayout
+import TableUiColoredShapes
+import TableUiLayers
 
-public constant SAFE_AREA_MIN = vec2(0.05, 0.17)   // bottom-left: clears the console top edge (0.16), 0.17 for margin
-public constant SAFE_AREA_MAX = vec2(0.78, 0.56)   // top-right: stays just below the resource bar / day-night clock
+public constant VISUAL_SAFE_AREA_MIN = vec2(0.0, 0.17)  // full 4:3 visual band clear of the bottom melee HUD
+public constant VISUAL_SAFE_AREA_MAX = vec2(0.78, 0.56) // top-right: stays just below the resource bar / day-night clock
+public constant SAFE_AREA_MIN = vec2(0.05, 0.17)        // stricter band that also clears idle worker / hero buttons
+public constant SAFE_AREA_MAX = VISUAL_SAFE_AREA_MAX
+constant SAFE_AREA_DEBUG_BORDER = 0.002
+
+framehandle safeAreaDebugTop = null
+framehandle safeAreaDebugRight = null
+framehandle safeAreaDebugBottom = null
+framehandle safeAreaDebugLeft = null
+framehandle visualSafeAreaDebugTop = null
+framehandle visualSafeAreaDebugRight = null
+framehandle visualSafeAreaDebugBottom = null
+framehandle visualSafeAreaDebugLeft = null
+boolean array safeAreaDebugVisibleByPid
+boolean array visualSafeAreaDebugVisibleByPid
+
+function vec2.clampToBand(vec2 minPos, vec2 maxPos, real width, real height) returns vec2
+    let minX = minPos.x
+    let maxX = max(minX, maxPos.x - width)
+    let minY = minPos.y + height
+    let maxY = max(minY, maxPos.y)
+    return vec2(max(minX, min(maxX, this.x)), max(minY, min(maxY, this.y)))
 
 /** Treats this as a desired TOPLEFT and clamps it so a width x height panel stays inside the
-    safe area (clear of the melee HUD and the 4:3 edges). */
+    visual 4:3 band. This may overlap idle worker / hero buttons on the left. */
+public function vec2.clampToVisualSafeArea(real width, real height) returns vec2
+    return this.clampToBand(VISUAL_SAFE_AREA_MIN, VISUAL_SAFE_AREA_MAX, width, height)
+
+/** Treats this as a desired TOPLEFT and clamps it so a width x height panel stays inside the
+    strict safe area (clear of the melee HUD, 4:3 edges, and idle worker / hero buttons). */
 public function vec2.clampToSafeArea(real width, real height) returns vec2
-    let minX = SAFE_AREA_MIN.x
-    let maxX = max(minX, SAFE_AREA_MAX.x - width)
-    let minY = SAFE_AREA_MIN.y + height
-    let maxY = max(minY, SAFE_AREA_MAX.y)
-    return vec2(max(minX, min(maxX, this.x)), max(minY, min(maxY, this.y)))
+    return this.clampToBand(SAFE_AREA_MIN, SAFE_AREA_MAX, width, height)
+
+public function framehandle.placeVisuallySafe(vec2 desiredTopLeft, real width, real height)
+    let safe = desiredTopLeft.clampToVisualSafeArea(width, height)
+    if tableWarnings and (safe.x != desiredTopLeft.x or safe.y != desiredTopLeft.y)
+        Log.warn("placeVisuallySafe: requested (" + desiredTopLeft.x.toString() + ", " + desiredTopLeft.y.toString()
+            + ") overlaps the melee HUD / 4:3 edge; clamped to (" + safe.x.toString() + ", " + safe.y.toString() + ").")
+    this.clearAndSetAbsPoint(FRAMEPOINT_TOPLEFT, safe)
 
 /** Places a frame's TOPLEFT inside the safe area, warning (tableWarnings) if it had to move it
     out of the melee HUD / off the 4:3 box. */
@@ -23,5 +54,101 @@ public function framehandle.placeSafe(vec2 desiredTopLeft, real width, real heig
     let safe = desiredTopLeft.clampToSafeArea(width, height)
     if tableWarnings and (safe.x != desiredTopLeft.x or safe.y != desiredTopLeft.y)
         Log.warn("placeSafe: requested (" + desiredTopLeft.x.toString() + ", " + desiredTopLeft.y.toString()
-            + ") overlaps the melee HUD / 4:3 edge; clamped to (" + safe.x.toString() + ", " + safe.y.toString() + ").")
+            + ") overlaps the melee HUD / 4:3 edge / idle buttons; clamped to (" + safe.x.toString() + ", " + safe.y.toString() + ").")
     this.clearAndSetAbsPoint(FRAMEPOINT_TOPLEFT, safe)
+
+function setSafeAreaDebugFramesVisibleFor(player p, boolean visible)
+    if visible
+        safeAreaDebugTop.show(p)
+        safeAreaDebugRight.show(p)
+        safeAreaDebugBottom.show(p)
+        safeAreaDebugLeft.show(p)
+    else
+        safeAreaDebugTop.hide(p)
+        safeAreaDebugRight.hide(p)
+        safeAreaDebugBottom.hide(p)
+        safeAreaDebugLeft.hide(p)
+
+/** Creates the red safe-area outline once for all clients. Call outside local-player blocks. */
+public function createSafeAreaDebug()
+    if safeAreaDebugTop != null
+        return
+    let w = SAFE_AREA_MAX.x - SAFE_AREA_MIN.x
+    let h = SAFE_AREA_MAX.y - SAFE_AREA_MIN.y
+    inLayer(Layer.OVERLAY) ->
+        safeAreaDebugTop = coloredRect(TC_RED, w, SAFE_AREA_DEBUG_BORDER)
+            ..disable()
+        safeAreaDebugTop.clearAndSetAbsPoint(FRAMEPOINT_TOPLEFT, vec2(SAFE_AREA_MIN.x, SAFE_AREA_MAX.y))
+
+        safeAreaDebugRight = coloredRect(TC_RED, SAFE_AREA_DEBUG_BORDER, h)
+            ..disable()
+        safeAreaDebugRight.clearAndSetAbsPoint(FRAMEPOINT_TOPRIGHT, SAFE_AREA_MAX)
+
+        safeAreaDebugBottom = coloredRect(TC_RED, w, SAFE_AREA_DEBUG_BORDER)
+            ..disable()
+        safeAreaDebugBottom.clearAndSetAbsPoint(FRAMEPOINT_BOTTOMLEFT, SAFE_AREA_MIN)
+
+        safeAreaDebugLeft = coloredRect(TC_RED, SAFE_AREA_DEBUG_BORDER, h)
+            ..disable()
+        safeAreaDebugLeft.clearAndSetAbsPoint(FRAMEPOINT_TOPLEFT, vec2(SAFE_AREA_MIN.x, SAFE_AREA_MAX.y))
+
+    safeAreaDebugTop.hide()
+    safeAreaDebugRight.hide()
+    safeAreaDebugBottom.hide()
+    safeAreaDebugLeft.hide()
+
+public function setSafeAreaDebugVisibleFor(player p, boolean visible)
+    createSafeAreaDebug()
+    safeAreaDebugVisibleByPid[p.getId()] = visible
+    setSafeAreaDebugFramesVisibleFor(p, visible)
+
+public function toggleSafeAreaDebugFor(player p)
+    setSafeAreaDebugVisibleFor(p, not safeAreaDebugVisibleByPid[p.getId()])
+
+function setVisualSafeAreaDebugFramesVisibleFor(player p, boolean visible)
+    if visible
+        visualSafeAreaDebugTop.show(p)
+        visualSafeAreaDebugRight.show(p)
+        visualSafeAreaDebugBottom.show(p)
+        visualSafeAreaDebugLeft.show(p)
+    else
+        visualSafeAreaDebugTop.hide(p)
+        visualSafeAreaDebugRight.hide(p)
+        visualSafeAreaDebugBottom.hide(p)
+        visualSafeAreaDebugLeft.hide(p)
+
+/** Creates the yellow visual-safe outline once for all clients. Call outside local-player blocks. */
+public function createVisualSafeAreaDebug()
+    if visualSafeAreaDebugTop != null
+        return
+    let w = VISUAL_SAFE_AREA_MAX.x - VISUAL_SAFE_AREA_MIN.x
+    let h = VISUAL_SAFE_AREA_MAX.y - VISUAL_SAFE_AREA_MIN.y
+    inLayer(Layer.OVERLAY) ->
+        visualSafeAreaDebugTop = coloredRect(TC_YELLOW, w, SAFE_AREA_DEBUG_BORDER)
+            ..disable()
+        visualSafeAreaDebugTop.clearAndSetAbsPoint(FRAMEPOINT_TOPLEFT, vec2(VISUAL_SAFE_AREA_MIN.x, VISUAL_SAFE_AREA_MAX.y))
+
+        visualSafeAreaDebugRight = coloredRect(TC_YELLOW, SAFE_AREA_DEBUG_BORDER, h)
+            ..disable()
+        visualSafeAreaDebugRight.clearAndSetAbsPoint(FRAMEPOINT_TOPRIGHT, VISUAL_SAFE_AREA_MAX)
+
+        visualSafeAreaDebugBottom = coloredRect(TC_YELLOW, w, SAFE_AREA_DEBUG_BORDER)
+            ..disable()
+        visualSafeAreaDebugBottom.clearAndSetAbsPoint(FRAMEPOINT_BOTTOMLEFT, VISUAL_SAFE_AREA_MIN)
+
+        visualSafeAreaDebugLeft = coloredRect(TC_YELLOW, SAFE_AREA_DEBUG_BORDER, h)
+            ..disable()
+        visualSafeAreaDebugLeft.clearAndSetAbsPoint(FRAMEPOINT_TOPLEFT, vec2(VISUAL_SAFE_AREA_MIN.x, VISUAL_SAFE_AREA_MAX.y))
+
+    visualSafeAreaDebugTop.hide()
+    visualSafeAreaDebugRight.hide()
+    visualSafeAreaDebugBottom.hide()
+    visualSafeAreaDebugLeft.hide()
+
+public function setVisualSafeAreaDebugVisibleFor(player p, boolean visible)
+    createVisualSafeAreaDebug()
+    visualSafeAreaDebugVisibleByPid[p.getId()] = visible
+    setVisualSafeAreaDebugFramesVisibleFor(p, visible)
+
+public function toggleVisualSafeAreaDebugFor(player p)
+    setVisualSafeAreaDebugVisibleFor(p, not visualSafeAreaDebugVisibleByPid[p.getId()])

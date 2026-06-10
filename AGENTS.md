@@ -1,91 +1,73 @@
 # AGENTS.md
 
-## Project Summary
-This repo is a UI toolkit for WurstScript Warcraft III frames: a flexbox-inspired table layout engine PLUS a library of ready-made components (panels/cards, buttons, inputs, selects, sliders, tabs, stat/icon cards, dialogs, bars, tooltips, etc.), with sane defaults, auto focus-release, and frame-independent validation. It is no longer layout-only.
-Core layout concept: a TableLayout has rows, rows contain cells, cells contain framehandles.
+## Purpose
+This repo is the source for `wurst-table-layout`, a WurstScript Warcraft III UI toolkit. It provides `TableLayout`, `TableUi` components, frame-safe helpers, validation tests, and documentation. Keep this file short and operational; detailed recipes live in `AI_USAGE.md`, native frame rules in `WC3_FRAMEHANDLE_GUIDE.md`, and public examples in `README.md`.
 
-## Key Files
-- `wurst/TableLayout.wurst` Core layout engine: TableLayout/Row/Cell, grow, gap, columns/colspan, and the frame-independent validation (`checkFits`/`inspect`).
-- `wurst/TableUi.wurst` Facade package: re-exports the whole component library so consumers `import TableUi` once.
-- `wurst/components/*.wurst` The component library: text presets, buttons, panels/cards, bars, sliders, tabs, select, inputs, dialogs, tooltips, layers, safe-area, selectable. The `p`/`img`/`btn`/`UIBar`/... helpers live here, not in TableLayout.wurst.
-- `wurst/MultiboardAttach.wurst` Helpers to attach layout content to the default multiboard UI.
-- `wurst/TableLayoutTest.wurst` Example usage and manual test harness.
-- `README.md` High-level overview and examples.
-- `AI_USAGE.md` Decision tree and cookbook for choosing TableLayout/TableUi helpers before raw frames.
-- `WC3_FRAMEHANDLE_GUIDE.md` Wurst/TableLayout-specific framehandle guidance for AI agents.
+## Context Refresh
+Before editing this repo, and again after any context compaction/resume, re-read this file first. Then open only the task-relevant deeper doc:
 
-## How To Use
-Minimal usage pattern:
-```wurst
-let layout = new TableLayout(0.22, 0.1, "Demo")
-layout.padding = padding(0.006, 0.012, 0.006, 0.012)
-layout
-..row()
-..add(p("Hello")..setSize(0.18, 0.014))..growX()
-..row()
-..add(btn("Click")..setSize(0.1, 0.024))..growX()
-layout.applyTo(someFrame)
+- New UI/component/API work: `AI_USAGE.md`
+- Frame/desync/native behavior: `WC3_FRAMEHANDLE_GUIDE.md`
+- Public-facing docs/examples: `README.md`
+- Layout validation behavior: `wurst/TableLayoutValidationTest.wurst`
+
+If you are modifying a downstream map's `_build/dependencies/wurst-table-layout`, stop. Patch this source repo instead, then update the dependency normally.
+
+## Hard Rules
+- Do not edit generated dependency copies. `_build/dependencies` in consuming maps is ephemeral, like `node_modules`.
+- Prefer `TableLayout` / `TableUi` helpers over raw `BlzCreateFrame*` or one-off frame math.
+- Create UI at elapsed time `0.00` or later; only TOC loading belongs in blocking `init`.
+- Create/get frame handles for all clients, cache them, and use owner-scoped show/hide for per-player UI.
+- Do not destroy Warcraft III frames in multiplayer cleanup. Hide and reuse them.
+- Do not create first-time frame handles inside `localPlayer` blocks.
+- Do not use local UI getters (`getText`, `getValue`, `getWidth`, `getHeight`, `isVisible`, `BlzGetLocalClientWidth/Height`, etc.) as synced game logic or layout authority.
+- Build frames under their eventual parent with `withParent(...)` / `inLayer(...)`; avoid post-creation `setParent`, which can desync hit areas.
+- Keep ordinary roots in the strict safe band with `placeSafe(...)`; use `placeVisuallySafe(...)` only for deliberate sidecars/status UI where left idle-button overlap is acceptable.
+- Do not move Blizzard chat/message frames with arbitrary coordinates. Create map-owned UI in a safe band instead.
+- Size every non-grow cell. Text presets measure `0` until sized; use `setSize`, `prefSize`, `fixedWidth`, `minWidth`, or `growX/growY`.
+- Validate layout math with `checkFits()` / `inspect()` and headless tests before calling WC3 "done".
+
+## Core Files
+- `wurst/TableLayout.wurst`: core layout engine, rows/cells, validation report, basic helpers.
+- `wurst/TableUi.wurst`: public facade exporting components.
+- `wurst/components/`: component implementations (`TableUiSafeArea`, dialogs, layers, panels, inputs, tooltips, etc.).
+- `wurst/MultiboardAttach.wurst`: custom content inside default multiboard shells.
+- `wurst/TableLayoutValidationTest.wurst`: headless layout/safe-area validation tests.
+- `wurst/TableLayoutTest.wurst`: manual visual demo; requires a real WC3 map run.
+
+## Safe Areas
+There are two safe-area concepts:
+
+- Strict: `SAFE_AREA_MIN`..`SAFE_AREA_MAX`, `placeSafe(...)`, `clampToSafeArea(...)`. Use for ordinary panels/dialogs. Clears bottom/top HUD, 4:3 edge, and left idle worker / hero buttons.
+- Visual: `VISUAL_SAFE_AREA_MIN`..`VISUAL_SAFE_AREA_MAX`, `placeVisuallySafe(...)`, `clampToVisualSafeArea(...)`. Use only for deliberate sidecars/status areas that may overlap the left idle-button stack but must stay inside the visual 4:3/HUD-safe band.
+
+Debug helpers create handles globally and show/hide owner-scoped:
+
+- `toggleSafeAreaDebugFor(player)`: red strict outline.
+- `toggleVisualSafeAreaDebugFor(player)`: yellow visual outline.
+
+## Design/API Guidance
+- Keep APIs cascade-friendly and small.
+- Add reusable helpers instead of inline raw frame code.
+- Components should return a `framehandle` or a small wrapper with `create()` / `getFrame()`.
+- New widgets should create frames lazily in `create()`/`build()` under their own root.
+- Preserve backward compatibility. New layout behavior should be opt-in.
+- Use spacing tokens (`SPACE_XS`..`SPACE_XL`) and existing components before adding new styling primitives.
+- Container hierarchy: `panel` for windows/dialogs, `card` sparingly for one nested visual section, `container`/`section` for structure. Do not nest backdrop cards deeply.
+- Library clickables release keyboard focus automatically; for foreign clickables use `onClickReleaseFocus()`, and disable decorative frames.
+
+## Validation
+After code changes run:
+
+```bash
+grill typecheck --quiet
 ```
 
-Multiboard attach pattern:
-```wurst
-attachToMultiboard(mb, "DemoMb", 0.22, 0.08, true, (uiParent, anchor) -> begin
-    let layout = new TableLayout(0.22, 0.1, "DemoMbLayout")
-    layout..row()..add(p("Hello")..setSize(0.18, 0.014))..growX()
-    layout.applyTo(anchor)
-    return anchor
-end)
+Run focused tests for touched behavior, e.g.:
+
+```bash
+grill test safeArea
+grill test TableLayoutValidationTest
 ```
 
-## Important Behaviors
-- Call `row()` before the first `add(...)`. `add` uses the last row.
-- Cell sizes come from the frame size at layout time. Set widths/heights before `applyTo`.
-- Text presets (`p`/`p2`/`p3`/`h1`-`h5`) are FIXEDSIZE and measure `0` until sized. Size every non-grow cell (`setSize`/`prefSize`/`fixedWidth`/`minWidth`) or use `growX`/`growY`, or it collapses and siblings overlap.
-- Validate before shipping: `layout.checkFits()` returns a boolean; `layout.inspect()` returns a detailed `LayoutReport`. Both are frame-independent and run headless in `@Test`/`grill test` (build cells with `addSized(w, h)`). Add `..text(text, FONT_*)` after a text cell when you want heuristic width validation; `inspect().textOverflow` is a soft signal and does not make `checkFits()` fail. At runtime, `Log.warn`s fire for zero-size cells, horizontal/vertical overflow, and likely text overflow (gated by `tableWarnings`).
-- `growX()` only affects the most recently added cell.
-- `gap(x, y)` is now reserved correctly in grow distribution, row width, and alignment. Set `legacyGapMath = true` to restore the old (overflowing) behaviour.
-- Vertical alignment within a row: `valign(Align)` per cell, `top()`/`middle()`/`bottom()` per row, `defaultValign(Align)` per table.
-- Column alignment: `columns()` / `uniformColumns()` makes cells line up into columns across rows (opt-in; `growX` ignored in grid mode); `colspan(n)` spans columns. Use it for forms/rosters instead of manual offsets. Otherwise nest tables (the default composition tool).
-- Spacing scale: use `SPACE_XS`/`SPACE_S`/`SPACE_M`/`SPACE_L`/`SPACE_XL` in `gap`/`padding`/`spacer` instead of magic numbers. `gap(all)` and `spacer(size)` take one value.
-- Minimum sizes: `textButton`/`iconButton`/`checkbox` clamp to `MIN_BUTTON_WIDTH`/`MIN_BUTTON_HEIGHT`/`MIN_ICON_SIZE` so controls can't render broken.
-- Container hierarchy: `panel` (window) > `card` (section, sparingly) > `container`/`section` (no backdrop, default nesting). Never nest backdrops more than one level: box with `container`/`section`, not `card`.
-- Whole-frame interaction: use `interactive(target)` for display-only frames that need full-area click, selected, disabled, and tooltip states. Build all display content first; call `refresh()` after adding or changing display children later. Use low-level overlays only for escape hatches.
-- `UIBar` is display-only (disabled fills) and creates those fills LAZILY in `create()` under its own frame, so `setValue` only resizes them - it never re-parents, re-levels, or re-enables. Safe inside clickable/`interactive()` display frames.
-- Safe placement: use `frame.placeSafe(vec2, w, h)` (clamps into `SAFE_AREA_MIN`..`SAFE_AREA_MAX`) instead of raw `setAbsPoint`, to avoid the melee HUD.
-- Layering / z-order: WC3 stacking follows the frame tree (no global z-index); `setLevel` orders siblings within one parent. Verified in-game: `GAME_UI` (the default parent) renders on top of the HUD console, `WORLD_UI` and `CONSOLE_UI`. So custom UI lives in `GAME_UI`, and on-top UI uses two `GAME_UI` child layers raised by `setLevel`: `Layer.DIALOG` (modal dialogs) and `Layer.OVERLAY` (dropdowns/menus/tooltips, above dialogs). Create into the layer (`inLayer(Layer.DIALOG) -> ...`) rather than reparenting later (`setParent` after creation can desync hit areas). `defaultFrameParent` stays `GAME_UI` (`Layer.CONTENT`). `confirmDialog` uses `DIALOG`, `select` uses `OVERLAY`.
-- Keyboard focus: library clickables auto-release focus on click (`autoReleaseFocus`, default true) so Enter still opens chat and can't re-fire a button; no manual `unfocus()` needed. For foreign frames call `onClickReleaseFocus()`; for decorative frames `disable()`. There is no FDF "unfocusable" flag and no `GetFocus`/focus event, so focus is handled at creation/click, not globally.
-- Flatter setup: `panelTable`/`cardTable` + `.build()` (no duplicated dimensions); `label(text,w)`/`value(text,w)` for sized text.
-- If content size changes later, call `layout()` again to recompute positions.
-- Free transient layouts with `destroy layout` (frees Row/Cell wrappers and lists; does not destroy the shared framehandles). The built-in display helpers (`statCard`/`iconCard`/`labelValue`/`iconLabel`/`section`/`underline`/`statBar`/`slider`/`select`/`tabs`/`confirmDialog`/...) already free their own internal layout after applying it, so rebuilding them in a dynamic HUD does not leak. Widget classes that own lists (`UISelect`/`UITabs`/`UISelectableGroup`) free those lists in `ondestroy`.
-- Tooltips are cached per owner: call `removeTooltip(owner)` when discarding a transient owner (e.g. rebuilding a shop/inventory list), or `clearTooltips()` on full teardown, so the cache does not grow unbounded.
-- **Parenting & hierarchy - READ THIS, it caused a real, hard-to-find overlay bug.** Every helper (`p`/`btn`/`img`/`UIBar`/...) creates its frame under the *current* `defaultFrameParent`, and `TableLayout.applyTo(base)` then RE-PARENTS each cell to `base`. In WC3 a post-creation `setParent` can desync a frame's clickable/hit area from where it renders. The bug we hit: a card's `UIBar`s silently stole clicks from the card's `interactive()` overlay because the bars were born under a far global parent (a consumer's `ConsoleUIBackdrop`) and then re-parented into the card. Rules that prevent it:
-  - **Build frames UNDER their eventual parent.** Wrap a build block in `withParent(theParent) -> ...` (a scoped push/pop of `defaultFrameParent`, nestable). Do this for any sub-panel whose content you build (e.g. a stats panel holding bars), so nothing is created far away and re-parented in.
-  - **A deliberate *baseline* default is fine** (e.g. a consumer setting `defaultFrameParent` to `ConsoleUIBackdrop` so its UI sits under the game's menus instead of over them). What bites is creating *nested* content under that far baseline and letting `applyTo` re-parent it into a deep container. So: pick the right parent AT CREATION - wrap each sub-tree's build in `withParent(itsContainer)` (or `inLayer(...)` for floating UI); both auto-restore and nest. Set a permanent global default only as an intentional baseline, never as a substitute for parenting nested content correctly.
-  - **Avoid `setParent` after creation.** `TableLayout` already skips the re-parent when a cell is already under the base frame, so building cells under their base (via `withParent`) makes `applyTo` a no-op re-parent - no desync.
-  - **New widgets must create their frames LAZILY in `create()`/`build()`, under their own root** - never eagerly in the constructor (which captures whatever `defaultFrameParent` happens to be and forces a re-parent). `UIBar` follows this; match it.
-
-## Build, Typecheck & Test
-Run everything through `grill` (it locates the bundled WurstScript compiler and JRE; the system `java` may be too old to run the compiler jar directly). Run `grill help` for the full command list.
-- `grill typecheck` Typecheck the whole project without building a map. This is the fast inner-loop check: run it after every edit. Add `--quiet` to print only errors and the final result (`grill typecheck --quiet`).
-- `grill test [filter]` Run the `@Test` unit suite. The optional filter is a substring matched against each test's `Package.function` name, e.g. `grill test safeArea` runs the three safe-area tests in `TableLayoutValidationTest`. The suite is frame-independent (build cells with `addSized(w, h)`, assert via `checkFits()`/`inspect()`), so it runs headless without Warcraft III.
-- `grill build ExampleMap.w3x` Compile the project into a runnable map.
-- `grill install` / `grill outdated` Install/update dependencies (also `grill install wurstscript`, `grill install grill`).
-- Global flags: `--quiet` (errors + result only), `--debug` (full stack traces). Build/run compiler flags live in `wurst_run.args` (toggle by adding/removing the leading `-`).
-
-## Agent Guidance
-- After any code change, run `grill typecheck --quiet`, and `grill test` if you touched layout/validation logic, before reporting done.
-- Read `AI_USAGE.md` before creating new UI. Follow its decision tree and recipes.
-- Read `WC3_FRAMEHANDLE_GUIDE.md` before adding or changing Warcraft III UI/framehandle behavior.
-- Prefer editing or extending `wurst/TableLayout.wurst` for new layout features.
-- Prefer adding common components to `wurst/components/*.wurst` (and re-export them from the `TableUi` facade) unless they are core layout primitives, which belong in `wurst/TableLayout.wurst`.
-- Keep API changes small and chain-friendly (`..row()..add(...)` style).
-- If you add new helpers (e.g., new widget types), follow the existing `p`, `img`, `btn` helpers.
-- If you touch multiboard behavior, verify maximize/minimize still restores layout sizing.
-- Prefer stdlib framehandle methods and `TableLayout` helpers over raw `Blz*` calls unless native semantics matter.
-- Before any raw `BlzCreateFrame*` / `createFrameByType` use, check `TableLayout`, `TableUi`, and `imports/TableLayout.fdf`; if nothing fits, add a reusable helper.
-- Create UI at elapsed time `0.00` or later, cache handles, and hide/reuse frames instead of destroying them.
-- Keep layout behavior backward-compatible. New spacing/sizing behavior should be opt-in.
-
-## Tests and Demos
-- `wurst/TableLayoutValidationTest.wurst` is the headless `@Test` suite (layout fit, overflow, grid, safe-area clamp). `wurst/TableUiTextMetricsTest.wurst` covers `estimateTextWidth`, `ellipsize`, and `ellipsizeLines`. Run relevant focused tests or `grill test`; add cases here for new layout/validation behaviour.
-- `wurst/TableLayoutTest.wurst` is the manual/visual demo: it builds on-screen frames, so it needs a real map run (`grill build ExampleMap.w3x`, then launch in WC3), not `grill test`. Keep it updated when you add features.
+Run broader `grill test` when layout core, shared components, or validation behavior changed. For visual/manual behavior, update `wurst/TableLayoutTest.wurst` and mention that a WC3 run is still needed.
