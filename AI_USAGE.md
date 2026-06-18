@@ -51,7 +51,7 @@ Use these helpers instead of custom frame construction:
 - HUD band / off-4:3 (SimpleFrames, never inside layouts): `simpleBar` (boss bar, tintable), `simpleTexture` (tintable band art)
 - Default WC3 UI: `hideDayNightClock`, `setResourceBarVisible`, `setMinimapVisible`, `hideDefaultUi`, `reserveDefaultUiHandles` (TableUiDefaultUi; never raw `BlzGetFrameByName` + child indices)
 - Tooltips: `withTooltip`, `boxedTooltip`
-- Dialogs: `confirmDialog`, `closeButton` for the EscMenu-styled X close control
+- Dialogs: `confirmDialog`, `closeButton` for the EscMenu-styled X close control; `dialog.closeButton()` on a `UIDialog` instance when a modal is attached (so the backdrop dismisses with the panel)
 - Multiboard UI: `attachToMultiboard`
 
 Do not hand-roll these unless you are improving the helper itself.
@@ -242,6 +242,8 @@ new TableLayout(0.22, 0.08, "SelectExample")
 
 Use this custom select for dynamic options. Native `POPUPMENU` options are FDF-defined and are better for fixed menus.
 
+The dropdown always creates a transparent full-screen barrier behind it when open. Clicking anywhere outside the menu closes it automatically — no extra code needed.
+
 ### Confirm Dialog
 
 ```wurst
@@ -251,6 +253,27 @@ let dialog = confirmDialog("Leave?", "Unsaved progress will be lost.")
 ..setButtons("Leave", "Stay")
 
 dialog.show()
+```
+
+Add `.withModal()` to dim the scene and close on outside click (opacity defaults to 0.8):
+
+```wurst
+let dialog = confirmDialog("Leave?", "Unsaved progress will be lost.")
+..setButtons("Leave", "Stay")
+..withModal()          // dark backdrop; clicking outside fires onCancel
+
+dialog.show()
+```
+
+Or pass a custom opacity: `.withModal(0.6)`. The backdrop is shown/hidden automatically with the dialog.
+
+For blank dialogs (`dialogFrame`), the same API applies:
+
+```wurst
+let d = dialogFrame(0.30, 0.20)
+d.build() ->
+    // build layout here
+d..withModal()..placeSafe(vec2(0.35, 0.45))..show()
 ```
 
 Use `confirmDialog` for ordinary yes/no UI. Native `DIALOG` is FDF-rigid and is usually unnecessary for map UI.

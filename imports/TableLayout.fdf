@@ -230,6 +230,21 @@ Frame "GLUEBUTTON" "TableUiDisabledOverlay" {
     }
 }
 
+// Full-screen click-catcher GLUEBUTTON for modal barriers. Intentionally full-screen; blocking
+// input beneath a dialog or dropdown IS the purpose. No visual chrome: pair with a
+// TableUiModalBarrierBackdrop child (created via Wurst) for dark dimming.
+Frame "GLUEBUTTON" "TableUiModalBarrier" {
+    UseActiveContext,
+}
+
+// Dark dim backdrop for modal barriers: created as an explicit Wurst child under
+// TableUiModalBarrier. Use setAlpha at runtime to control darkness (0=transparent, 255=opaque).
+Frame "BACKDROP" "TableUiModalBarrierBackdrop" {
+    UseActiveContext,
+    BackdropBlendAll,
+    BackdropBackground "Textures\Black32.blp",
+}
+
 // -- SimpleFrames (TableUiSimple) --------------------------------------------
 // The OTHER frame family. SimpleFrames render in their own band BELOW all Frame-group UI and cannot
 // be parented under Frame-group frames, so these templates are NOT usable inside TableLayout cells.

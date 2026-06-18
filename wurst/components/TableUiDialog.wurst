@@ -2,12 +2,16 @@ package TableUiDialog
 // Code-driven dialogs on the DIALOG layer (above ordinary UI): a yes/no confirm prompt
 // (confirmDialog / UIConfirmDialog) and a blank dialog frame with map-side content (dialogFrame /
 // UIDialog). Content is built in place under the dialog frame to avoid hit-area misalignment.
+//
+// Both support .withModal() to attach a dark full-screen backdrop that dims the scene while the
+// dialog is shown and closes it on any outside click.
 import TableLayout
 import TableUiText
 import TableUiButtons
 import TableUiPanels
 import TableUiLayers
 import TableUiSafeArea
+import TableUiModal
 
 public interface ConfirmDialogListener
     function onAccept(player p)
@@ -22,6 +26,7 @@ public class UIConfirmDialog
     real height = 0.13
     framehandle frame = null
     ConfirmDialogListener listener = null
+    UIModalBackdrop modal = null
 
     construct(string title, string message)
         this.title = title
@@ -42,6 +47,20 @@ public class UIConfirmDialog
         this.listener = listener
         return this
 
+    /** Attaches a dark full-screen backdrop that dims the scene behind the dialog and closes it
+        (firing onCancel) on any outside click. Call before show(). Default opacity: 0.8. */
+    function withModal() returns thistype
+        return withModal(MODAL_DEFAULT_OPACITY)
+
+    function withModal(real opacity) returns thistype
+        if modal == null
+            modal = new UIModalBackdrop(Layer.DIALOG, MODAL_BARRIER_LEVEL, opacity)
+            modal.onClick() ->
+                hide()
+                if listener != null
+                    listener.onCancel(GetTriggerPlayer())
+        return this
+
     function create() returns framehandle
         if frame != null
             return frame
@@ -50,8 +69,17 @@ public class UIConfirmDialog
         // The dialog lives in the DIALOG layer (a GAME_UI child held above ordinary content) so it
         // renders on top of panels without reparenting. Dropdowns sit one layer higher (OVERLAY).
         defaultFrameParent = Layer.DIALOG.getFrame()
+
+        // Modal barrier: created first so it shares the DIALOG layer as a sibling below the panel.
+        if modal != null
+            modal.create()
+
         frame = panel(width, height)
             ..hide()
+
+        // Raise above the modal barrier when active so the panel receives input first.
+        if modal != null
+            frame.setLevel(MODAL_CONTENT_LEVEL)
 
         // Create the buttons + text UNDER the dialog frame so TableLayout's setParent is a no-op.
         // A reparented frame stays in both parents' child lists in WC3, which can misalign its clickable area.
@@ -91,11 +119,15 @@ public class UIConfirmDialog
 
     function show() returns thistype
         create().show()
+        if modal != null
+            modal.show()
         return this
 
     function hide() returns thistype
         if frame != null
             frame.hide()
+        if modal != null
+            modal.hide()
         return this
 
     function getFrame() returns framehandle
@@ -111,8 +143,8 @@ public interface DialogBody
     function run()
 
 /** A blank "dialog frame" with full map-side control of its content: a panel backdrop on the DIALOG
-    layer (so it renders above ordinary UI), plus show()/hide()/placeSafe(). Use confirmDialog for quick
-    yes/no prompts; use this when you need arbitrary dialog content but still want the on-top dialog frame.
+    layer (so it renders above ordinary UI), plus show()/hide()/placeSafe()/withModal(). Use
+    confirmDialog for quick yes/no prompts; use this when you need arbitrary dialog content.
 
     Build content INSIDE build() so it is created under the dialog frame (no reparenting / hit-area
     misalignment). Pad your layout by at least PANEL_BORDER_INSET to clear the ornate border:
@@ -124,22 +156,43 @@ public interface DialogBody
             layout..row()..add(h3("Title"))..growX()
             layout..row()..add(p("Body")..setSize(0.27, 0.05))..growX()
             layout.applyTo(d.getFrame())
-        d..placeSafe(vec2(0.35, 0.45))..show() */
+        d..withModal()..placeSafe(vec2(0.35, 0.45))..show() */
 public class UIDialog
     private real width
     private real height
     private framehandle frame = null
+    private UIModalBackdrop modal = null
 
     construct(real width, real height)
         this.width = width
         this.height = height
+
+    /** Attaches a dark full-screen backdrop that dims the scene behind the dialog and closes it
+        on any outside click. Call before show(). Default opacity: 0.8. */
+    function withModal() returns thistype
+        return withModal(MODAL_DEFAULT_OPACITY)
+
+    function withModal(real opacity) returns thistype
+        if modal == null
+            modal = new UIModalBackdrop(Layer.DIALOG, MODAL_BARRIER_LEVEL, opacity)
+            modal.onClick() ->
+                hide()
+        return this
 
     /** Creates (once) the dialog backdrop on the DIALOG layer and returns it, hidden. */
     function getFrame() returns framehandle
         if frame == null
             let prev = defaultFrameParent
             defaultFrameParent = Layer.DIALOG.getFrame()
+
+            if modal != null
+                modal.create()
+
             frame = panel(width, height)..hide()
+
+            if modal != null
+                frame.setLevel(MODAL_CONTENT_LEVEL)
+
             defaultFrameParent = prev
         return frame
 
@@ -155,11 +208,29 @@ public class UIDialog
 
     function show() returns thistype
         getFrame().show()
+        if modal != null
+            modal.show()
         return this
 
     function hide() returns thistype
-        getFrame().hide()
+        if frame != null
+            frame.hide()
+        if modal != null
+            modal.hide()
         return this
+
+    /** Returns a sized "X" button that calls hide() on this dialog (including its modal backdrop).
+        Use this instead of closeButton(getFrame()) when a modal is attached, so the backdrop
+        is dismissed together with the panel. */
+    function closeButton() returns framehandle
+        return closeButton(0.018)
+
+    function closeButton(real size) returns framehandle
+        let btn = textButton("X", size, size)
+        btn.onClick() ->
+            btn.releaseKeyboardFocus(GetTriggerPlayer())
+            hide()
+        return btn
 
     /** Positions the dialog's TOPLEFT, clamped into the safe area (clear of the melee HUD). */
     function placeSafe(vec2 topLeft) returns thistype

@@ -1,0 +1,83 @@
+package TableUiModal
+// Full-screen modal barrier placed in a z-band layer below its paired dialog or dropdown.
+//
+// Opaque mode (dialogs): dims the scene with a dark translucent backdrop so the dialog stands
+// out against the background, and blocks all clicks on content beneath. Wire up via the
+// withModal() method on UIConfirmDialog / UIDialog — no manual construction needed there.
+//
+// Transparent mode (selects): invisible but still blocks all clicks outside the dropdown so
+// clicking anywhere outside it closes the menu. UISelect creates its own barrier automatically.
+import TableLayout
+import TableUiLayers
+
+// Level constants for siblings within the DIALOG band.
+// The barrier sits below its paired dialog frame; raise the dialog to MODAL_CONTENT_LEVEL.
+public constant MODAL_BARRIER_LEVEL = 1
+public constant MODAL_CONTENT_LEVEL = 2
+
+// Default dim opacity for dialog backdrops (80% black).
+public constant MODAL_DEFAULT_OPACITY = 0.8
+
+// Full WC3 4:3 viewport in UI coordinate space.
+constant SCREEN_W = 0.8
+constant SCREEN_H = 0.6
+
+public interface ModalDismissCallback
+    function run()
+
+/** Full-screen modal barrier: a click-catcher placed one level below its paired dialog or
+    dropdown within a shared z-band.
+
+    - opacity > 0 (dialogs): creates a dark translucent BACKDROP child so the dialog stands
+      out against the dimmed scene. Clicking the barrier fires the dismiss callback.
+    - opacity = 0 (selects): no BACKDROP child; the barrier is transparent but still catches
+      outside clicks, closing the dropdown automatically.
+
+    Create once; call show()/hide() in sync with the paired dialog/menu. */
+public class UIModalBackdrop
+    private framehandle barrier = null
+    private Layer layer
+    private int level
+    private int dimAlpha
+
+    construct(Layer layer, int level, real opacity)
+        this.layer = layer
+        this.level = level
+        this.dimAlpha = R2I(opacity * 255.)
+
+    /** Creates (once) the barrier frame and optional dark backdrop child. */
+    function create() returns framehandle
+        if barrier != null
+            return barrier
+        barrier = createFrame("TableUiModalBarrier", layer.getFrame(), 0, nextUiContext())
+            ..setAbsPoint(FRAMEPOINT_CENTER, vec2(0.4, 0.3))
+            ..setSize(SCREEN_W, SCREEN_H)
+            ..setLevel(level)
+            ..hide()
+        if dimAlpha > 0
+            // Disabled so only the parent GLUEBUTTON intercepts mouse input.
+            createFrame("TableUiModalBarrierBackdrop", barrier, 0, nextUiContext())
+                ..setAllPoints(barrier)
+                ..setAlpha(dimAlpha)
+                ..disable()
+        return barrier
+
+    function getFrame() returns framehandle
+        return create()
+
+    function show() returns thistype
+        create().show()
+        return this
+
+    function hide() returns thistype
+        if barrier != null
+            barrier.hide()
+        return this
+
+    /** Registers the callback fired when the barrier is clicked (outside the dialog/menu). */
+    function onClick(ModalDismissCallback cb) returns thistype
+        create()
+        barrier.onClick() ->
+            barrier.releaseKeyboardFocus(GetTriggerPlayer())
+            cb.run()
+        return this

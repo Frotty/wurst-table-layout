@@ -1,9 +1,12 @@
 package TableUiSelect
 // A dynamic, code-generated select menu: a toggle button that opens an option menu in the
 // OVERLAY band (so it floats above content and the HUD) with no reparenting of the option buttons.
+// A transparent full-screen click-catcher is shown behind the menu whenever it is open, so
+// clicking anywhere outside the dropdown closes it automatically.
 import TableLayout
 import TableUiButtons
 import TableUiLayers
+import TableUiModal
 import LinkedList
 
 public interface SelectListener
@@ -26,6 +29,7 @@ public class UISelect
     framehandle toggleButton = null
     framehandle menu = null
     framehandle menuBackdrop = null
+    UIModalBackdrop clickCatcher = null
 
     SelectListener listener = null
     constant options = new LinkedList<string>()
@@ -107,15 +111,26 @@ public class UISelect
 
         menuLayout.applyTo(menu)
         destroy menuLayout
+
+        // Transparent full-screen barrier at one level below the menu: catches any click outside
+        // the dropdown and closes it. The menu (OVERLAY_LEVEL) and its options (OVERLAY_LEVEL+1)
+        // are above the barrier (OVERLAY_LEVEL-1) so they still receive their own click events.
+        clickCatcher = new UIModalBackdrop(Layer.OVERLAY, OVERLAY_LEVEL - 1, 0.0)
+        clickCatcher.onClick() ->
+            setOpen(false)
+        clickCatcher.create()
+
         defaultFrameParent = prevParent
         return root
 
     function getFrame() returns framehandle
         return create()
 
-    // Frees the option/value-frame lists. The frames themselves are shared and MP-sensitive, so they are
-    // not destroyed here (hide/reuse instead); this just releases the wrapper lists.
+    // Frees the option/value-frame lists and the click-catcher wrapper. The frames themselves are
+    // shared and MP-sensitive, so they are not destroyed (hide/reuse instead).
     ondestroy
+        if clickCatcher != null
+            destroy clickCatcher
         destroy options
         destroy optionFrames
 
@@ -140,7 +155,9 @@ public class UISelect
             syncMenuOverlay()
             menu.show()
             optionFrames.forEach(option -> option.show())
+            clickCatcher.show()
         else
+            clickCatcher.hide()
             optionFrames.forEach(option -> option.hide())
             menu.hide()
             menuBackdrop.setAllPoints(menu)

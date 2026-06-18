@@ -270,7 +270,7 @@ new TableLayout(0.24, 0.16, "SetupPanel")
 ..applyTo(root)
 ```
 
-`select` is implemented as a custom code-driven list of buttons so options can be generated in code. Native `POPUPMENU` is still useful for fixed FDF-defined menus, but its options are not dynamic.
+`select` is implemented as a custom code-driven list of buttons so options can be generated in code. The dropdown closes automatically when the user clicks anywhere outside it. Native `POPUPMENU` is still useful for fixed FDF-defined menus, but its options are not dynamic.
 
 Library buttons release keyboard focus automatically after a click, so Enter keeps opening chat instead of re-firing the last clicked button. This is controlled by the `autoReleaseFocus` flag (default `true`); set it to `false` to opt out, and call `onClickReleaseFocus()` on foreign or Blizzard frames you want to behave the same way.
 
@@ -338,7 +338,7 @@ let p = panelTable(0.24, 0.12, "Setup")
 p.placeSafe(vec2(0.5, 0.5), 0.24, 0.12)
 ```
 
-For z-order, parent into the right layer rather than fighting `setLevel` (which only orders siblings within one parent). WC3 has no global z-index, and of the origin frames `GAME_UI` (the default parent) renders on top, above the HUD console and the other bands. So on-top UI uses two `GAME_UI` child layers raised with `setLevel`: `Layer.DIALOG` for modal dialogs and `Layer.OVERLAY` (above it) for dropdowns, menus and tooltips; ordinary panels stay in `Layer.CONTENT` (`GAME_UI`). Create frames in their layer with `inLayer(Layer.DIALOG) -> ...` rather than reparenting later, since a post-creation `setParent` leaves the frame in both parents' child lists and can misalign its hit area. `confirmDialog` uses `DIALOG` and `select` uses `OVERLAY`.
+For z-order, parent into the right layer rather than fighting `setLevel` (which only orders siblings within one parent). WC3 has no global z-index, and of the origin frames `GAME_UI` (the default parent) renders on top, above the HUD console and the other bands. So on-top UI uses two `GAME_UI` child layers raised with `setLevel`: `Layer.DIALOG` for modal dialogs and `Layer.OVERLAY` (above it) for dropdowns, menus and tooltips; ordinary panels stay in `Layer.CONTENT` (`GAME_UI`). Create frames in their layer with `inLayer(Layer.DIALOG) -> ...` rather than reparenting later, since a post-creation `setParent` leaves the frame in both parents' child lists and can misalign its hit area. `confirmDialog` uses `DIALOG` and `select` uses `OVERLAY`. Call `.withModal()` on `confirmDialog` or `dialogFrame` to attach a dark full-screen backdrop that dims the scene and closes the dialog on any outside click.
 
 ## Nested Tables
 

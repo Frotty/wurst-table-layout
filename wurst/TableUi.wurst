@@ -17,6 +17,7 @@ import public TableUiPanels
 import public TableUiInfo
 import public TableUiTooltip
 import public TableUiInputs
+import public TableUiModal
 import public TableUiDialog
 import public TableUiSelect
 import public TableUiSliders
