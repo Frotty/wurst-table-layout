@@ -230,15 +230,18 @@ Frame "GLUEBUTTON" "TableUiDisabledOverlay" {
     }
 }
 
-// Full-screen click-catcher GLUEBUTTON for modal barriers. Intentionally full-screen; blocking
-// input beneath a dialog or dropdown IS the purpose. No visual chrome: pair with a
+// Full-4:3-band click-catcher GLUEBUTTON for modal barriers. Intentionally spans the whole band;
+// blocking input beneath a dialog or dropdown IS the purpose. No visual chrome: pair with a
 // TableUiModalBarrierBackdrop child (created via Wurst) for dark dimming.
 Frame "GLUEBUTTON" "TableUiModalBarrier" {
     UseActiveContext,
 }
 
-// Dark dim backdrop for modal barriers: created as an explicit Wurst child under
-// TableUiModalBarrier. Use setAlpha at runtime to control darkness (0=transparent, 255=opaque).
+// Dark dim backdrop for modal barriers, instantiated twice by Wurst: as a child of
+// TableUiModalBarrier covering the 4:3 band (in the DIALOG Frame band, so it dims other
+// Frame-group UI beneath the dialog), and as ConsoleUIBackdrop-parented strips covering the
+// widescreen margins outside the band. Use setAlpha at runtime to control darkness
+// (0=transparent, 255=opaque).
 Frame "BACKDROP" "TableUiModalBarrierBackdrop" {
     UseActiveContext,
     BackdropBlendAll,

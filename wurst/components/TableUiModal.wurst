@@ -1,7 +1,8 @@
 package TableUiModal
 // Full-screen modal barrier placed in a z-band layer below its paired dialog or dropdown.
 //
-// Opaque mode (dialogs): dims the scene with a dark translucent backdrop so the dialog stands
+// Opaque mode (dialogs): dims the whole physical screen — a dark translucent backdrop in the 4:3
+// band plus ConsoleUIBackdrop-parented strips for the widescreen margins — so the dialog stands
 // out against the background, and blocks all clicks on content beneath. Wire up via the
 // withModal() method on UIConfirmDialog / UIDialog — no manual construction needed there.
 //
@@ -22,20 +23,39 @@ public constant MODAL_DEFAULT_OPACITY = 0.8
 constant SCREEN_W = 0.8
 constant SCREEN_H = 0.6
 
+// The dim covers the 4:3 band with a BACKDROP child of the barrier (in the DIALOG band, so other
+// Frame UI beneath the dialog is dimmed too — the dialog is translucent and must not mix with
+// undimmed content), plus two strips flanking the band for the widescreen margins. The strips are
+// parented to ConsoleUIBackdrop, the sanctioned escape hatch whose Frame-group children may leave
+// the 4:3 band without malforming (WC3_FRAMEHANDLE_GUIDE.md "Safe Areas"). They render below
+// SimpleFrames — fine for the margins, where only the game world is visible. Screen height is
+// always 0.6 in UI coordinates; only width grows with aspect ratio (~1.07 at 16:9, 1.4 at 21:9),
+// so 0.4 per side covers everything up to 24:9.
+constant DIM_STRIP_W = 0.4
+
+// Stdlib getFrame(name, context) is shadowed inside UIModalBackdrop by its own getFrame() method,
+// so the ConsoleUIBackdrop lookup goes through this free function.
+function namedChild(string name, int context) returns framehandle
+    return getFrame(name, context)
+
 public interface ModalDismissCallback
     function run()
 
 /** Full-screen modal barrier: a click-catcher placed one level below its paired dialog or
     dropdown within a shared z-band.
 
-    - opacity > 0 (dialogs): creates a dark translucent BACKDROP child so the dialog stands
-      out against the dimmed scene. Clicking the barrier fires the dismiss callback.
-    - opacity = 0 (selects): no BACKDROP child; the barrier is transparent but still catches
+    - opacity > 0 (dialogs): creates a dark translucent BACKDROP child covering the 4:3 band
+      (in the DIALOG band, so other Frame UI beneath the dialog is dimmed too) plus two
+      ConsoleUIBackdrop-parented strips covering the widescreen margins, so the entire physical
+      screen looks dimmed. Clicking the barrier fires the dismiss callback.
+    - opacity = 0 (selects): no dim; the barrier is transparent but still catches
       outside clicks, closing the dropdown automatically.
 
     Create once; call show()/hide() in sync with the paired dialog/menu. */
 public class UIModalBackdrop
     private framehandle barrier = null
+    private framehandle dimLeft = null
+    private framehandle dimRight = null
     private Layer layer
     private int level
     private int dimAlpha
@@ -60,18 +80,37 @@ public class UIModalBackdrop
                 ..setAllPoints(barrier)
                 ..setAlpha(dimAlpha)
                 ..disable()
+            // Strips flanking the 4:3 band so the widescreen margins look dimmed too.
+            dimLeft = createDimStrip(FRAMEPOINT_RIGHT, vec2(0., 0.3))
+            dimRight = createDimStrip(FRAMEPOINT_LEFT, vec2(SCREEN_W, 0.3))
         return barrier
+
+    private function createDimStrip(framepointtype anchor, vec2 pos) returns framehandle
+        // Disabled: decorative dim only — Frame-group hit areas outside the 4:3 band are unreliable,
+        // and the paired barrier already catches the dismiss clicks.
+        return createFrame("TableUiModalBarrierBackdrop", namedChild("ConsoleUIBackdrop", 0), 0, nextUiContext())
+            ..setAbsPoint(anchor, pos)
+            ..setSize(DIM_STRIP_W, SCREEN_H)
+            ..setAlpha(dimAlpha)
+            ..disable()
+            ..hide()
 
     function getFrame() returns framehandle
         return create()
 
     function show() returns thistype
         create().show()
+        if dimLeft != null
+            dimLeft.show()
+            dimRight.show()
         return this
 
     function hide() returns thistype
         if barrier != null
             barrier.hide()
+        if dimLeft != null
+            dimLeft.hide()
+            dimRight.hide()
         return this
 
     /** Registers the callback fired when the barrier is clicked (outside the dialog/menu). */

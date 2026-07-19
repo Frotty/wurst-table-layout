@@ -13,6 +13,10 @@ constant NOTES_TEXT = "TableUi.textArea wraps WC3's native scrollable text area.
 init
     doAfter(0.1) ->
         // confirmDialog + a blank dialogFrame (UIDialog), both on the DIALOG layer (render on top).
+        // Modal backdrop visual check (Components panel -> Dialogs -> Confirm/Custom, needs a
+        // widescreen resolution): the dark dim must cover the ENTIRE screen — the 4:3 band via the
+        // barrier's backdrop child plus the left/right margins via ConsoleUIBackdrop-parented
+        // strips — with uniform darkness and no visible seam at the 4:3 edges (x=0 and x=0.8).
         let confirm = confirmDialog("Confirm", "A simple confirm dialog built from TableUi helpers.", 0.26, 0.13)
         ..setButtons("OK", "Cancel")
         ..withModal()
