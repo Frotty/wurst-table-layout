@@ -21,7 +21,7 @@ It began as a table/flexbox layout (rows → cells → framehandles, with option
 - **A layout engine**: flexbox-style rows and cells with padding, gaps, horizontal & vertical alignment and `grow`, plus opt-in column/grid alignment (`columns()`, `colspan`).
 - **Text presets**: `h1`-`h5`, `p`-`p3`, and sized `label` / `value` helpers.
 - **SimpleFrame helpers**: `simpleBar` (boss/HUD bars with native fill + runtime tinting) and `simpleTexture` (tintable, full-width band art) for what Frame-group UI cannot do.
-- **Default-HUD control**: hide or modify the day/night clock, resource bar, menu buttons, minimap, portrait, hero bar and command card by name (`TableUiDefaultUi`), or go fully custom-UI with `hideDefaultUi()`.
+- **Default-HUD control**: hide or modify the day/night clock, resource bar, menu buttons, minimap, portrait, hero bar and command card by name (`TableUiDefaultUi`), attach custom content to a self-healing native multiboard shell (`attachToMultiboard`), or go fully custom-UI with `hideDefaultUi()`.
 - **Sane defaults**: a spacing scale (`SPACE_*`), automatic component minimums, automatic keyboard-focus release, a container hierarchy, and safe-area placement that keeps panels clear of the melee HUD.
 - **Built-in validation**: `checkFits()` / `inspect()` catch overflow and unsized cells, at runtime and headless in `grill test`.
 - **Agent support**: ships agent instruction files (decision tree, recipes, verified WC3 frame rules) and a headless feedback loop, so an LLM can generate correct UI on the first try (see [AI readiness](#ai-readiness)).

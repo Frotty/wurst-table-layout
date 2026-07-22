@@ -10,10 +10,11 @@ public function runMultiboardAttachTest()
     ..setColumnCount(1)
     ..display(true)
 
-    attachToMultiboard(
+    attachToMultiboardSized(
         mb,
         "DemoMb",
         0.16,
+        0.165,
         0.09,
         true,
         (uiParent, anchor) -> begin

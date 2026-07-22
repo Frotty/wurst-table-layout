@@ -433,8 +433,12 @@ end)
 Multiboard-specific cautions:
 
 - Make the multiboard large enough for the content height, or let `autoRowsEnabled` fit rows.
-- Native minimize/maximize can rewrite default frame geometry after click callbacks.
-- Reapply title width/container geometry after a zero-second delay when touching multiboard defaults.
+- The width passed to `attachToMultiboard` controls both the custom body and title. Use
+  `attachToMultiboardSized` when those widths intentionally differ.
+- The Blizzard multiboard shell is shared: only one custom attachment can be active per client.
+- Native minimize/maximize, timer-dialog, and show transitions rewrite default frame geometry. The helper
+  continuously reasserts its cached dimensions and suppresses the native body backdrop; do not add a second
+  map-owned multiboard backdrop or a competing geometry timer.
 - Verify maximize/minimize manually after changes.
 
 ## Tooltips

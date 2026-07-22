@@ -327,7 +327,13 @@ attachToMultiboard(mb, "ScoreMb", 0.22, 0.08, true, (uiParent, anchor) -> begin
 end)
 ```
 
-After changing multiboard behavior, manually verify minimize/maximize.
+The width argument owns both the custom body and title shell. If they intentionally differ, use
+`attachToMultiboardSized(mb, name, panelWidth, titleWidth, height, hideItems, builder)`.
+
+The helper defines and owns its multiboard backdrop, hides the native body backdrop, and continuously
+reasserts geometry because Warcraft III rewrites the shared shell after minimize/maximize, timer-dialog,
+and show transitions. Only one custom attachment can be active per client; attaching another retires the
+previous custom container/backdrop. After changing multiboard behavior, manually verify minimize/maximize.
 
 ## Layout Defaults
 

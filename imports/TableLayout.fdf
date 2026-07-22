@@ -1,8 +1,21 @@
 // -- INCLUDE FILES ---------------------------------------------------------
 
 IncludeFile "UI\FrameDef\UI\EscMenuTemplates.fdf",
+IncludeFile "UI\FrameDef\UI\Multiboard.fdf",
 
 // -- LOCAL TEMPLATES -------------------------------------------------------
+Frame "BACKDROP" "TableUiMultiboardBackdrop" {
+    UseActiveContext,
+    DecorateFileNames,
+    BackdropTileBackground,
+    BackdropBackground          "MultiboardBackground",
+    BackdropCornerFlags         "UL|UR|BL|BR|T|L|B|R",
+    BackdropCornerSize          0.0125,
+    BackdropBackgroundInsets    0.005f 0.005f 0.005f 0.005f,
+    BackdropEdgeFile            "MultiboardBorder",
+    BackdropBlendAll,
+}
+
 Frame "BACKDROP" "BoxedTextBackgroundTemplate" {
         DecorateFileNames, //Look-Up Names in some String table (for example gameinterface)
         BackdropTileBackground, //Tile mode enabled
