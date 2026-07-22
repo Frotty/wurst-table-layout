@@ -39,7 +39,7 @@ Use these helpers instead of custom frame construction:
 - Text: `p`, `p2`, `p3`, `h1`, `h2`, `h3`, `h4`, `h5`
 - Images: `img`
 - Buttons: `btn`, `imgBtn`, `textButton`, `iconButton`
-- Selectable / state: `interactive(frame)` for whole-frame click/selected/disabled/tooltip state on display-only frames; `selectable(frame)`, `UISelectableGroup` (radio); low-level `clickableOverlay`/`selectionHighlight`/`disabledOverlay` for escape hatches
+- Selectable / state: `interactive(frame)` for whole-frame click/selected/disabled/tooltip state on display-only frames; `selectable(frame)`, `UISelectableGroup` (radio); `autocastBorder(frame, size)` for the animated Warcraft III active border; low-level `clickableOverlay`/`selectionHighlight`/`disabledOverlay` for escape hatches
 - Colour / type: `muted`, `accent`, `success`/`warning`/`danger`, `gold`/`lumber`/`mana`/`health`, `colored(text, COLOR_*)`; `underline(text)`
 - Layout roots: `defaultFrame`, `panel`, `card`, `layoutFrame`, `spacer`
 - Dividers: `separator`, `vSeparator`
@@ -198,6 +198,24 @@ hit.getClickFrame().onClick() ->
 The directive disables display descendants so text/images/bars do not swallow mouse input. If display
 children are added or relaid out later, call `hit.refresh()`. Do not use it on a frame containing inner
 buttons that must remain independently clickable.
+
+### Animated Autocast Border
+
+Use `autocastBorder(target, size)` for Warcraft III's animated autocast selection effect. The size is
+explicit so the component never reads local frame geometry. It is created hidden:
+
+```wurst
+let button = iconButton(Icons.bTNHumanBuild, 0.038)
+let active = autocastBorder(button, 0.038)
+
+active.show()       // or show(player) for a local visual after global creation
+active.hide()
+```
+
+Create one border per possible target and toggle those instances. Never reparent or retarget a SPRITE:
+Warcraft III can permanently multiply its animation speed after `BlzFrameSetParent`. Moving the target
+itself is fine because the border stays anchored to that same target. The wrapper intentionally exposes
+no raw effect frame or retarget operation, and hiding/destroying the wrapper never destroys the WC3 frame.
 
 ### Building nested content under its parent (`withParent`)
 

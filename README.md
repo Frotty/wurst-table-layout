@@ -17,7 +17,7 @@ It began as a table/flexbox layout (rows → cells → framehandles, with option
 
 ### What you get
 
-- **Ready-made components**: panels & cards, buttons, icon buttons, checkboxes, select menus, sliders, tabs, edit boxes, text areas, tooltips, confirm dialogs, progress & stat bars, stat/icon cards, icon-label and label-value rows, separators and spacers, and whole-frame interaction (`interactive` / `selectable` / radio groups).
+- **Ready-made components**: panels & cards, buttons, icon buttons, checkboxes, select menus, sliders, tabs, edit boxes, text areas, tooltips, confirm dialogs, progress & stat bars, stat/icon cards, icon-label and label-value rows, separators and spacers, animated autocast borders, and whole-frame interaction (`interactive` / `selectable` / radio groups).
 - **A layout engine**: flexbox-style rows and cells with padding, gaps, horizontal & vertical alignment and `grow`, plus opt-in column/grid alignment (`columns()`, `colspan`).
 - **Text presets**: `h1`-`h5`, `p`-`p3`, and sized `label` / `value` helpers.
 - **SimpleFrame helpers**: `simpleBar` (boss/HUD bars with native fill + runtime tinting) and `simpleTexture` (tintable, full-width band art) for what Frame-group UI cannot do.

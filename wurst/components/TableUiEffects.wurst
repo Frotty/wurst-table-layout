@@ -1,0 +1,64 @@
+package TableUiEffects
+// Animated, display-only effects that can be attached to TableUi components without changing
+// their interaction behavior. Effects are created under their final target and never reparented.
+import TableLayout
+import UI
+
+/** Native size the autocast border model was authored for. */
+public constant AUTOCAST_BORDER_BASE_SIZE = 0.039
+
+/**
+    Animated Warcraft III autocast border attached permanently to one target.
+
+    SPRITE frames can multiply their animation speed when reparented at runtime. This wrapper exposes
+    no retarget/reparent operation: create one border per target, then only show/hide it. Create the
+    wrapper synchronously for all clients before using the player-scoped visibility methods.
+*/
+public class UIAutocastBorder
+    private framehandle target = null
+    private framehandle effectFrame = null
+
+    construct(framehandle target, real targetSize)
+        this.target = target
+        if target != null
+            effectFrame = createFrame("SPRITE", "", target, "", nextUiContext())
+                ..setAllPoints(target)
+                ..setModel(UI.uI_ModalButtonOn, 0)
+                ..setScale(max(targetSize, 0.001) / AUTOCAST_BORDER_BASE_SIZE)
+                ..hide()
+
+    /** Shows or hides the already-created effect without reparenting/restarting it. */
+    function setVisible(bool flag) returns thistype
+        if effectFrame != null
+            effectFrame.setVisible(flag)
+        return this
+
+    /** Player-local visual toggle; the effect itself must already exist on every client. */
+    function setVisible(player p, bool flag) returns thistype
+        if effectFrame != null
+            effectFrame.setVisible(p, flag)
+        return this
+
+    function show() returns thistype
+        return setVisible(true)
+
+    function show(player p) returns thistype
+        return setVisible(p, true)
+
+    function hide() returns thistype
+        return setVisible(false)
+
+    function hide(player p) returns thistype
+        return setVisible(p, false)
+
+    function getTarget() returns framehandle
+        return target
+
+    // Warcraft III frames are intentionally not destroyed. Dropping the wrapper only hides its effect.
+    ondestroy
+        if effectFrame != null
+            effectFrame.hide()
+
+/** Creates a hidden autocast border permanently attached to `target`. Call show() to activate it. */
+public function autocastBorder(framehandle target, real targetSize) returns UIAutocastBorder
+    return new UIAutocastBorder(target, targetSize)

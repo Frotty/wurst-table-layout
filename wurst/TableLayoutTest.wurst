@@ -89,6 +89,12 @@ function buildComponentsPanel(UIConfirmDialog confirm, UIDialog custom)
     let bar = new UIBar(0.13, 0.012)
     let check = new UICheckbox(0.022, 0.022, true)
     let volume = slider("", 0.13, 0, 100)..setValue(60)
+    let autocastButton = iconButton(Icons.bTNHumanBuild, 0.024)
+    let autocastEffect = autocastBorder(autocastButton, 0.024)..show()
+    var autocastVisible = true
+    autocastButton.onClick() ->
+        autocastVisible = not autocastVisible
+        autocastEffect.setVisible(autocastVisible)
     let confirmButton = textButton("Confirm", 0.062, 0.024)..withTooltip("Open the confirm dialog.")
     confirmButton.onClick() ->
         confirmButton.releaseKeyboardFocus(GetTriggerPlayer())
@@ -109,7 +115,8 @@ function buildComponentsPanel(UIConfirmDialog confirm, UIDialog custom)
     ..row()..add(label("UI bar", NAME_W))..add(bar.create())
     ..row()..add(label("Checkbox", NAME_W))..add(check.getFrame())
     ..row()..add(label("Button", NAME_W))..add(textButton("Click", 0.08, 0.024))
-    ..row()..add(label("Icon button", NAME_W))..add(iconButton(Icons.bTNHumanBuild, 0.024))
+    // Click repeatedly: visibility toggles must not accelerate the autocast animation.
+    ..row()..add(label("Autocast", NAME_W))..add(autocastButton)
     ..row()..add(label("Dialogs", NAME_W))..add(confirmButton)..add(customButton)
     ..row()..middle()..add(label("Text area", NAME_W))..add(textArea(NOTES_TEXT, 0.13, 0.064))
     layout.applyTo(root)
