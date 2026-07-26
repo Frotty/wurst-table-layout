@@ -418,23 +418,26 @@ Facts that shape correct usage (do not fight these):
 
 ## Multiboard Attach
 
-Use `attachToMultiboard` when custom content should live inside the default multiboard shell and reuse its minimize/maximize behavior.
+Use the `MultiboardAttach` helpers when custom content should live inside the default multiboard shell
+and reuse its minimize/maximize behavior.
 
 ```wurst
-attachToMultiboard(mb, "DemoMb", 0.22, 0.08, true, (uiParent, anchor) -> begin
-    let layout = new TableLayout(0.22, 0.08, "DemoMbLayout")
+attachTableLayoutToMultiboard(mb, "DemoMb", 0.22, true, uiParent -> begin
+    let layout = new TableLayout(0.22, 0., "DemoMbLayout")
     layout.padding = padding(0.006, 0.012, 0.006, 0.012)
     layout
     ..row()..add(h3("Score")..setSize(0.18, 0.02))..growX()
     ..row()..add(p("Player")..setSize(0.12, 0.012))..add(p("10")..setSize(0.04, 0.012))..growX()
-    layout.applyTo(anchor)
-    return anchor
+    return layout
 end)
 ```
 
 Multiboard-specific cautions:
 
-- Make the multiboard large enough for the content height, or let `autoRowsEnabled` fit rows.
+- Prefer `attachTableLayoutToMultiboard` for table content. It measures the required height and lets
+  `autoRowsEnabled` fit native rows; call `refreshAttachedMultiboardLayout()` after row mutations.
+- For non-table content, make the multiboard large enough for the content height or let
+  `autoRowsEnabled` fit rows.
 - The width passed to `attachToMultiboard` controls both the custom body and title. Use
   `attachToMultiboardSized` when those widths intentionally differ.
 - The Blizzard multiboard shell is shared: only one custom attachment can be active per client.

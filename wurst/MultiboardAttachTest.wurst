@@ -10,23 +10,20 @@ public function runMultiboardAttachTest()
     ..setColumnCount(1)
     ..display(true)
 
-    attachToMultiboardSized(
+    attachTableLayoutToMultiboard(
         mb,
         "DemoMb",
-        0.16,
         0.165,
-        0.09,
         true,
-        (uiParent, anchor) -> begin
-            let layout = new TableLayout(0.16, 0.09, "DemoMbLayout")
+        uiParent -> begin
+            let layout = new TableLayout(0.16, 0., "DemoMbLayout")
             layout.padding = padding(0.006, 0.012, 0.006, 0.012)
             layout.gap(0, 0.003)
             layout
             ..row()..add(h3("Attach test")..setSize(0.13, 0.018))..growX()
             ..row()..center()..add(img("ReplaceableTextures\\CommandButtons\\BTNSelectHeroOn.blp", 0.024, 0.024))
             ..row()..add(p("img + text")..setSize(0.13, 0.012))..growX()
-            layout.applyTo(anchor) // anchor == itemContainer
-            return anchor
+            return layout
         end
     )
 

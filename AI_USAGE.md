@@ -334,19 +334,21 @@ boss.getFrame().hide()
 import MultiboardAttach
 import TableLayout
 
-attachToMultiboard(mb, "ScoreMb", 0.22, 0.08, true, (uiParent, anchor) -> begin
-    let layout = new TableLayout(0.22, 0.08, "ScoreLayout")
+attachTableLayoutToMultiboard(mb, "ScoreMb", 0.22, true, uiParent -> begin
+    let layout = new TableLayout(0.22, 0., "ScoreLayout")
     layout.padding = padding(0.006, 0.012, 0.006, 0.012)
     layout
     ..row()..add(h3("Score")..setSize(0.20, 0.02))..growX()
     ..row()..add(p("Player")..setSize(0.12, 0.012))..add(p("10")..setSize(0.04, 0.012))..growX()
-    layout.applyTo(anchor)
-    return anchor
+    return layout
 end)
 ```
 
-The width argument owns both the custom body and title shell. If they intentionally differ, use
-`attachToMultiboardSized(mb, name, panelWidth, titleWidth, height, hideItems, builder)`.
+Prefer `attachTableLayoutToMultiboard` for table content: the layout width owns the body, the width
+argument owns the title shell, and the helper measures the exact required height from rows, gaps, cell
+padding, and table padding. Call `refreshAttachedMultiboardLayout()` after dynamically adding or removing
+rows. For non-TableLayout content, use `attachToMultiboard`; if its body and title widths intentionally
+differ, use `attachToMultiboardSized`.
 
 The helper defines and owns its multiboard backdrop, hides the native body backdrop, and continuously
 reasserts geometry because Warcraft III rewrites the shared shell after minimize/maximize, timer-dialog,

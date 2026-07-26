@@ -561,10 +561,23 @@ public class TableLayout
             if gridWidth > avail + 0.0001
                 report.reportRowOverflow(-1, gridWidth - avail)
         contentHeight += max(0, rows.size() - 1).toReal() * gapY
+        report.requiredHeight = contentHeight + padding.getHeight()
         let availHeight = height - padding.getHeight()
         if contentHeight > availHeight + 0.0001
             report.reportVerticalOverflow(contentHeight - availHeight)
         return report
+
+    /** Returns the exact declared height needed by the current rows, gaps, cell padding, and table padding. */
+    function requiredHeight() returns real
+        let report = inspect()
+        let result = report.requiredHeight
+        destroy report
+        return result
+
+    /** Resizes this table to its declared content and returns the new height. */
+    function fitHeightToContent() returns real
+        height = requiredHeight()
+        return height
 
     /** True when inspect() finds no overflow or zero-size problems. Leak-free; ideal for assertions. */
     function checkFits() returns boolean
@@ -902,6 +915,7 @@ public class LayoutReport
     var rowOverflowCount = 0
     var textOverflow = 0
     var verticalOverflow = false
+    var requiredHeight = 0.
     var worstOverflowX = 0.
     var summary = ""
     var textOverflowSummary = ""

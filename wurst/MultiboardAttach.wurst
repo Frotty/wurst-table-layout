@@ -1,12 +1,14 @@
 package MultiboardAttach
 import FramehandleNames
 import ClosureTimers
+import TableLayout
 
 /*
     Attach custom content to the existing multiboard UI (reuse maximize/minimize behavior),
     and recreate the usual multiboard "panel" backdrop behind your content.
 
-    /!\ You must set your multiboard to have an appropriate amount of rows to fit your content height. /!\ 
+    Non-TableLayout callers must provide an accurate content height. Table layouts should use
+    attachTableLayoutToMultiboard(), which measures their rows and padding.
 
     Minimal hello-world test using TableLayout (with multiboard-style backdrop):
     
@@ -16,15 +18,14 @@ import ClosureTimers
     ..show()
     ..setTitle("Demo Board")
 
-    attachToMultiboard(mb, "DemoMb", 0.22, 0.08, true,
-        (uiParent, anchor) -> begin
-            let layout = new TableLayout(0.22, 0.1, "DemoMbLayout")
+    attachTableLayoutToMultiboard(mb, "DemoMb", 0.22, true,
+        uiParent -> begin
+            let layout = new TableLayout(0.22, 0., "DemoMbLayout")
             layout.padding = padding(0.006, 0.012, 0.006, 0.012)
             layout
             ..row()
-            ..add(p("Hello world"))
-            layout.applyTo(anchor)
-            return anchor
+            ..add(p("Hello world")..setSize(0.18, 0.014))
+            return layout
         end
     )
 */
@@ -38,6 +39,8 @@ framehandle attachedItemContainer = null
 framehandle attachedPanelBackdrop = null
 framehandle attachedNativeBackdrop = null
 framehandle attachedTitleBackdrop = null
+multiboard attachedBoard = null
+TableLayout attachedLayout = null
 real attachedPanelWidth = 0.
 real attachedTitleWidth = 0.
 real attachedContentHeight = 0.
@@ -49,6 +52,9 @@ function rowsNeededFor(real contentHeight) returns int
 
 public interface MultiboardContentBuilder
     function build(framehandle uiParent, framehandle anchor) returns framehandle
+
+public interface MultiboardLayoutBuilder
+    function build(framehandle uiParent) returns TableLayout
 
 public function fitMultiboardRowsToHeight(multiboard board, real contentHeight)
     board.setRowCount(rowsNeededFor(contentHeight))
@@ -75,6 +81,21 @@ public function refreshAttachedMultiboard()
 
     if attachedPanelBackdrop != null
         attachedPanelBackdrop.show()
+
+/**
+    Re-measure and apply the active TableLayout attachment after rows are added or removed.
+*/
+public function refreshAttachedMultiboardLayout()
+    if attachedLayout == null or attachedItemContainer == null
+        refreshAttachedMultiboard()
+        return
+
+    attachedPanelWidth = max(attachedLayout.width, 0.001)
+    attachedContentHeight = max(attachedLayout.fitHeightToContent(), rowHeightEstimate)
+    if autoRowsEnabled and attachedBoard != null
+        fitMultiboardRowsToHeight(attachedBoard, attachedContentHeight)
+    attachedLayout.applyTo(attachedItemContainer)
+    refreshAttachedMultiboard()
 
 function ensureAttachedMultiboardRefreshTicker()
     if attachedRefreshTicker == null
@@ -121,6 +142,8 @@ public function attachToMultiboardSized(
     attachedPanelBackdrop = panelBackdrop
     attachedNativeBackdrop = backdrop
     attachedTitleBackdrop = titleBackdrop
+    attachedBoard = board
+    attachedLayout = null
     attachedPanelWidth = max(panelWidth, 0.001)
     attachedTitleWidth = titleBackdropWidth
     attachedContentHeight = max(contentHeight, rowHeightEstimate)
@@ -137,6 +160,48 @@ public function attachToMultiboardSized(
     refreshAttachedMultiboard()
     ensureAttachedMultiboardRefreshTicker()
 
+    return itemContainer
+
+/**
+    Build, measure, and attach a TableLayout to the native multiboard shell.
+
+    The layout's declared rows are the height authority; callers do not need to duplicate row-height
+    arithmetic or run their own geometry refresh timer. Call refreshAttachedMultiboardLayout() after
+    dynamically adding or removing rows.
+*/
+public function attachTableLayoutToMultiboard(
+    multiboard board,
+    string baseName,
+    real titleBackdropWidth,
+    boolean hideDefaultMultiboardItems,
+    MultiboardLayoutBuilder builder
+) returns framehandle
+    if builder == null
+        return null
+
+    // Establish the final container first, then build the table under it from birth. This avoids the
+    // dual-parent behavior caused by creating cells under GAME_UI/listContainer and reparenting later.
+    let itemContainer = attachToMultiboardSized(
+        board,
+        baseName,
+        0.001,
+        titleBackdropWidth,
+        rowHeightEstimate,
+        hideDefaultMultiboardItems,
+        null
+    )
+    if itemContainer == null
+        return null
+
+    let previousParent = defaultFrameParent
+    defaultFrameParent = itemContainer
+    let layout = builder.build(itemContainer)
+    defaultFrameParent = previousParent
+    if layout == null
+        return itemContainer
+
+    attachedLayout = layout
+    refreshAttachedMultiboardLayout()
     return itemContainer
 
 /**

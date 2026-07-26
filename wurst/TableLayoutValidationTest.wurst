@@ -68,6 +68,21 @@ function detectsVerticalOverflow()
     destroy t
 
 @Test
+function requiredHeightIncludesRowsGapsAndPadding()
+    let t = new TableLayout(0.2, 0.01, "MeasuredHeight")
+    t.padding = padding(0.01, 0.02, 0.03, 0.04)
+    t.gap(0., 0.005)
+    t..row()..addSized(0.05, 0.02)..pad(0.001, 0., 0.002, 0.)
+    t..row()..addSized(0.05, 0.03)
+
+    // table padding 0.04 + rows 0.023/0.03 + one 0.005 row gap
+    t.requiredHeight().assertEquals(0.098, 0.0001)
+    t.fitHeightToContent().assertEquals(0.098, 0.0001)
+    t.height.assertEquals(0.098, 0.0001)
+    t.checkFits().assertTrue()
+    destroy t
+
+@Test
 function growCellNotFlaggedAsZeroWidth()
     let t = new TableLayout(0.2, 0.05)
     t.padding = padding(0, 0, 0, 0)
