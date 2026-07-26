@@ -344,11 +344,12 @@ attachTableLayoutToMultiboard(mb, "ScoreMb", true, uiParent -> begin
 end)
 ```
 
-Prefer `attachTableLayoutToMultiboard` for table content: the layout width owns both the native title
-and body shell, and the helper measures the exact required height from rows, gaps, cell padding, and
-table padding. Call `refreshAttachedMultiboardLayout()` after dynamically adding or removing rows. For
-non-TableLayout content, use `attachToMultiboard`; if its content and title widths intentionally differ,
-use `attachToMultiboardSized`.
+Prefer `attachTableLayoutToMultiboard` for table content: the layout width owns the native title and
+content, while the body backdrop includes the adjacent minimize-button width so its outer edges match
+the complete header. The helper measures exact height from rows, gaps, cell padding, and table padding.
+Call `refreshAttachedMultiboardLayout()` after dynamically adding or removing rows. For non-TableLayout
+content, use `attachToMultiboard`; if its content and title widths intentionally differ, use
+`attachToMultiboardSized`.
 
 The helper keeps the native multiboard backdrop as the single panel background and continuously reasserts
 its exact measured width and height because Warcraft III's synthetic native rows have different geometry

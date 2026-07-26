@@ -73,11 +73,15 @@ public function refreshAttachedMultiboard()
     if attachedTitleBackdrop != null and attachedTitleWidth > 0.
         attachedTitleBackdrop.setWidth(attachedTitleWidth)
         var rightAnchor = attachedTitleBackdrop
+        var shellWidth = attachedPanelWidth
         if attachedMinimizeButton != null
             rightAnchor = attachedMinimizeButton
+            // Visual-only local frame geometry: the native title's knob sits beside, not inside,
+            // the title backdrop width. Include it so the body matches the full visible header.
+            shellWidth += attachedMinimizeButton.getWidth()
         attachedNativeBackdrop
         ..clearAllPoints()
-        ..setSize(attachedPanelWidth, attachedContentHeight)
+        ..setSize(shellWidth, attachedContentHeight)
         ..setPoint(FRAMEPOINT_TOPRIGHT, rightAnchor, FRAMEPOINT_BOTTOMRIGHT, vec2(0, 0))
 
     attachedItemContainer
@@ -159,9 +163,10 @@ public function attachToMultiboardSized(
 /**
     Build, measure, and attach a TableLayout to the native multiboard shell.
 
-    The layout width owns both the title and body width, and its declared rows are the height authority.
-    Callers do not need to duplicate geometry arithmetic or run their own refresh timer. Call
-    refreshAttachedMultiboardLayout() after dynamically adding or removing rows.
+    The layout width owns the title and content width; the native body also includes the adjacent
+    minimize-button width so its outer edges match the complete header. Declared rows are the height
+    authority. Callers do not need to duplicate geometry arithmetic or run their own refresh timer.
+    Call refreshAttachedMultiboardLayout() after dynamically adding or removing rows.
 */
 public function attachTableLayoutToMultiboard(
     multiboard board,
