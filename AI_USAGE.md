@@ -334,7 +334,7 @@ boss.getFrame().hide()
 import MultiboardAttach
 import TableLayout
 
-attachTableLayoutToMultiboard(mb, "ScoreMb", 0.22, true, uiParent -> begin
+attachTableLayoutToMultiboard(mb, "ScoreMb", true, uiParent -> begin
     let layout = new TableLayout(0.22, 0., "ScoreLayout")
     layout.padding = padding(0.006, 0.012, 0.006, 0.012)
     layout
@@ -344,16 +344,16 @@ attachTableLayoutToMultiboard(mb, "ScoreMb", 0.22, true, uiParent -> begin
 end)
 ```
 
-Prefer `attachTableLayoutToMultiboard` for table content: the layout width owns the body, the width
-argument owns the title shell, and the helper measures the exact required height from rows, gaps, cell
-padding, and table padding. Call `refreshAttachedMultiboardLayout()` after dynamically adding or removing
-rows. For non-TableLayout content, use `attachToMultiboard`; if its body and title widths intentionally
-differ, use `attachToMultiboardSized`.
+Prefer `attachTableLayoutToMultiboard` for table content: the layout width owns both the native title
+and body shell, and the helper measures the exact required height from rows, gaps, cell padding, and
+table padding. Call `refreshAttachedMultiboardLayout()` after dynamically adding or removing rows. For
+non-TableLayout content, use `attachToMultiboard`; if its content and title widths intentionally differ,
+use `attachToMultiboardSized`.
 
-The helper defines and owns its multiboard backdrop, hides the native body backdrop, and continuously
-reasserts geometry because Warcraft III rewrites the shared shell after minimize/maximize, timer-dialog,
+The helper keeps the native multiboard backdrop as the single panel background and continuously reasserts
+content geometry because Warcraft III rewrites the shared shell after minimize/maximize, timer-dialog,
 and show transitions. Only one custom attachment can be active per client; attaching another retires the
-previous custom container/backdrop. After changing multiboard behavior, manually verify minimize/maximize.
+previous custom container. After changing multiboard behavior, manually verify minimize/maximize.
 
 ## Layout Defaults
 

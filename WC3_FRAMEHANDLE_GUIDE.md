@@ -422,7 +422,7 @@ Use the `MultiboardAttach` helpers when custom content should live inside the de
 and reuse its minimize/maximize behavior.
 
 ```wurst
-attachTableLayoutToMultiboard(mb, "DemoMb", 0.22, true, uiParent -> begin
+attachTableLayoutToMultiboard(mb, "DemoMb", true, uiParent -> begin
     let layout = new TableLayout(0.22, 0., "DemoMbLayout")
     layout.padding = padding(0.006, 0.012, 0.006, 0.012)
     layout
@@ -435,15 +435,16 @@ end)
 Multiboard-specific cautions:
 
 - Prefer `attachTableLayoutToMultiboard` for table content. It measures the required height and lets
-  `autoRowsEnabled` fit native rows; call `refreshAttachedMultiboardLayout()` after row mutations.
+  `autoRowsEnabled` fit native rows. Its layout width controls both the native title and body shell;
+  call `refreshAttachedMultiboardLayout()` after row mutations.
 - For non-table content, make the multiboard large enough for the content height or let
   `autoRowsEnabled` fit rows.
 - The width passed to `attachToMultiboard` controls both the custom body and title. Use
   `attachToMultiboardSized` when those widths intentionally differ.
 - The Blizzard multiboard shell is shared: only one custom attachment can be active per client.
 - Native minimize/maximize, timer-dialog, and show transitions rewrite default frame geometry. The helper
-  continuously reasserts its cached dimensions and suppresses the native body backdrop; do not add a second
-  map-owned multiboard backdrop or a competing geometry timer.
+  continuously reasserts its cached dimensions while keeping the native body backdrop as the single
+  panel background; do not add a second map-owned multiboard backdrop or a competing geometry timer.
 - Verify maximize/minimize manually after changes.
 
 ## Tooltips

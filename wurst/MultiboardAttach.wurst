@@ -4,8 +4,8 @@ import ClosureTimers
 import TableLayout
 
 /*
-    Attach custom content to the existing multiboard UI (reuse maximize/minimize behavior),
-    and recreate the usual multiboard "panel" backdrop behind your content.
+    Attach custom content to the existing multiboard UI (reuse maximize/minimize behavior).
+    The native multiboard backdrop remains the single panel background.
 
     Non-TableLayout callers must provide an accurate content height. Table layouts should use
     attachTableLayoutToMultiboard(), which measures their rows and padding.
@@ -18,7 +18,7 @@ import TableLayout
     ..show()
     ..setTitle("Demo Board")
 
-    attachTableLayoutToMultiboard(mb, "DemoMb", 0.22, true,
+    attachTableLayoutToMultiboard(mb, "DemoMb", true,
         uiParent -> begin
             let layout = new TableLayout(0.22, 0., "DemoMbLayout")
             layout.padding = padding(0.006, 0.012, 0.006, 0.012)
@@ -36,7 +36,6 @@ public var rowHeightEstimate = 0.0125
 constant ATTACH_REFRESH_PERIOD = 0.03
 
 framehandle attachedItemContainer = null
-framehandle attachedPanelBackdrop = null
 framehandle attachedNativeBackdrop = null
 framehandle attachedTitleBackdrop = null
 multiboard attachedBoard = null
@@ -70,7 +69,6 @@ public function refreshAttachedMultiboard()
     if attachedItemContainer == null or attachedNativeBackdrop == null
         return
 
-    attachedNativeBackdrop.hide()
     if attachedTitleBackdrop != null and attachedTitleWidth > 0.
         attachedTitleBackdrop.setWidth(attachedTitleWidth)
 
@@ -78,9 +76,6 @@ public function refreshAttachedMultiboard()
     ..clearAllPoints()
     ..setSize(attachedPanelWidth, attachedContentHeight)
     ..setPoint(FRAMEPOINT_TOPRIGHT, attachedNativeBackdrop, FRAMEPOINT_TOPRIGHT, vec2(0, 0))
-
-    if attachedPanelBackdrop != null
-        attachedPanelBackdrop.show()
 
 /**
     Re-measure and apply the active TableLayout attachment after rows are added or removed.
@@ -128,18 +123,10 @@ public function attachToMultiboardSized(
     // leaving its container/backdrop stacked under the new one.
     if attachedItemContainer != null
         attachedItemContainer.hide()
-    if attachedPanelBackdrop != null
-        attachedPanelBackdrop.hide()
-
     let itemContainer = createFrame("FRAME", baseName + "_ItemContainer", listContainer, "", 0)
     itemContainer.setLevel(1)
 
-    let panelBackdrop = createFrame("TableUiMultiboardBackdrop", listContainer, 0, 1)
-    if panelBackdrop != null
-        panelBackdrop..setLevel(0)..disable()
-
     attachedItemContainer = itemContainer
-    attachedPanelBackdrop = panelBackdrop
     attachedNativeBackdrop = backdrop
     attachedTitleBackdrop = titleBackdrop
     attachedBoard = board
@@ -147,9 +134,6 @@ public function attachToMultiboardSized(
     attachedPanelWidth = max(panelWidth, 0.001)
     attachedTitleWidth = titleBackdropWidth
     attachedContentHeight = max(contentHeight, rowHeightEstimate)
-
-    if panelBackdrop != null
-        panelBackdrop.setAllPoints(itemContainer)
 
     refreshAttachedMultiboard()
 
@@ -165,14 +149,13 @@ public function attachToMultiboardSized(
 /**
     Build, measure, and attach a TableLayout to the native multiboard shell.
 
-    The layout's declared rows are the height authority; callers do not need to duplicate row-height
-    arithmetic or run their own geometry refresh timer. Call refreshAttachedMultiboardLayout() after
-    dynamically adding or removing rows.
+    The layout width owns both the title and body width, and its declared rows are the height authority.
+    Callers do not need to duplicate geometry arithmetic or run their own refresh timer. Call
+    refreshAttachedMultiboardLayout() after dynamically adding or removing rows.
 */
 public function attachTableLayoutToMultiboard(
     multiboard board,
     string baseName,
-    real titleBackdropWidth,
     boolean hideDefaultMultiboardItems,
     MultiboardLayoutBuilder builder
 ) returns framehandle
@@ -185,7 +168,7 @@ public function attachTableLayoutToMultiboard(
         board,
         baseName,
         0.001,
-        titleBackdropWidth,
+        0.001,
         rowHeightEstimate,
         hideDefaultMultiboardItems,
         null
@@ -201,11 +184,12 @@ public function attachTableLayoutToMultiboard(
         return itemContainer
 
     attachedLayout = layout
+    attachedTitleWidth = layout.width
     refreshAttachedMultiboardLayout()
     return itemContainer
 
 /**
-    Attach custom content to a multiboard, recreating the usual multiboard backdrop.
+    Attach custom content inside the native multiboard backdrop.
 */
 public function attachToMultiboard(
     multiboard board,

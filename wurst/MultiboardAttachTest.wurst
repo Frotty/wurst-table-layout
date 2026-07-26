@@ -13,7 +13,6 @@ public function runMultiboardAttachTest()
     attachTableLayoutToMultiboard(
         mb,
         "DemoMb",
-        0.165,
         true,
         uiParent -> begin
             let layout = new TableLayout(0.16, 0., "DemoMbLayout")
