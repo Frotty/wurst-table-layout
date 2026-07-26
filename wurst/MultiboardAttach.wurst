@@ -38,6 +38,7 @@ constant ATTACH_REFRESH_PERIOD = 0.03
 framehandle attachedItemContainer = null
 framehandle attachedNativeBackdrop = null
 framehandle attachedTitleBackdrop = null
+framehandle attachedMinimizeButton = null
 multiboard attachedBoard = null
 TableLayout attachedLayout = null
 real attachedPanelWidth = 0.
@@ -71,10 +72,13 @@ public function refreshAttachedMultiboard()
 
     if attachedTitleBackdrop != null and attachedTitleWidth > 0.
         attachedTitleBackdrop.setWidth(attachedTitleWidth)
+        var rightAnchor = attachedTitleBackdrop
+        if attachedMinimizeButton != null
+            rightAnchor = attachedMinimizeButton
         attachedNativeBackdrop
         ..clearAllPoints()
         ..setSize(attachedPanelWidth, attachedContentHeight)
-        ..setPoint(FRAMEPOINT_TOPRIGHT, attachedTitleBackdrop, FRAMEPOINT_BOTTOMRIGHT, vec2(0, 0))
+        ..setPoint(FRAMEPOINT_TOPRIGHT, rightAnchor, FRAMEPOINT_BOTTOMRIGHT, vec2(0, 0))
 
     attachedItemContainer
     ..clearAllPoints()
@@ -115,6 +119,7 @@ public function attachToMultiboardSized(
 
     let titleBackdrop = getFrame(FramehandleDefaultNames.multiboardTitleBackdrop)
     let backdrop      = getFrame(FramehandleDefaultNames.multiboardBackdrop)
+    let minimizeBtn   = getFrame(FramehandleDefaultNames.multiboardMinimizeButton)
     let listContainer = getFrame(FramehandleDefaultNames.multiboardListContainer)
 
     if hideDefaultMultiboardItems
@@ -133,6 +138,7 @@ public function attachToMultiboardSized(
     attachedItemContainer = itemContainer
     attachedNativeBackdrop = backdrop
     attachedTitleBackdrop = titleBackdrop
+    attachedMinimizeButton = minimizeBtn
     attachedBoard = board
     attachedLayout = null
     attachedPanelWidth = max(panelWidth, 0.001)
