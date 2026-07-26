@@ -435,9 +435,9 @@ end)
 Multiboard-specific cautions:
 
 - Prefer `attachTableLayoutToMultiboard` for table content. It measures the required height and lets
-  `autoRowsEnabled` fit native rows. Its layout width controls the native title and content; the body
-  backdrop additionally spans the adjacent minimize button so its outer edges match the complete
-  header. Call `refreshAttachedMultiboardLayout()` after row mutations.
+  `autoRowsEnabled` fit native rows. Its layout width controls the native title and content; keep
+  Blizzard's backdrop anchors untouched because they already span the title plus minimize button.
+  Call `refreshAttachedMultiboardLayout()` after row mutations.
 - For non-table content, make the multiboard large enough for the content height or let
   `autoRowsEnabled` fit rows.
 - The width passed to `attachToMultiboard` controls both the custom body and title. Use

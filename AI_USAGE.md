@@ -345,9 +345,9 @@ end)
 ```
 
 Prefer `attachTableLayoutToMultiboard` for table content: the layout width owns the native title and
-content, while the body backdrop includes the adjacent minimize-button width so its outer edges match
-the complete header. The helper measures exact height from rows, gaps, cell padding, and table padding.
-Call `refreshAttachedMultiboardLayout()` after dynamically adding or removing rows. For non-TableLayout
+content, while Blizzard's untouched backdrop anchors span the title plus minimize button. The helper
+measures exact height from rows, gaps, cell padding, and table padding. Call
+`refreshAttachedMultiboardLayout()` after dynamically adding or removing rows. For non-TableLayout
 content, use `attachToMultiboard`; if its content and title widths intentionally differ, use
 `attachToMultiboardSized`.
 

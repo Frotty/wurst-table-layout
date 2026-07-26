@@ -38,7 +38,6 @@ constant ATTACH_REFRESH_PERIOD = 0.03
 framehandle attachedItemContainer = null
 framehandle attachedNativeBackdrop = null
 framehandle attachedTitleBackdrop = null
-framehandle attachedMinimizeButton = null
 multiboard attachedBoard = null
 TableLayout attachedLayout = null
 real attachedPanelWidth = 0.
@@ -72,17 +71,10 @@ public function refreshAttachedMultiboard()
 
     if attachedTitleBackdrop != null and attachedTitleWidth > 0.
         attachedTitleBackdrop.setWidth(attachedTitleWidth)
-        var rightAnchor = attachedTitleBackdrop
-        var shellWidth = attachedPanelWidth
-        if attachedMinimizeButton != null
-            rightAnchor = attachedMinimizeButton
-            // Visual-only local frame geometry: the native title's knob sits beside, not inside,
-            // the title backdrop width. Include it so the body matches the full visible header.
-            shellWidth += attachedMinimizeButton.getWidth()
-        attachedNativeBackdrop
-        ..clearAllPoints()
-        ..setSize(shellWidth, attachedContentHeight)
-        ..setPoint(FRAMEPOINT_TOPRIGHT, rightAnchor, FRAMEPOINT_BOTTOMRIGHT, vec2(0, 0))
+
+    // Preserve Blizzard's native horizontal anchors: TOPLEFT is attached to the title and TOPRIGHT
+    // to the minimize button, so they already span the complete visible header. Only height is ours.
+    attachedNativeBackdrop.setHeight(attachedContentHeight)
 
     attachedItemContainer
     ..clearAllPoints()
@@ -123,7 +115,6 @@ public function attachToMultiboardSized(
 
     let titleBackdrop = getFrame(FramehandleDefaultNames.multiboardTitleBackdrop)
     let backdrop      = getFrame(FramehandleDefaultNames.multiboardBackdrop)
-    let minimizeBtn   = getFrame(FramehandleDefaultNames.multiboardMinimizeButton)
     let listContainer = getFrame(FramehandleDefaultNames.multiboardListContainer)
 
     if hideDefaultMultiboardItems
@@ -142,7 +133,6 @@ public function attachToMultiboardSized(
     attachedItemContainer = itemContainer
     attachedNativeBackdrop = backdrop
     attachedTitleBackdrop = titleBackdrop
-    attachedMinimizeButton = minimizeBtn
     attachedBoard = board
     attachedLayout = null
     attachedPanelWidth = max(panelWidth, 0.001)
@@ -163,10 +153,10 @@ public function attachToMultiboardSized(
 /**
     Build, measure, and attach a TableLayout to the native multiboard shell.
 
-    The layout width owns the title and content width; the native body also includes the adjacent
-    minimize-button width so its outer edges match the complete header. Declared rows are the height
-    authority. Callers do not need to duplicate geometry arithmetic or run their own refresh timer.
-    Call refreshAttachedMultiboardLayout() after dynamically adding or removing rows.
+    The layout width owns the title and content width. Blizzard's native backdrop anchors already span
+    the title plus minimize button, while declared rows are the height authority. Callers do not need
+    to duplicate geometry arithmetic or run their own refresh timer. Call
+    refreshAttachedMultiboardLayout() after dynamically adding or removing rows.
 */
 public function attachTableLayoutToMultiboard(
     multiboard board,
