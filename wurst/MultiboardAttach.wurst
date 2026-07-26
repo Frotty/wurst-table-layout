@@ -62,8 +62,8 @@ public function fitMultiboardRowsToHeight(multiboard board, real contentHeight)
     Reassert the geometry owned by the active multiboard attachment.
 
     Warcraft III rewrites the shared multiboard frames after minimize/maximize, timer-dialog changes,
-    and some show calls. Keeping this visual-only geometry authoritative prevents the custom content
-    from being squeezed back to the native item width.
+    and some show calls. Keep the native body at the measured layout size: its synthetic native rows
+    are bookkeeping and use a different height from TableLayout rows.
 */
 public function refreshAttachedMultiboard()
     if attachedItemContainer == null or attachedNativeBackdrop == null
@@ -71,6 +71,10 @@ public function refreshAttachedMultiboard()
 
     if attachedTitleBackdrop != null and attachedTitleWidth > 0.
         attachedTitleBackdrop.setWidth(attachedTitleWidth)
+        attachedNativeBackdrop
+        ..clearAllPoints()
+        ..setSize(attachedPanelWidth, attachedContentHeight)
+        ..setPoint(FRAMEPOINT_TOPRIGHT, attachedTitleBackdrop, FRAMEPOINT_BOTTOMRIGHT, vec2(0, 0))
 
     attachedItemContainer
     ..clearAllPoints()

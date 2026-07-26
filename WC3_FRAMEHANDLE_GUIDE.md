@@ -443,8 +443,9 @@ Multiboard-specific cautions:
   `attachToMultiboardSized` when those widths intentionally differ.
 - The Blizzard multiboard shell is shared: only one custom attachment can be active per client.
 - Native minimize/maximize, timer-dialog, and show transitions rewrite default frame geometry. The helper
-  continuously reasserts its cached dimensions while keeping the native body backdrop as the single
-  panel background; do not add a second map-owned multiboard backdrop or a competing geometry timer.
+  continuously reasserts the measured layout dimensions while keeping the native body backdrop as the
+  single panel background. Native row count is only shell bookkeeping; do not size content from it, add
+  a second map-owned multiboard backdrop, or run a competing geometry timer.
 - Verify maximize/minimize manually after changes.
 
 ## Tooltips

@@ -351,9 +351,10 @@ non-TableLayout content, use `attachToMultiboard`; if its content and title widt
 use `attachToMultiboardSized`.
 
 The helper keeps the native multiboard backdrop as the single panel background and continuously reasserts
-content geometry because Warcraft III rewrites the shared shell after minimize/maximize, timer-dialog,
-and show transitions. Only one custom attachment can be active per client; attaching another retires the
-previous custom container. After changing multiboard behavior, manually verify minimize/maximize.
+its exact measured width and height because Warcraft III's synthetic native rows have different geometry
+and the shared shell is rewritten after minimize/maximize, timer-dialog, and show transitions. Only one
+custom attachment can be active per client; attaching another retires the previous custom container.
+After changing multiboard behavior, manually verify minimize/maximize.
 
 ## Layout Defaults
 
