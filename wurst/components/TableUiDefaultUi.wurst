@@ -82,12 +82,12 @@ public function heroBar() returns framehandle
     via these named frames (the origin frames glitch when moved in 1.32+). They reappear/update on
     every unit selection. */
 public function commandButton(int index) returns framehandle
-    return getFrame("CommandButton_" + index.toString())
+    return getFrame("CommandButton_" + index)
 
 /** Inventory item button 0..5 ("InventoryButton_N", 1.32+). Same reappear-on-selection rule as
     command buttons. */
 public function inventoryButton(int index) returns framehandle
-    return getFrame("InventoryButton_" + index.toString())
+    return getFrame("InventoryButton_" + index)
 
 // --- Visibility helpers ----------------------------------------------------------
 

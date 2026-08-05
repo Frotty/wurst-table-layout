@@ -289,7 +289,7 @@ function buildShowcasePanel()
     let woodCard = barCard("Lumber", lumber("640"), woodBar, cardW)
     cardGroup.add(goldCard).setSelected(true)   // pre-select one so it is obvious the cards are clickable
     cardGroup.add(woodCard)
-    cardGroup.onSelect(idx -> print("|cff40ff40clicked card " + idx.toString() + " while its bar animates -> overlay still works|r"))
+    cardGroup.onSelect(idx -> print("|cff40ff40clicked card " + idx + " while its bar animates -> overlay still works|r"))
     let statsLayout = new TableLayout(inner, 0.058, "StatsTab")
     statsLayout.padding = padding(0.002, 0.002, 0.002, 0.002)
     statsLayout.gap(0.004, 0)

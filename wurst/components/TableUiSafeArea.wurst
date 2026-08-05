@@ -44,8 +44,8 @@ public function vec2.clampToSafeArea(real width, real height) returns vec2
 public function framehandle.placeVisuallySafe(vec2 desiredTopLeft, real width, real height)
     let safe = desiredTopLeft.clampToVisualSafeArea(width, height)
     if tableWarnings and (safe.x != desiredTopLeft.x or safe.y != desiredTopLeft.y)
-        Log.warn("placeVisuallySafe: requested (" + desiredTopLeft.x.toString() + ", " + desiredTopLeft.y.toString()
-            + ") overlaps the melee HUD / 4:3 edge; clamped to (" + safe.x.toString() + ", " + safe.y.toString() + ").")
+        Log.warn("placeVisuallySafe: requested (" + desiredTopLeft.x + ", " + desiredTopLeft.y
+            + ") overlaps the melee HUD / 4:3 edge; clamped to (" + safe.x + ", " + safe.y + ").")
     this.clearAndSetAbsPoint(FRAMEPOINT_TOPLEFT, safe)
 
 /** Places a frame's TOPLEFT inside the safe area, warning (tableWarnings) if it had to move it
@@ -53,8 +53,8 @@ public function framehandle.placeVisuallySafe(vec2 desiredTopLeft, real width, r
 public function framehandle.placeSafe(vec2 desiredTopLeft, real width, real height)
     let safe = desiredTopLeft.clampToSafeArea(width, height)
     if tableWarnings and (safe.x != desiredTopLeft.x or safe.y != desiredTopLeft.y)
-        Log.warn("placeSafe: requested (" + desiredTopLeft.x.toString() + ", " + desiredTopLeft.y.toString()
-            + ") overlaps the melee HUD / 4:3 edge / idle buttons; clamped to (" + safe.x.toString() + ", " + safe.y.toString() + ").")
+        Log.warn("placeSafe: requested (" + desiredTopLeft.x + ", " + desiredTopLeft.y
+            + ") overlaps the melee HUD / 4:3 edge / idle buttons; clamped to (" + safe.x + ", " + safe.y + ").")
     this.clearAndSetAbsPoint(FRAMEPOINT_TOPLEFT, safe)
 
 function setSafeAreaDebugFramesVisibleFor(player p, boolean visible)

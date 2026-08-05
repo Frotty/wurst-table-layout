@@ -98,7 +98,7 @@ public class TableLayout
     construct(real width, real height)
         this.width = width
         this.height = height
-        this.name = "Table#" + (this castTo int).toString()
+        this.name = "Table#" + (this castTo int)
 
     construct(real width, real height, string name)
         this.width = width
@@ -400,7 +400,7 @@ public class TableLayout
         // Tolerate float rounding so a layout whose content exactly fills the height (content == available)
         // does not spuriously warn; matches the epsilon used by inspect()/checkFits().
         if tableWarnings and remainingHeight < -0.0001
-            Log.warn("Table " + name + " vertical overflow: content height " + (contentHeight + rowGapTotal).toString() + " exceeds available height " + (height - padding.getHeight()).toString())
+            Log.warn("Table " + name + " vertical overflow: content height " + (contentHeight + rowGapTotal) + " exceeds available height " + (height - padding.getHeight()))
 
         count = 0
         for row in rows
@@ -411,7 +411,7 @@ public class TableLayout
             // EXACTLY via growX computes fixed + (available - fixed) in float32 and can land one ulp
             // above available, which a bare `rowPercentage > 1.` reports as a (spurious) overflow.
             if tableWarnings and row.width > availableSpace + 0.0001
-                Log.warn("Row #" + count.toString() + " width " + row.width.toString() + " exceeds table " + name + " availableSpace " + availableSpace.toString() + " (table width " + width.toString() + ")")
+                Log.warn("Row #" + count + " width " + row.width + " exceeds table " + name + " availableSpace " + availableSpace + " (table width " + width + ")")
                 
             let freeSpace = (1. - rowPercentage) * availableSpace
 
@@ -923,23 +923,23 @@ public class LayoutReport
     function reportZeroSize(int rowIndex, int cellIndex, boolean widthAxis)
         ok = false
         zeroSizeCount++
-        summary += "[row " + rowIndex.toString() + " cell " + cellIndex.toString() + "] zero " + (widthAxis ? "width" : "height") + "; "
+        summary += "[row " + rowIndex + " cell " + cellIndex + "] zero " + (widthAxis ? "width" : "height") + "; "
 
     function reportRowOverflow(int rowIndex, real amount)
         ok = false
         rowOverflowCount++
         if amount > worstOverflowX
             worstOverflowX = amount
-        summary += "[row " + rowIndex.toString() + "] width overflow by " + amount.toString() + "; "
+        summary += "[row " + rowIndex + "] width overflow by " + amount + "; "
 
     function reportVerticalOverflow(real amount)
         ok = false
         verticalOverflow = true
-        summary += "content height overflow by " + amount.toString() + "; "
+        summary += "content height overflow by " + amount + "; "
 
     function reportTextOverflow(int rowIndex, int cellIndex, real estimatedWidth, real cellWidth, string text)
         textOverflow++
-        textOverflowSummary += "[row " + rowIndex.toString() + " cell " + cellIndex.toString() + "] estimated text width " + estimatedWidth.toString() + " exceeds cell width " + cellWidth.toString() + " for \"" + text + "\"; "
+        textOverflowSummary += "[row " + rowIndex + " cell " + cellIndex + "] estimated text width " + estimatedWidth + " exceeds cell width " + cellWidth + " for \"" + text + "\"; "
 
 public function layoutFrame(framehandle parent) returns framehandle
     return createFrame("FRAME", "multiboardFrame", parent, null, 0)

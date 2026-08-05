@@ -21,7 +21,7 @@ public constant TC_BROWN      = 11
 /** Texture path for a player-colour teamcolor index (clamped to 0..27). */
 public function teamColorPath(int teamColor) returns string
     let i = max(0, min(27, teamColor))
-    let suffix = i < 10 ? "0" + i.toString() : i.toString()
+    let suffix = i < 10 ? "0" + i : "" + i
     return "ReplaceableTextures\\TeamColor\\TeamColor" + suffix + ".blp"
 
 /** A solid rectangle in a player colour (a TC_* constant or a 0..27 index). The flat-colour trick
