@@ -20,7 +20,7 @@ It began as a table/flexbox layout (rows → cells → framehandles, with option
 - **Ready-made components**: panels & cards, buttons, icon buttons, checkboxes, select menus, sliders, tabs, edit boxes, text areas, tooltips, confirm dialogs, progress & stat bars, stat/icon cards, icon-label and label-value rows, separators and spacers, animated autocast borders, and whole-frame interaction (`interactive` / `selectable` / radio groups).
 - **A layout engine**: flexbox-style rows and cells with padding, gaps, horizontal & vertical alignment and `grow`, plus opt-in column/grid alignment (`columns()`, `colspan`).
 - **Text presets**: `h1`-`h5`, `p`-`p3`, and sized `label` / `value` helpers.
-- **Unicode UI symbols**: import `TableUiIcons` and use semantic constants such as `Icons.BLACK_STAR`.
+- **Unicode UI symbols**: import `TableUiIcons` and use semantic constants such as `FontIcons.BLACK_STAR`.
   This requires the consuming map to import its `universal.ttf` and bind it to the WC3 text font
   slots (for example through `war3mapSkin.txt`); the package cannot provide that font setup itself.
 - **SimpleFrame helpers**: `simpleBar` (boss/HUD bars with native fill + runtime tinting) and `simpleTexture` (tintable, full-width band art) for what Frame-group UI cannot do.

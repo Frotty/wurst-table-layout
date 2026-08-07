@@ -6,7 +6,7 @@ package TableUiIcons
  * Names use the Unicode semantic name; the exact codepoint is kept in a trailing comment.
  * The consuming map must import its universal font and bind it to the WC3 text font slots.
  */
-public class Icons
+public class FontIcons
     public static constant string INVERTED_EXCLAMATION_MARK = "¡" // U+00A1
     public static constant string CENT_SIGN = "¢" // U+00A2
     public static constant string POUND_SIGN = "£" // U+00A3
