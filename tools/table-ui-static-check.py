@@ -108,8 +108,12 @@ def violations(lines: list[AddedLine]) -> list[str]:
                 )
                 break
 
-        if re.search(r"\.\.add\(\s*(?:p|p2|p3|h[1-5])\(\s*[^)]*\)\s*\)", text):
-            errors.append(f"{location}: size text cells explicitly or mark the cell growX()/growY()")
+        for match in re.finditer(r"\.\.add\(\s*(?:p|p2|p3|h[1-5])\(\s*[^)]*\)\s*\)", text):
+            # A text cell may intentionally take the remaining row width.  The
+            # grow marker is commonly chained onto the same line after add(...).
+            if not re.search(r"\.\.(?:growX|growY)\(\)", text[match.end():]):
+                errors.append(f"{location}: size text cells explicitly or mark the cell growX()/growY()")
+                break
 
     return errors
 
