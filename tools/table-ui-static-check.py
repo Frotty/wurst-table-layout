@@ -26,6 +26,10 @@ class AddedLine:
 
 HUNK_RE = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@")
 FRAME_PARENTING_IMPLEMENTATION = {"wurst/TableLayout.wurst"}
+AMBIENT_PARENT_IMPLEMENTATIONS = {
+    "wurst/TableLayout.wurst",
+    "wurst/MultiboardAttach.wurst",
+}
 AMBIENT_PARENT_IMPLEMENTATION_PREFIX = "wurst/components/"
 
 
@@ -150,7 +154,7 @@ def violations(lines: list[AddedLine]) -> list[str]:
 
         if (
             "defaultFrameParent" in text
-            and first.path != "wurst/TableLayout.wurst"
+            and first.path not in AMBIENT_PARENT_IMPLEMENTATIONS
             and not first.path.startswith(AMBIENT_PARENT_IMPLEMENTATION_PREFIX)
         ):
             errors.append(f"{location}: create application frames under their parent with withParent(...) or an explicit-parent helper")
