@@ -457,9 +457,7 @@ panel.withContent() ->
     ..row()..add(h2("Setup")..setSize(0.12, 0.02))
     ..row()..add(label("Name", 0.07))..add(textInput("", 0.12).create())..growX()
     ..row()..add(textButton("Start", 0.08, 0.024))
-panel.build()
-
-panel.placeSafe(vec2(0.5, 0.5), 0.24, 0.12)
+panel.build().placeSafe(vec2(0.5, 0.5), 0.24, 0.12)
 ```
 
 If a requested layout needs new behavior, add it behind an explicit method. Existing layouts should render the same after upgrading the dependency.

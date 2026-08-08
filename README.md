@@ -340,8 +340,7 @@ p.withContent() ->
     ..gap(SPACE_S)
     ..row()..add(h2("Setup")..setSize(0.12, 0.02))
     ..row()..add(label("Name", 0.07))..add(textInput("", 0.12).create())..growX()
-p.build()
-p.placeSafe(vec2(0.5, 0.5), 0.24, 0.12)
+p.build().placeSafe(vec2(0.5, 0.5), 0.24, 0.12)
 ```
 
 For z-order, parent into the right layer rather than fighting `setLevel` (which only orders siblings within one parent). WC3 has no global z-index, and of the origin frames `GAME_UI` (the default parent) renders on top, above the HUD console and the other bands. So on-top UI uses two `GAME_UI` child layers raised with `setLevel`: `Layer.DIALOG` for modal dialogs and `Layer.OVERLAY` (above it) for dropdowns, menus and tooltips; ordinary panels stay in `Layer.CONTENT` (`GAME_UI`). Create frames in their layer with `inLayer(Layer.DIALOG) -> ...` rather than reparenting later, since a post-creation `setParent` leaves the frame in both parents' child lists and can misalign its hit area. `confirmDialog` uses `DIALOG` and `select` uses `OVERLAY`. Call `.withModal()` on `confirmDialog` or `dialogFrame` to attach a dark full-screen backdrop that dims the scene and closes the dialog on any outside click.
