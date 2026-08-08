@@ -1,8 +1,9 @@
 # Universal font glyphs
 
-`TableUiIcons.FontIcons` is the semantic catalog of symbols verified in the bundled
-`universal.ttf`. The Wurst constants are the canonical mapping; each declaration keeps
-the Unicode code point in a trailing comment.
+`TableUiIcons.FontIcons` is the semantic catalog of symbols selected from the Unicode
+coverage of a map-owned `universal.ttf`. The TableUI repository does not bundle that font.
+The Wurst constants are the canonical mapping; each declaration keeps the Unicode code
+point in a trailing comment.
 
 The catalog is useful for compact status marks, arrows, separators, emphasis, and other
 small UI affordances. Use the semantic constant instead of copying a raw Unicode literal:
@@ -10,7 +11,7 @@ small UI affordances. Use the semantic constant instead of copying a raw Unicode
 ```wurst
 import TableUiIcons
 
-local label = FontIcons.BLACK_STAR + " Best score"
+let label = FontIcons.BLACK_STAR + " Best score"
 ```
 
 ## Font setup requirement

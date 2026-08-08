@@ -126,8 +126,10 @@ Create frames in their band; do not reparent into it afterwards. `BlzFrameSetPar
 // scoped: everything created inside is parented into OVERLAY
 inLayer(Layer.OVERLAY) ->
     let dialog = panelTable(0.24, 0.12, "MyDialog")
+    dialog.withContent() ->
+        dialog
         ..row()..add(h3("Confirm")..setSize(0.20, 0.02))..growX()
-        .build()
+    dialog.build()
     dialog.placeSafe(vec2(0.4, 0.4), 0.24, 0.12)
 
 // or move an existing frame (last resort; the dual-parent bug may misalign the hit area)
