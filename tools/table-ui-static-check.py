@@ -113,10 +113,18 @@ def added_line_blocks(lines: list[AddedLine]) -> list[list[AddedLine]]:
 
 def git_diff(base: str | None) -> str:
     if base:
-        # A two-tree diff against the base includes both committed changes and any
-        # staged/unstaged working-tree edits. The documented pre-commit invocation
-        # must check the files that are actually present on disk, not only HEAD.
-        revision = base
+        # Resolve the branch point first. Comparing directly with base would treat
+        # unrelated changes that landed on base after branching as additions. Diffing
+        # that merge base against the working tree still includes staged/unstaged edits.
+        merge_base = subprocess.run(
+            ["git", "merge-base", base, "HEAD"],
+            check=True,
+            text=True,
+            capture_output=True,
+        ).stdout.strip()
+        if not merge_base:
+            raise subprocess.CalledProcessError(1, ["git", "merge-base", base, "HEAD"])
+        revision = merge_base
     else:
         revision = "HEAD"
     result = subprocess.run(
