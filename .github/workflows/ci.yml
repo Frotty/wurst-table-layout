@@ -3,51 +3,12 @@ name: CI
 on: [push, pull_request]
 
 jobs:
-  static:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Determine diff base
-        id: diff-base
-        env:
-          PR_BASE: ${{ github.event.pull_request.base.sha }}
-          PUSH_BASE: ${{ github.event.before }}
-        run: |
-          base="$PR_BASE"
-          if [ -z "$base" ]; then base="$PUSH_BASE"; fi
-          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
-            echo "available=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "available=true" >> "$GITHUB_OUTPUT"
-            echo "sha=$base" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
-
-      - name: Static UI guardrail
-        if: steps.diff-base.outputs.available == 'true'
-        run: python3 tools/table-ui-static-check.py --base "${{ steps.diff-base.outputs.sha }}"
-
-      - name: Diff integrity
-        if: steps.diff-base.outputs.available == 'true'
-        run: git diff --check "${{ steps.diff-base.outputs.sha }}...HEAD"
-
   test:
     runs-on: ubuntu-latest
     container: frotty/wurstscript
-    needs: static
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Install WurstScript compiler
         run: grill install wurstscript

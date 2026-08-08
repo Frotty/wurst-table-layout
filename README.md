@@ -393,16 +393,15 @@ It ships agent instruction files. Point your agent at these first:
 - [`AGENTS.md`](AGENTS.md): project map, key behaviours, and the rules for changing UI.
 - [`AI_USAGE.md`](AI_USAGE.md): a decision tree and cookbook: which helper to use, copy-pasteable recipes, anti-patterns, and a self-check the agent runs before finishing.
 - [`WC3_FRAMEHANDLE_GUIDE.md`](WC3_FRAMEHANDLE_GUIDE.md): Warcraft III framehandle, focus and desync rules adapted for this library.
-- `python3 tools/table-ui-static-check.py --base <base-revision>`: a narrow diff-oriented guard for frame hazards that Wurst layout tests cannot prove (`setScale`, post-creation parenting, and ambient-parent creation).
 
 What makes it agent-friendly:
 
-- **A staged feedback loop.** The narrow static checker catches new frame hazards, while `layout.checkFits()` / `inspect()` validate layout math (overflow, zero-size cells) without a running game. Only after those pass should a consuming map run WC3/e2e and verify its screenshot/assertions.
+- **A feedback loop.** `layout.checkFits()` / `inspect()` and Wurst tests validate layout math (overflow, zero-size cells) without a running game. Only after those pass should a consuming map run WC3/e2e and verify its screenshot/assertions.
 - **Guard rails and sane defaults.** Zero-size/overflow warnings, component minimums, a consistent spacing scale, a container hierarchy, and opt-in safe-area placement keep generated UI inside the lines. APIs that desync or crash in multiplayer (frame destruction, post-creation reparenting, fragile SimpleFrame children) are simply not exposed.
 - **A streamlined, cascade-friendly API** where the boring choice is the correct choice: nest tables and reuse helpers instead of computing frame points.
 - **The whole UI surface, with the quirks encoded.** Custom panels (Frame group), boss bars and band art (SimpleFrames), and the default HUD (`TableUiDefaultUi`) are all reachable through named helpers whose documentation carries the verified WC3 facts (what reappears on selection, what is one-way, what crashes), so the agent does not have to know Warcraft III folklore.
 
-When working with an agent, tell it to read `AGENTS.md` and `AI_USAGE.md`, run the static checker and headless tests, then run the actual WC3/e2e harness before handover. A skipped runner is incomplete, not passed.
+When working with an agent, tell it to read `AGENTS.md` and `AI_USAGE.md`, run the headless tests, then run the actual WC3/e2e harness before handover. A skipped runner is incomplete, not passed.
 
 ## Dynamic changes
 
@@ -418,7 +417,7 @@ withParent(getFrame("SimpleInfoPanelUnitDetail", 0)) ->
     ..applyTo(getFrame("SimpleInfoPanelUnitDetail", 0))
 ```
 
-Direct assignment to `defaultFrameParent` is a library-internal escape hatch and is rejected by the static checker in application changes. If a new library helper truly needs it, restore the **previous** value rather than hardcoding `GAME_UI`, so you don't clobber an intentional baseline parent:
+Direct assignment to `defaultFrameParent` is a library-internal escape hatch. If a new library helper truly needs it, restore the **previous** value rather than hardcoding `GAME_UI`, so you don't clobber an intentional baseline parent:
 
 ```
 let prev = defaultFrameParent

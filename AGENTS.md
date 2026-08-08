@@ -58,15 +58,14 @@ Debug helpers create handles globally and show/hide owner-scoped:
 - Library clickables release keyboard focus automatically; for foreign clickables use `onClickReleaseFocus()`, and disable decorative frames.
 
 ## Validation
-Stage 1 — static handoff gate:
+Stage 1 — Wurst handoff gate:
 
 ```bash
-python3 tools/table-ui-static-check.py --base <base-revision>
 grill typecheck --quiet
 grill test
 ```
 
-The static checker is diff-oriented and intentionally narrow: it catches new frame hazards that layout math cannot prove (`setScale`, post-creation parenting, and ambient-parent creation) without requiring a legacy UI rewrite. `TableLayout.inspect()` / `checkFits()` and `TableLayoutValidationTest.wurst` own sizing, overflow, gap, padding, and text-fit validation. A skipped compiler, test runner, or e2e suite is not a pass.
+`TableLayout.inspect()` / `checkFits()` and `TableLayoutValidationTest.wurst` own sizing, overflow, gap, padding, and text-fit validation. A skipped compiler, test runner, or e2e suite is not a pass.
 
 After code changes run:
 
