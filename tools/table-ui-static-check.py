@@ -28,8 +28,9 @@ HUNK_RE = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@")
 NUM_RE = re.compile(r"(?<![A-Za-z_])(?:\d+\.\d*|\.\d+|\d+)(?![A-Za-z_])")
 SPACING_RE = re.compile(r"\b(?:padding|gap|padTop|padRight|padBot|padLeft|pad)\s*\(([^)]*)\)")
 TEXT_PRESET_RE = re.compile(r"^\s*(?:p|p2|p3|h[1-5])\s*\(")
-TEXT_SIZE_RE = re.compile(r"\.\.(?:setSize|prefSize|prefWidth|fixedWidth|minWidth)\s*\(")
-GROW_RE = re.compile(r"\.\.(?:growX|growY)\(\)")
+SIZE_CHAIN_RE = re.compile(
+    r"\.\.(?:setSize|prefSize|prefWidth|fixedWidth|minWidth|growX|growY|grow)\s*\("
+)
 
 
 def matching_paren(text: str, opening: int) -> int | None:
@@ -75,14 +76,30 @@ def unsized_text_cell(lines: str) -> bool:
             return False
         cell = lines[opening + 1 : closing]
         if TEXT_PRESET_RE.match(cell):
-            if not TEXT_SIZE_RE.search(cell):
-                next_add = lines.find("..add(", closing + 1)
-                next_row = lines.find("..row(", closing + 1)
-                boundaries = [position for position in (next_add, next_row) if position >= 0]
-                boundary = min(boundaries) if boundaries else len(lines)
-                if not GROW_RE.search(lines[closing + 1 : boundary]):
-                    return True
+            next_add = lines.find("..add(", closing + 1)
+            next_row = lines.find("..row(", closing + 1)
+            boundaries = [position for position in (next_add, next_row) if position >= 0]
+            boundary = min(boundaries) if boundaries else len(lines)
+            suffix = lines[closing + 1 : boundary]
+            if not SIZE_CHAIN_RE.search(cell) and not SIZE_CHAIN_RE.search(suffix):
+                return True
         cursor = closing + 1
+
+
+def added_line_blocks(lines: list[AddedLine]) -> list[list[AddedLine]]:
+    """Group consecutive additions so multiline cell expressions are checked whole."""
+    blocks: list[list[AddedLine]] = []
+    current: list[AddedLine] = []
+    for added in lines:
+        if current:
+            previous = current[-1]
+            if added.path != previous.path or added.number != previous.number + 1:
+                blocks.append(current)
+                current = []
+        current.append(added)
+    if current:
+        blocks.append(current)
+    return blocks
 
 
 def git_diff(base: str | None) -> str:
@@ -164,8 +181,13 @@ def violations(lines: list[AddedLine]) -> list[str]:
                 )
                 break
 
-        if unsized_text_cell(text):
-            errors.append(f"{location}: size text cells explicitly or mark the cell growX()/growY()")
+    for block in added_line_blocks(lines):
+        block_text = "\n".join(added.text for added in block)
+        if unsized_text_cell(block_text):
+            first = block[0]
+            errors.append(
+                f"{first.path}:{first.number}: size text cells explicitly or mark the cell growX()/growY()/grow()"
+            )
 
     return errors
 
