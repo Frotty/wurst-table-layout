@@ -72,7 +72,7 @@ public class UITabs
         let innerHeight = tabHeight - 2. * TAB_GROUP_PAD
         let layout = new TableLayout(width, tabHeight, "TabRow")
         layout.padding = padding(TAB_GROUP_PAD, TAB_GROUP_PAD, TAB_GROUP_PAD, TAB_GROUP_PAD)
-        layout.gap(0.004, 0)
+        layout.gap(SPACE_XS, 0)
         layout..row()
         for i = 0 to titles.size() - 1
             let index = i

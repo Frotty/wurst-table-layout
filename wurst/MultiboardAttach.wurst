@@ -21,7 +21,7 @@ import TableLayout
     attachTableLayoutToMultiboard(mb, "DemoMb", true,
         uiParent -> begin
             let layout = new TableLayout(0.22, 0., "DemoMbLayout")
-            layout.padding = padding(0.006, 0.012, 0.006, 0.012)
+            layout.padding = padding(SPACE_XS + SPACE_2XS, SPACE_S + SPACE_XS, SPACE_XS + SPACE_2XS, SPACE_S + SPACE_XS)
             layout
             ..row()
             ..add(p("Hello world")..setSize(0.18, 0.014))

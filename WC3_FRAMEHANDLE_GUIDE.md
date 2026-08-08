@@ -31,7 +31,7 @@ function createMyUi()
         return
 
     let layout = new TableLayout(0.18, 0.08, "MyUi")
-    layout.padding = padding(0.006, 0.008, 0.006, 0.008)
+    layout.padding = padding(SPACE_XS + SPACE_2XS, SPACE_S, SPACE_XS + SPACE_2XS, SPACE_S)
     layout
     ..row()..add(h3("Status")..setSize(0.16, 0.02))..growX()
     ..row()..add(p("Ready")..setSize(0.16, 0.014))..growX()
@@ -126,9 +126,10 @@ Create frames in their band; do not reparent into it afterwards. `BlzFrameSetPar
 // scoped: everything created inside is parented into OVERLAY
 inLayer(Layer.OVERLAY) ->
     let dialog = panelTable(0.24, 0.12, "MyDialog")
+    dialog.withContent() ->
+        dialog
         ..row()..add(h3("Confirm")..setSize(0.20, 0.02))..growX()
-        .build()
-    dialog.placeSafe(vec2(0.4, 0.4), 0.24, 0.12)
+    dialog.build().placeSafe(vec2(0.4, 0.4), 0.24, 0.12)
 
 // or move an existing frame (last resort; the dual-parent bug may misalign the hit area)
 myFrame.setLayer(Layer.OVERLAY)
@@ -203,7 +204,7 @@ boss.setValue(0.4)   // update later; getFrame() for show/hide
 
 ```wurst
 let layout = new TableLayout(0.22, 0.10, "Panel")
-layout.padding = padding(0.006, 0.012, 0.006, 0.012)
+layout.padding = padding(SPACE_XS + SPACE_2XS, SPACE_S + SPACE_XS, SPACE_XS + SPACE_2XS, SPACE_S + SPACE_XS)
 layout
 ..row()..center()..add(h2("Inventory")..setSize(0.18, 0.022))
 ..row()
@@ -240,7 +241,7 @@ Use opt-in layout conveniences for new code:
 ```wurst
 let layout = new TableLayout(0.24, 0.12, "Options")
 layout
-..gap(0.004, 0.003)
+..gap(SPACE_XS, SPACE_2XS)
 ..row()..add(label("Name", 0.06))..add(textInput("", 0.12).create())..growX()
 ..row()..add(label("Select", 0.06))..add(select("Difficulty", 0.12)..addOption("Easy")..addOption("Hard").create())..growX()
 ```
@@ -262,7 +263,7 @@ let difficulty = select("Difficulty", 0.12)
 ..addOption("Hard")
 
 new TableLayout(0.24, 0.16, "UiDemo")
-..gap(0.004, 0.004)
+..gap(SPACE_XS, SPACE_XS)
 ..row()..add(h2("Setup")..setSize(0.20, 0.022))..growX()
 ..row()..add(label("Select", 0.06))..add(difficulty.create())..growX()
 ..row()..add(textButton("Start", 0.08, 0.024).withTooltip("Begin the selected mode."))
@@ -424,7 +425,7 @@ and reuse its minimize/maximize behavior.
 ```wurst
 attachTableLayoutToMultiboard(mb, "DemoMb", true, uiParent -> begin
     let layout = new TableLayout(0.22, 0., "DemoMbLayout")
-    layout.padding = padding(0.006, 0.012, 0.006, 0.012)
+    layout.padding = padding(SPACE_XS + SPACE_2XS, SPACE_S + SPACE_XS, SPACE_XS + SPACE_2XS, SPACE_S + SPACE_XS)
     layout
     ..row()..add(h3("Score")..setSize(0.18, 0.02))..growX()
     ..row()..add(p("Player")..setSize(0.12, 0.012))..add(p("10")..setSize(0.04, 0.012))..growX()

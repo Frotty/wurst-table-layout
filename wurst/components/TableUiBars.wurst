@@ -102,7 +102,7 @@ public class UIStatBar
 
         let layout = new TableLayout(width, 0.032, "StatBar")
         layout.padding = padding(0, 0, 0, 0)
-        layout.gap(0, 0.002)
+        layout.gap(0, SPACE_2XS)
         layout
         ..row()
         ..add(p(muted(label))..setSize(width * 0.62, 0.014)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))..growX()

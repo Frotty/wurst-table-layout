@@ -68,6 +68,22 @@ function detectsVerticalOverflow()
     destroy t
 
 @Test
+function semanticSizingModifiersSatisfyValidation()
+    // These are the public TableLayout sizing semantics used by real UI code. The
+    // headless validator must treat them exactly like measured frame dimensions.
+    let t = new TableLayout(0.2, 0.1, "SemanticSizing")
+    t.padding = padding(0, 0, 0, 0)
+    t..row()..addSized(0., 0.)..fixedSize(0.06, 0.02)
+    t..row()..addSized(0., 0.)..prefSize(0.06, 0.02)
+    t..row()..addSized(0., 0.)..minWidth(0.06)..minHeight(0.02)
+    let report = t.inspect()
+    report.zeroSizeCount.assertEquals(0)
+    report.ok.assertTrue()
+    t.checkFits().assertTrue()
+    destroy report
+    destroy t
+
+@Test
 function requiredHeightIncludesRowsGapsAndPadding()
     let t = new TableLayout(0.2, 0.01, "MeasuredHeight")
     t.padding = padding(0.01, 0.02, 0.03, 0.04)

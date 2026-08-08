@@ -14,9 +14,9 @@ public var PANEL_BORDER_INSET = 0.014
 /** Thickness of separator() / vSeparator() divider lines. */
 public constant SEPARATOR_THICKNESS = 0.0015
 
-function decoratedFrame(string backdropTemplate, real width, real height) returns framehandle
+function decoratedFrame(framehandle parent, string backdropTemplate, real width, real height) returns framehandle
     let context = nextUiContext()
-    let root = layoutFrame(defaultFrameParent)
+    let root = layoutFrame(parent)
         ..setSize(width, height)
         ..setAbsPoint(FRAMEPOINT_TOP, vec2(0.4, 0.515))
     createFrame(backdropTemplate, root, 0, context)
@@ -25,10 +25,16 @@ function decoratedFrame(string backdropTemplate, real width, real height) return
     return root
 
 public function panel(real width, real height) returns framehandle
-    return decoratedFrame("TableUiPanelBackdrop", width, height)
+    return decoratedFrame(defaultFrameParent, "TableUiPanelBackdrop", width, height)
+
+public function panel(framehandle parent, real width, real height) returns framehandle
+    return decoratedFrame(parent, "TableUiPanelBackdrop", width, height)
 
 public function card(real width, real height) returns framehandle
-    return decoratedFrame("TableUiCardBackdrop", width, height)
+    return decoratedFrame(defaultFrameParent, "TableUiCardBackdrop", width, height)
+
+public function card(framehandle parent, real width, real height) returns framehandle
+    return decoratedFrame(parent, "TableUiCardBackdrop", width, height)
 
 // --- Container hierarchy -----------------------------------------------------
 // Tier 1 panel (window, heavy border) > tier 2 card (section, light box, use sparingly,
@@ -39,40 +45,63 @@ public function card(real width, real height) returns framehandle
 public function container(real width, real height) returns framehandle
     return layoutFrame(defaultFrameParent)..setSize(width, height)
 
+public function container(framehandle parent, real width, real height) returns framehandle
+    return layoutFrame(parent)..setSize(width, height)
+
 /** A borderless section header: a heading plus a separator, no backdrop. */
 public function section(string title, real width) returns framehandle
     return section(title, width, 0.022)
 
 public function section(string title, real width, real headerHeight) returns framehandle
+    return section(defaultFrameParent, title, width, headerHeight)
+
+public function section(framehandle parent, string title, real width, real headerHeight) returns framehandle
     let totalHeight = headerHeight + SPACE_XS + SEPARATOR_THICKNESS
-    let root = layoutFrame(defaultFrameParent)..setSize(width, totalHeight)
+    let root = layoutFrame(parent)..setSize(width, totalHeight)
     let layout = new TableLayout(width, totalHeight, "Section")
     layout.padding = padding(0, 0, 0, 0)
     layout.gap(0, SPACE_XS)
     layout
-    ..row()..add(h4(title)..setSize(width, headerHeight)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
-    ..row()..add(separator(width))
+    ..row()..add(h4(root, title)..setSize(width, headerHeight)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
+    ..row()..add(separator(root, width))
     layout.applyTo(root)
     destroy layout
     root.disable()
     return root
 
+public function section(framehandle parent, string title, real width) returns framehandle
+    return section(parent, title, width, 0.022)
+
 /** Creates a panel backdrop and a TableLayout bound to it; finish the chain with .build(). */
 public function panelTable(real width, real height, string name) returns TableLayout
     return new TableLayout(width, height, name).withRoot(panel(width, height))
 
+public function panelTable(framehandle parent, real width, real height, string name) returns TableLayout
+    return new TableLayout(width, height, name).withRoot(panel(parent, width, height))
+
 /** Creates a card backdrop and a TableLayout bound to it; finish the chain with .build(). */
 public function cardTable(real width, real height, string name) returns TableLayout
     return new TableLayout(width, height, name).withRoot(card(width, height))
+
+public function cardTable(framehandle parent, real width, real height, string name) returns TableLayout
+    return new TableLayout(width, height, name).withRoot(card(parent, width, height))
 
 public function spacer(real width, real height) returns framehandle
     return layoutFrame(defaultFrameParent)
         ..setSize(width, height)
         ..disable()
 
+public function spacer(framehandle parent, real width, real height) returns framehandle
+    return layoutFrame(parent)
+        ..setSize(width, height)
+        ..disable()
+
 /** A square spacer of the given size (use a SPACE_* token). */
 public function spacer(real size) returns framehandle
     return spacer(size, size)
+
+public function spacer(framehandle parent, real size) returns framehandle
+    return spacer(parent, size, size)
 
 public function separator(real width) returns framehandle
     return separator(width, SEPARATOR_THICKNESS)
@@ -81,5 +110,15 @@ public function separator(real width, real height) returns framehandle
     return img("ReplaceableTextures\\TeamColor\\TeamColor27.blp", width, height, true)
         ..disable()
 
+public function separator(framehandle parent, real width) returns framehandle
+    return separator(parent, width, SEPARATOR_THICKNESS)
+
+public function separator(framehandle parent, real width, real height) returns framehandle
+    return img(parent, "ReplaceableTextures\\TeamColor\\TeamColor27.blp", width, height, true)
+        ..disable()
+
 public function vSeparator(real height) returns framehandle
     return separator(SEPARATOR_THICKNESS, height)
+
+public function vSeparator(framehandle parent, real height) returns framehandle
+    return separator(parent, SEPARATOR_THICKNESS, height)

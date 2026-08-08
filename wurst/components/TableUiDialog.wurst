@@ -105,7 +105,7 @@ public class UIConfirmDialog
         let innerWidth = width - 2. * inset
         let layout = new TableLayout(width, height, "ConfirmDialog")
         layout.padding = padding(inset, inset, inset, inset)
-        layout.gap(0.004, 0.006)
+        layout.gap(SPACE_XS, SPACE_XS + SPACE_2XS)
         layout
         ..row()..add(h3(title)..setSize(innerWidth, 0.018))..growX()
         ..row()..add(p(message)..setSize(innerWidth, 0.040))..growX()

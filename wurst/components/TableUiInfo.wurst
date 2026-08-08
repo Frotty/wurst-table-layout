@@ -17,7 +17,7 @@ public function iconLabel(string path, string text, real width, real height) ret
 
     let layout = new TableLayout(width, height, "IconLabel")
     layout.padding = padding(0, 0, 0, 0)
-    layout.gap(0.004, 0)
+    layout.gap(SPACE_XS, 0)
     layout
     ..row()
     ..add(img(path, height, height))
@@ -44,7 +44,7 @@ public function labelValue(string label, string value, real width, real height) 
 
     let layout = new TableLayout(width, height, "LabelValue")
     layout.padding = padding(0, 0, 0, 0)
-    layout.gap(0.004, 0)
+    layout.gap(SPACE_XS, 0)
     layout
     ..row()
     ..add(labelFrame)..growX()

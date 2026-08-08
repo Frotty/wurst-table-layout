@@ -9,20 +9,43 @@ function imgframe(string path, real width, real height, boolean blend) returns f
         ..setSize(width, height)
         ..setTexture(path, 0, blend)
 
+function imgframe(framehandle parent, string path, real width, real height, boolean blend) returns framehandle
+    return createFrame(FramehandleTypeNames.backdrop, "", parent, "", 0)
+        ..setSize(width, height)
+        ..setTexture(path, 0, blend)
+
 public function img(string path) returns framehandle
     return img(path, 0.025, false)
+
+public function img(framehandle parent, string path) returns framehandle
+    return img(parent, path, 0.025, false)
 
 public function img(string path, boolean blend) returns framehandle
     return img(path, 0.025, blend)
 
+public function img(framehandle parent, string path, boolean blend) returns framehandle
+    return img(parent, path, 0.025, blend)
+
 public function img(string path, real size) returns framehandle
     return img(path, size, size, false)
+
+public function img(framehandle parent, string path, real size) returns framehandle
+    return img(parent, path, size, size, false)
 
 public function img(string path, real size, boolean blend) returns framehandle
     return img(path, size, size, blend)
 
+public function img(framehandle parent, string path, real size, boolean blend) returns framehandle
+    return img(parent, path, size, size, blend)
+
 public function img(string path, real width, real height) returns framehandle
     return imgframe(path, width, height, false)
 
+public function img(framehandle parent, string path, real width, real height) returns framehandle
+    return imgframe(parent, path, width, height, false)
+
 public function img(string path, real width, real height, boolean blend) returns framehandle
     return imgframe(path, width, height, blend)
+
+public function img(framehandle parent, string path, real width, real height, boolean blend) returns framehandle
+    return imgframe(parent, path, width, height, blend)
