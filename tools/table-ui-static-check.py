@@ -113,7 +113,10 @@ def added_line_blocks(lines: list[AddedLine]) -> list[list[AddedLine]]:
 
 def git_diff(base: str | None) -> str:
     if base:
-        revision = f"{base}...HEAD"
+        # A two-tree diff against the base includes both committed changes and any
+        # staged/unstaged working-tree edits. The documented pre-commit invocation
+        # must check the files that are actually present on disk, not only HEAD.
+        revision = base
     else:
         revision = "HEAD"
     result = subprocess.run(
