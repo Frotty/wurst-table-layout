@@ -23,6 +23,7 @@ It began as a table/flexbox layout (rows → cells → framehandles, with option
 - **Unicode UI symbols**: import `TableUiIcons` and use semantic constants such as `FontIcons.BLACK_STAR`.
   This requires the consuming map to import its `universal.ttf` and bind it to the WC3 text font
   slots (for example through `war3mapSkin.txt`); the package cannot provide that font setup itself.
+  See the [universal font glyph guide](UNIVERSAL_FONT_GLYPHS.md) for the verified catalog and setup notes.
 - **SimpleFrame helpers**: `simpleBar` (boss/HUD bars with native fill + runtime tinting) and `simpleTexture` (tintable, full-width band art) for what Frame-group UI cannot do.
 - **Default-HUD control**: hide or modify the day/night clock, resource bar, menu buttons, minimap, portrait, hero bar and command card by name (`TableUiDefaultUi`), attach custom content to a self-healing native multiboard shell (`attachToMultiboard`), or go fully custom-UI with `hideDefaultUi()`.
 - **Sane defaults**: a spacing scale (`SPACE_*`), automatic component minimums, automatic keyboard-focus release, a container hierarchy, and safe-area placement that keeps panels clear of the melee HUD.
