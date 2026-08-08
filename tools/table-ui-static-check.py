@@ -27,6 +27,62 @@ class AddedLine:
 HUNK_RE = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@")
 NUM_RE = re.compile(r"(?<![A-Za-z_])(?:\d+\.\d*|\.\d+|\d+)(?![A-Za-z_])")
 SPACING_RE = re.compile(r"\b(?:padding|gap|padTop|padRight|padBot|padLeft|pad)\s*\(([^)]*)\)")
+TEXT_PRESET_RE = re.compile(r"^\s*(?:p|p2|p3|h[1-5])\s*\(")
+TEXT_SIZE_RE = re.compile(r"\.\.(?:setSize|prefSize|prefWidth|fixedWidth|minWidth)\s*\(")
+GROW_RE = re.compile(r"\.\.(?:growX|growY)\(\)")
+
+
+def matching_paren(text: str, opening: int) -> int | None:
+    depth = 0
+    in_string = False
+    escaped = False
+    for index in range(opening, len(text)):
+        char = text[index]
+        if in_string:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            continue
+        if char == '"':
+            in_string = True
+        elif char == "(":
+            depth += 1
+        elif char == ")":
+            depth -= 1
+            if depth == 0:
+                return index
+    return None
+
+
+def unsized_text_cell(lines: str) -> bool:
+    """Return whether an added line contains an unsized text cell.
+
+    Wurst text helpers can contain nested calls, and several cells are often
+    chained on one line. A balanced scan keeps the guard conservative without
+    mistaking an inner ')' or a later cell's grow marker for the current cell.
+    """
+    cursor = 0
+    while True:
+        added = lines.find("..add(", cursor)
+        if added < 0:
+            return False
+        opening = added + len("..add")
+        closing = matching_paren(lines, opening)
+        if closing is None:
+            return False
+        cell = lines[opening + 1 : closing]
+        if TEXT_PRESET_RE.match(cell):
+            if not TEXT_SIZE_RE.search(cell):
+                next_add = lines.find("..add(", closing + 1)
+                next_row = lines.find("..row(", closing + 1)
+                boundaries = [position for position in (next_add, next_row) if position >= 0]
+                boundary = min(boundaries) if boundaries else len(lines)
+                if not GROW_RE.search(lines[closing + 1 : boundary]):
+                    return True
+        cursor = closing + 1
 
 
 def git_diff(base: str | None) -> str:
@@ -108,12 +164,8 @@ def violations(lines: list[AddedLine]) -> list[str]:
                 )
                 break
 
-        for match in re.finditer(r"\.\.add\(\s*(?:p|p2|p3|h[1-5])\(\s*[^)]*\)\s*\)", text):
-            # A text cell may intentionally take the remaining row width.  The
-            # grow marker is commonly chained onto the same line after add(...).
-            if not re.search(r"\.\.(?:growX|growY)\(\)", text[match.end():]):
-                errors.append(f"{location}: size text cells explicitly or mark the cell growX()/growY()")
-                break
+        if unsized_text_cell(text):
+            errors.append(f"{location}: size text cells explicitly or mark the cell growX()/growY()")
 
     return errors
 
