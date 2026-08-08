@@ -451,11 +451,13 @@ import TableLayout
 import TableUi
 
 let panel = panelTable(0.24, 0.12, "Setup")
-..gap(SPACE_S)
-..row()..add(h2("Setup")..setSize(0.12, 0.02))
-..row()..add(label("Name", 0.07))..add(textInput("", 0.12).create())..growX()
-..row()..add(textButton("Start", 0.08, 0.024))
-..build()
+panel.withContent() ->
+    panel
+    ..gap(SPACE_S)
+    ..row()..add(h2("Setup")..setSize(0.12, 0.02))
+    ..row()..add(label("Name", 0.07))..add(textInput("", 0.12).create())..growX()
+    ..row()..add(textButton("Start", 0.08, 0.024))
+panel.build()
 
 panel.placeSafe(vec2(0.5, 0.5), 0.24, 0.12)
 ```

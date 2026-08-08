@@ -32,6 +32,8 @@ AMBIENT_PARENT_IMPLEMENTATIONS = {
     "wurst/MultiboardAttach.wurst",
 }
 AMBIENT_PARENT_IMPLEMENTATION_PREFIX = "wurst/components/"
+SCALE_CALL_RE = re.compile(r"\b(?:setScale|BlzFrameSetScale)\s*\(")
+PARENT_CALL_RE = re.compile(r"\b(?:setParent|BlzFrameSetParent)\s*\(")
 
 
 def mask_comments_and_strings(text: str) -> str:
@@ -169,10 +171,10 @@ def violations(lines: list[AddedLine]) -> list[str]:
                 if 0 < added.number <= len(source_lines)
             )
 
-        if re.search(r"\bsetScale\s*\(", text):
-            errors.append(f"{location}: do not use setScale(); change declared width/height instead")
+        if SCALE_CALL_RE.search(text):
+            errors.append(f"{location}: do not use setScale()/BlzFrameSetScale(); change declared width/height instead")
 
-        if re.search(r"\bsetParent\s*\(", text) and first.path not in FRAME_PARENTING_IMPLEMENTATION:
+        if PARENT_CALL_RE.search(text) and first.path not in FRAME_PARENTING_IMPLEMENTATION:
             errors.append(f"{location}: create the frame under its eventual parent with withParent(...) or an explicit-parent helper")
 
         if (

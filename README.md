@@ -335,10 +335,12 @@ Position ordinary roots with `placeSafe` to keep them inside the strict band tha
 
 ```
 let p = panelTable(0.24, 0.12, "Setup")
-..gap(SPACE_S)
-..row()..add(h2("Setup")..setSize(0.12, 0.02))
-..row()..add(label("Name", 0.07))..add(textInput("", 0.12).create())..growX()
-..build()
+p.withContent() ->
+    p
+    ..gap(SPACE_S)
+    ..row()..add(h2("Setup")..setSize(0.12, 0.02))
+    ..row()..add(label("Name", 0.07))..add(textInput("", 0.12).create())..growX()
+p.build()
 p.placeSafe(vec2(0.5, 0.5), 0.24, 0.12)
 ```
 
