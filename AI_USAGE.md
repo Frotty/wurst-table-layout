@@ -9,17 +9,17 @@ Use this order and stop only when both gates are complete:
 
 1. Build with `TableLayout` / `TableUi`; use explicit-parent helpers or `withParent(...)`.
 2. For `panelTable()` / `cardTable()`, use `layout.withContent() -> ...` so cell frames are born under the bound root.
-3. Run the static gate: `python3 tools/table-ui-static-check.py --base <base-revision>`.
+3. Run the narrow source-safety gate: `python3 tools/table-ui-static-check.py --base <base-revision>`.
 4. Run Wurst typecheck and headless tests. A skipped tool is not a pass.
 5. Before handover, run the actual WC3/e2e harness and verify its artifact/screenshot.
 
-The static gate intentionally checks added lines only. This keeps adoption incremental while preventing new uses of unsafe parenting, scaling, disabled warnings, raw spacing, or unsized text cells.
+The source-safety gate intentionally checks added lines only. It catches frame hazards that layout math cannot prove (`setScale`, post-creation `setParent`, and application code creating frames through the ambient parent). Layout sizing, overflow, gaps, padding, and text-fit belong to `TableLayout.inspect()` / `checkFits()` and the Wurst tests, not to a second source parser.
 
 ## Decision Tree
 
 Before creating any UI, follow this order:
 
-0. Size every non-grow cell. Text presets (`p`, `p2`, `p3`, `h1`-`h5`) are FIXEDSIZE and report a measured size of `0` until sized, so an unsized text cell collapses to nothing and neighbouring cells overlap at the same point. Give each non-grow cell a size via `setSize`, `prefSize`/`prefWidth`/`prefHeight`, `fixedWidth`/`minWidth`, or make it `growX()`/`growY()`. Then confirm with `layout.checkFits()` (see "Validation" below) before you ship.
+0. Size every non-grow cell. Text presets (`p`, `p2`, `p3`, `h1`-`h5`) are FIXEDSIZE and report a measured size of `0` until sized, so an unsized text cell collapses to nothing and neighbouring cells overlap at the same point. Give each non-grow cell a size via `setSize`, `prefSize`/`prefWidth`/`prefHeight`, `fixedWidth`/`minWidth`, or make it `growX()`/`growY()`. Then confirm with a headless `layout.checkFits()` test (see "Validation" below) before you ship.
 
 1. Need to position several things?
    Use `TableLayout`. Do not manually calculate frame points for ordinary rows, labels, buttons, icons, forms, or panels. Aligning siblings with `setPoint`/`setAbsPoint` is the wrong tool: nest a `TableLayout` instead. (`setAbsPoint` on a root container is fine.)
@@ -514,5 +514,5 @@ At runtime the library also warns automatically: a `Log.warn` fires once per cel
 - Library buttons release keyboard focus automatically; for any clickable frame the library did NOT create, did it get `onClickReleaseFocus()` (or `disable()` if decorative)?
 - If multiboard code changed, was minimize/maximize considered?
 - Did `grill build` pass?
-- Did `python3 tools/table-ui-static-check.py --base <base-revision>` pass?
+- Did `python3 tools/table-ui-static-check.py --base <base-revision>` pass for source-level frame hazards?
 - Did the real WC3/e2e handoff run, with its expected screenshot/assertion artifact?

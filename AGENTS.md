@@ -66,7 +66,7 @@ grill typecheck --quiet
 grill test
 ```
 
-The static checker is diff-oriented, so it catches new unsafe patterns without requiring a legacy UI rewrite. A skipped compiler, test runner, or e2e suite is not a pass.
+The static checker is diff-oriented and intentionally narrow: it catches new frame hazards that layout math cannot prove (`setScale`, post-creation parenting, and ambient-parent creation) without requiring a legacy UI rewrite. `TableLayout.inspect()` / `checkFits()` and `TableLayoutValidationTest.wurst` own sizing, overflow, gap, padding, and text-fit validation. A skipped compiler, test runner, or e2e suite is not a pass.
 
 After code changes run:
 
