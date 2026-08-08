@@ -12,11 +12,24 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Determine diff base
+        id: diff-base
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BASE: ${{ github.event.before }}
+        run: |
+          base="$PR_BASE"
+          if [ -z "$base" ]; then base="$PUSH_BASE"; fi
+          if [ -z "$base" ] || [[ "$base" =~ ^0+$ ]]; then
+            base="$(git rev-list --max-parents=0 HEAD)"
+          fi
+          echo "sha=$base" >> "$GITHUB_OUTPUT"
+
       - name: Static UI guardrail
-        run: python3 tools/table-ui-static-check.py --base "${{ github.event.pull_request.base.sha || github.event.before }}"
+        run: python3 tools/table-ui-static-check.py --base "${{ steps.diff-base.outputs.sha }}"
 
       - name: Diff integrity
-        run: git diff --check "${{ github.event.pull_request.base.sha || github.event.before }}...HEAD"
+        run: git diff --check "${{ steps.diff-base.outputs.sha }}...HEAD"
 
       - name: Install WurstScript compiler
         run: grill install wurstscript
