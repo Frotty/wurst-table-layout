@@ -20,10 +20,15 @@ jobs:
         run: |
           base="$PR_BASE"
           if [ -z "$base" ]; then base="$PUSH_BASE"; fi
-          if [ -z "$base" ] || [[ "$base" =~ ^0+$ ]]; then
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
             base="$(git rev-list --max-parents=0 HEAD)"
           fi
           echo "sha=$base" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
 
       - name: Static UI guardrail
         run: python3 tools/table-ui-static-check.py --base "${{ steps.diff-base.outputs.sha }}"
