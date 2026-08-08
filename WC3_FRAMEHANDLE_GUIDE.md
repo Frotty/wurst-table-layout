@@ -129,8 +129,7 @@ inLayer(Layer.OVERLAY) ->
     dialog.withContent() ->
         dialog
         ..row()..add(h3("Confirm")..setSize(0.20, 0.02))..growX()
-    dialog.build()
-    dialog.placeSafe(vec2(0.4, 0.4), 0.24, 0.12)
+    dialog.build().placeSafe(vec2(0.4, 0.4), 0.24, 0.12)
 
 // or move an existing frame (last resort; the dual-parent bug may misalign the hit area)
 myFrame.setLayer(Layer.OVERLAY)
