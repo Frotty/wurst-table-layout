@@ -17,7 +17,7 @@ public function statCard(string label, string value, real width) returns frameha
     let innerW = max(0.001, width - 2. * inset)
     let layout = new TableLayout(width, height, "StatCard")
     layout.padding = padding(inset, inset, inset, inset)
-    layout.gap(0, 0.002)
+    layout.gap(0, SPACE_2XS)
     layout
     ..row()..add(p3(muted(label))..setSize(innerW, 0.012)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
     ..row()..add(h2(accent(value))..setSize(innerW, 0.022)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
@@ -42,7 +42,7 @@ public function iconCard(string iconPath, string title, string subtitle, real wi
     let textCol = layoutFrame(root)..setSize(textWidth, iconSize)
     let textLayout = new TableLayout(textWidth, iconSize, "IconCardText")
     textLayout.padding = padding(0, 0, 0, 0)
-    textLayout.gap(0, 0.002)
+    textLayout.gap(0, SPACE_2XS)
     textLayout
     ..row()..add(p(title)..setSize(textWidth, 0.014)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
     ..row()..add(p3(muted(subtitle))..setSize(textWidth, 0.012)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
@@ -51,7 +51,7 @@ public function iconCard(string iconPath, string title, string subtitle, real wi
 
     let layout = new TableLayout(width, height, "IconCard")
     layout.padding = padding(inset, inset, inset, inset)
-    layout.gap(0.006, 0)
+    layout.gap(SPACE_XS + SPACE_2XS, 0)
     layout..row()..middle()..add(img(iconPath, iconSize, iconSize))..add(textCol)..growX()
     layout.applyTo(root)
     destroy layout

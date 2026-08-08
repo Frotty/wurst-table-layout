@@ -9,6 +9,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Static UI guardrail
+        run: python3 tools/table-ui-static-check.py --base "${{ github.event.pull_request.base.sha || github.event.before }}"
+
+      - name: Diff integrity
+        run: git diff --check "${{ github.event.pull_request.base.sha || github.event.before }}...HEAD"
 
       - name: Install WurstScript compiler
         run: grill install wurstscript

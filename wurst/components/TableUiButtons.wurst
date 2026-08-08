@@ -7,21 +7,36 @@ import TableLayout
 import TableUiImages
 import FramehandleNames
 
-public function btn(string text) returns framehandle
-    let frame = createFrame("button", defaultFrameParent, 0, 0)
+function btnFrame(framehandle parent, string text) returns framehandle
+    let frame = createFrame("button", parent, 0, 0)
         ..setText(text)..setTextAlignment(TEXT_JUSTIFY_CENTER, TEXT_JUSTIFY_CENTER)
     if autoReleaseFocus
         frame.onClickReleaseFocus()
     return frame
 
+public function btn(string text) returns framehandle
+    return btnFrame(defaultFrameParent, text)
+
+public function btn(framehandle parent, string text) returns framehandle
+    return btnFrame(parent, text)
+
 public function imgBtn(string path) returns framehandle
     return imgBtn(path, 0.025, 0.025)
+
+public function imgBtn(framehandle parent, string path) returns framehandle
+    return imgBtn(parent, path, 0.025, 0.025)
 
 public function imgBtn(string path, real size) returns framehandle
     return imgBtn(path, size, size)
 
+public function imgBtn(framehandle parent, string path, real size) returns framehandle
+    return imgBtn(parent, path, size, size)
+
 public function imgBtn(string path, real width, real height) returns framehandle
     return imgBtnFrame(path, width, height)
+
+public function imgBtn(framehandle parent, string path, real width, real height) returns framehandle
+    return imgBtnFrame(parent, path, width, height)
 
 public function checkbox(real width, real height) returns framehandle
     let frame = createFrame("QuestCheckBox2", defaultFrameParent, 0, 0)
@@ -30,8 +45,8 @@ public function checkbox(real width, real height) returns framehandle
         frame.onClickReleaseFocus()
     return frame
 
-function imgBtnFrame(string path, real width, real height) returns framehandle
-    let imgButton = createFrame(FramehandleTypeNames.gluebutton, "PickIconButton", defaultFrameParent, FramehandleNames.iconButtonTemplate, 2)
+function imgBtnFrame(framehandle parent, string path, real width, real height) returns framehandle
+    let imgButton = createFrame(FramehandleTypeNames.gluebutton, "PickIconButton", parent, FramehandleNames.iconButtonTemplate, 2)
     let imgTexture = createFrame(FramehandleTypeNames.backdrop, "pickIcon", imgButton, "", 2)
 
     imgButton
@@ -45,6 +60,9 @@ function imgBtnFrame(string path, real width, real height) returns framehandle
         imgButton.onClickReleaseFocus()
 
     return imgButton
+
+function imgBtnFrame(string path, real width, real height) returns framehandle
+    return imgBtnFrame(defaultFrameParent, path, width, height)
 
 
 interface CheckboxListener
@@ -106,11 +124,21 @@ public function textButton(string text, real width, real height) returns frameha
     return btn(text)
         ..setSize(max(MIN_BUTTON_WIDTH, width), max(MIN_BUTTON_HEIGHT, height))
 
+public function textButton(framehandle parent, string text, real width, real height) returns framehandle
+    return btn(parent, text)
+        ..setSize(max(MIN_BUTTON_WIDTH, width), max(MIN_BUTTON_HEIGHT, height))
+
 public function iconButton(string path, real size) returns framehandle
     return iconButton(path, size, size)
 
+public function iconButton(framehandle parent, string path, real size) returns framehandle
+    return iconButton(parent, path, size, size)
+
 public function iconButton(string path, real width, real height) returns framehandle
     return imgBtn(path, max(MIN_ICON_SIZE, width), max(MIN_ICON_SIZE, height))
+
+public function iconButton(framehandle parent, string path, real width, real height) returns framehandle
+    return imgBtn(parent, path, max(MIN_ICON_SIZE, width), max(MIN_ICON_SIZE, height))
 
 public function closeButton(framehandle target) returns framehandle
     return closeButton(target, 0.018)

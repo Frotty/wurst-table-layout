@@ -3,6 +3,18 @@
 This file is for AI agents and contributors who need to build Warcraft III UI in this repo.
 The goal is to make the boring choice the correct choice: use the existing layout and component helpers first, and only drop to raw frame code when a reusable helper is missing.
 
+## Agent workflow
+
+Use this order and stop only when both gates are complete:
+
+1. Build with `TableLayout` / `TableUi`; use explicit-parent helpers or `withParent(...)`.
+2. For `panelTable()` / `cardTable()`, use `layout.withContent() -> ...` so cell frames are born under the bound root.
+3. Run the static gate: `python3 tools/table-ui-static-check.py --base <base-revision>`.
+4. Run Wurst typecheck and headless tests. A skipped tool is not a pass.
+5. Before handover, run the actual WC3/e2e harness and verify its artifact/screenshot.
+
+The static gate intentionally checks added lines only. This keeps adoption incremental while preventing new uses of unsafe parenting, scaling, disabled warnings, raw spacing, or unsized text cells.
+
 ## Decision Tree
 
 Before creating any UI, follow this order:
@@ -113,7 +125,7 @@ import TableUi
 let root = panel(0.24, 0.12)
 
 new TableLayout(0.24, 0.12, "BasicPanel")
-..gap(0.004, 0.004)
+..gap(SPACE_XS, SPACE_XS)
 ..row()..add(h2("Status")..setSize(0.16, 0.022))..growX()..add(closeButton(root))
 ..row()..add(separator(0.21))
 ..row()..add(labelValue("State", "Ready", 0.20))
@@ -134,7 +146,7 @@ let difficulty = select("Difficulty", 0.12)
 ..addOption("Hard")
 
 new TableLayout(0.26, 0.16, "SettingsForm")
-..gap(0.004, 0.004)
+..gap(SPACE_XS, SPACE_XS)
 ..row()..add(h2("Settings")..setSize(0.22, 0.022))..growX()
 ..row()..add(p("Select")..setSize(0.06, 0.024))..add(difficulty.create())..growX()
 ..row()..add(p("Name")..setSize(0.06, 0.024))..add(textInput("", 0.12).create())..growX()
@@ -150,7 +162,7 @@ import TableLayout
 import TableUi
 
 new TableLayout(0.18, 0.04, "IconButtons")
-..gap(0.003, 0.)
+..gap(SPACE_2XS, 0.)
 ..row()
 ..add(iconButton("ReplaceableTextures\\CommandButtons\\BTNHumanBuild.blp", 0.026).withTooltip("Build"))
 ..add(iconButton("ReplaceableTextures\\CommandButtons\\BTNMove.blp", 0.026).withTooltip("Move"))
@@ -233,6 +245,17 @@ withParent(stats) ->
     ..applyTo(stats)
 ```
 
+For a `panelTable()` or `cardTable()`, prefer its bound-root scope:
+
+```wurst
+let stats = cardTable(0.18, 0.08, "Stats")
+stats.withContent() ->
+    stats
+    ..gap(SPACE_XS)
+    ..row()..add(statBar("Health", 0.16).getFrame())..growX()
+stats.build()
+```
+
 `withParent(parent) -> ...` scopes `defaultFrameParent` (a nestable push/pop that auto-restores), so
 everything created inside is born under `parent` instead of being created globally and re-parented in
 (a post-creation `setParent` leaves the frame in BOTH parents' child lists, which can misalign its
@@ -251,7 +274,7 @@ let difficulty = select("Difficulty", 0.12)
 ..addOption("Nightmare")
 
 new TableLayout(0.22, 0.08, "SelectExample")
-..gap(0.004, 0.004)
+..gap(SPACE_XS, SPACE_XS)
 ..row()..add(label("Difficulty", 0.08))..add(difficulty.create())..growX()
 ..createFrame()
 // the label is sized (0.08); the select takes the rest via growX. A bare unsized p("Difficulty") here
@@ -336,7 +359,7 @@ import TableLayout
 
 attachTableLayoutToMultiboard(mb, "ScoreMb", true, uiParent -> begin
     let layout = new TableLayout(0.22, 0., "ScoreLayout")
-    layout.padding = padding(0.006, 0.012, 0.006, 0.012)
+    layout.padding = padding(SPACE_XS + SPACE_2XS, SPACE_S + SPACE_XS, SPACE_XS + SPACE_2XS, SPACE_S + SPACE_XS)
     layout
     ..row()..add(h3("Score")..setSize(0.20, 0.02))..growX()
     ..row()..add(p("Player")..setSize(0.12, 0.012))..add(p("10")..setSize(0.04, 0.012))..growX()
@@ -381,7 +404,7 @@ Nested `TableLayout`s are the default way to build any non-trivial layout: compo
 ### Spacing scale
 
 Use the spacing tokens instead of magic numbers, in `gap`, `padding`/`pad` and `spacer`:
-`SPACE_XS` 0.004 · `SPACE_S` 0.008 · `SPACE_M` 0.014 · `SPACE_L` 0.022 · `SPACE_XL` 0.034.
+`SPACE_2XS` 0.002 · `SPACE_XS` 0.004 · `SPACE_S` 0.008 · `SPACE_M` 0.014 · `SPACE_L` 0.022 · `SPACE_XL` 0.034.
 e.g. `..gap(SPACE_S, SPACE_S)`, `layout.padding = padding(SPACE_M, SPACE_M, SPACE_M, SPACE_M)`, `add(spacer(SPACE_M))`.
 
 ### Minimum sizes
@@ -491,3 +514,5 @@ At runtime the library also warns automatically: a `Log.warn` fires once per cel
 - Library buttons release keyboard focus automatically; for any clickable frame the library did NOT create, did it get `onClickReleaseFocus()` (or `disable()` if decorative)?
 - If multiboard code changed, was minimize/maximize considered?
 - Did `grill build` pass?
+- Did `python3 tools/table-ui-static-check.py --base <base-revision>` pass?
+- Did the real WC3/e2e handoff run, with its expected screenshot/assertion artifact?

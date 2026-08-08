@@ -46,6 +46,7 @@ public var autoReleaseFocus = true
 // A small, consistent set of free-space tokens, sized to sit in line with the text
 // presets. Use these for gap(), padding and spacer() instead of ad-hoc magic numbers.
 public constant SPACE_XS = 0.004
+public constant SPACE_2XS = 0.002
 public constant SPACE_S  = 0.008
 public constant SPACE_M  = 0.014
 public constant SPACE_L  = 0.022
@@ -64,6 +65,10 @@ public enum Align
     CENTER
     END
     UNSET
+
+/** Closure used by withContent() to build a layout's cells under its root. */
+public interface TableLayoutScope
+    function run()
 
 public tuple padding(real top, real right, real bot, real left)
 
@@ -351,6 +356,22 @@ public class TableLayout
     function withRoot(framehandle root) returns thistype
         this.ownedRoot = root
         return this
+
+    /**
+     * Runs layout construction with the bound root as defaultFrameParent.
+     * This keeps panelTable()/cardTable() content under the eventual parent without requiring
+     * callers to save and restore the ambient defaultFrameParent manually.
+     */
+    function withContent(TableLayoutScope body)
+        let parent = ownedRoot != null ? ownedRoot : baseFrame
+        if parent == null
+            if tableWarnings
+                Log.warn("TableLayout.withContent() on " + name + " has no root; call it after withRoot() or applyTo(...).")
+            return
+        let previous = defaultFrameParent
+        defaultFrameParent = parent
+        body.run()
+        defaultFrameParent = previous
 
     /** Applies this layout to its owned root (from panelTable/cardTable) and returns that root frame. */
     function build() returns framehandle

@@ -47,12 +47,13 @@ init
             ..addOption("Easy")..addOption("Normal")..addOption("Hard")
 
         let setup = panelTable(0.26, 0.15, "Setup")
-        setup
-        ..gap(SPACE_S)
-        ..row()..add(h2("New Game")..setSize(0.16, 0.022))
-        ..row()..add(label("Difficulty", 0.08))..add(difficulty.create())..growX()
-        ..row()..add(label("Name", 0.08))..add(textInput("", 0.12).create())..growX()
-        ..row()..add(textButton("Start", 0.10, 0.026))
+        setup.withContent() ->
+            setup
+            ..gap(SPACE_S)
+            ..row()..add(h2("New Game")..setSize(0.16, 0.022))
+            ..row()..add(label("Difficulty", 0.08))..add(difficulty.create())..growX()
+            ..row()..add(label("Name", 0.08))..add(textInput("", 0.12).create())..growX()
+            ..row()..add(textButton("Start", 0.10, 0.026))
 
         setup.build().placeSafe(vec2(0.5, 0.5), 0.26, 0.15)
 ```
@@ -113,13 +114,13 @@ By default, cells have no padding, making them appear right next to each other. 
 ```
 new TableLayout(0.2, 0.15)
 ..row()
-..add(p("1"))..padRight(0.01)..padTop(0.01)
-..add(p("2"))..padRight(0.01)..padTop(0.01)
-..add(p("3"))..padRight(0.01)..padTop(0.01)
+..add(p("1")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
+..add(p("2")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
+..add(p("3")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
 ..row()
-..add(p("4"))..padRight(0.01)..padTop(0.01)
-..add(p("5"))..padRight(0.01)..padTop(0.01)
-..add(p("6"))..padRight(0.01)..padTop(0.01)
+..add(p("4")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
+..add(p("5")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
+..add(p("6")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
 ..createFrame()
 ```
 
@@ -132,13 +133,13 @@ By default, the alignment in a table is top-left. You can adjust horizontal alig
 ```
 new TableLayout(0.2, 0.15)
 ..row()..center()
-..add(p("1"))..padRight(0.01)..padTop(0.01)
-..add(p("2"))..padRight(0.01)..padTop(0.01)
-..add(p("3"))..padRight(0.01)..padTop(0.01)
+..add(p("1")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
+..add(p("2")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
+..add(p("3")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
 ..row()..end_()
-..add(p("4"))..padRight(0.01)..padTop(0.01)
-..add(p("5"))..padRight(0.01)..padTop(0.01)
-..add(p("6"))..padRight(0.01)..padTop(0.01)
+..add(p("4")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
+..add(p("5")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
+..add(p("6")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
 ..createFrame()
 ```
 
@@ -149,13 +150,13 @@ You can also make certain cells grow horizontally to distribute them evenly.
 ```
 new TableLayout(0.2, 0.15)
 ..row()
-..add(p("1"))..growX()..padBot(0.01)
-..add(p("2"))..growX()
-..add(p("3"))..growX()
+..add(p("1")..setSize(0.04, 0.014))..growX()..padBot(SPACE_S)
+..add(p("2")..setSize(0.04, 0.014))..growX()
+..add(p("3")..setSize(0.04, 0.014))..growX()
 ..row()
-..add(p("4"))
-..add(p("5"))..growX()
-..add(p("6"))
+..add(p("4")..setSize(0.04, 0.014))
+..add(p("5")..setSize(0.04, 0.014))..growX()
+..add(p("6")..setSize(0.04, 0.014))
 ..createFrame()
 ```
 
@@ -171,7 +172,7 @@ Because you cannot use scaling with the table layout, several presets are provid
 - Custom (Progress-)Bar `UIBar`
 - Containers: `panel` (window), `card` (section), `container` / `section` (no backdrop), plus `panelTable` / `cardTable` + `.build()`
 - Higher-level components in `TableUi` such as spacers, separators, icon/label rows, label/value rows, close/X buttons, boxed tooltips, edit boxes, text areas, dynamic selects, sliders, tabs, stat/icon cards, confirm dialogs, and stat bars
-- Spacing scale `SPACE_XS`-`SPACE_XL` for use in `gap` / `padding` / `spacer`
+- Spacing scale `SPACE_2XS`-`SPACE_XL` for use in `gap` / `padding` / `spacer`
 
 ```
 let baseFrame = defaultFrame()
@@ -182,13 +183,13 @@ let nestedTable1 = new TableLayout(0.1, 0.05)
 ..row()..center()
 ..add(img(Icons.bTNAcolyte))
 ..row()..center()
-..add(p("Acolyte"))..padTop(0.01)
+..add(p("Acolyte")..setSize(0.10, 0.014))..padTop(SPACE_S)
 
 let nestedTable2 = new TableLayout(0.1, 0.05)
 ..row()..center()
 ..add(img(Icons.bTNAbomination))
 ..row()..center()
-..add(p("Abomination"))..padTop(0.01)
+..add(p("Abomination")..setSize(0.10, 0.014))..padTop(SPACE_S)
 
 new TableLayout(0.25, 0.35)
 ..row()
@@ -216,7 +217,7 @@ new TableLayout(0.25, 0.35)
 ..row()
 ..add(bar1.create())
 ..row()
-..add(nestedTable1.createContainer(baseFrame))..padRight(0.0025)
+..add(nestedTable1.createContainer(baseFrame))..padRight(SPACE_2XS)
 ..add(nestedTable2.createContainer(baseFrame))
 ..applyTo(baseFrame)
 ```
@@ -264,7 +265,7 @@ let difficulty = select("Difficulty", 0.12)
 ..addOption("Hard")
 
 new TableLayout(0.24, 0.16, "SetupPanel")
-..gap(0.004, 0.004)
+..gap(SPACE_XS, SPACE_XS)
 ..row()..add(h2("Setup")..setSize(0.16, 0.022))..growX()..add(closeButton(root))
 ..row()..add(separator(0.21))
 ..row()..add(label("Select", 0.06))..add(difficulty.create())..growX()
@@ -315,7 +316,7 @@ By default a table has no columns: each row is laid out independently, so cells 
 let roster = panel(0.2, 0.13)
 new TableLayout(0.2, 0.13, "Roster")
 ..columns()
-..gap(0.006, 0.004)
+..gap(SPACE_XS + SPACE_2XS, SPACE_XS)
 ..row()..add(h4("Roster")..setSize(0.12, 0.016))..colspan(2)
 ..row()..add(iconLabel(Icons.bTNAcolyte, "Acolyte", 0.11))..add(p("x12")..setSize(0.03, 0.014))
 ..row()..add(iconLabel(Icons.bTNAbomination, "Abomination", 0.11))..add(p("x3")..setSize(0.03, 0.014))
@@ -326,7 +327,7 @@ Grid mode is opt-in and back-compatible (tables render exactly as before unless 
 
 ## Spacing, containers and safe placement
 
-Use the spacing scale (`SPACE_XS`, `SPACE_S`, `SPACE_M`, `SPACE_L`, `SPACE_XL`) in `gap`, `padding` and `spacer` instead of magic numbers. Buttons, icon buttons and checkboxes clamp to sane minimums (`MIN_BUTTON_WIDTH`/`MIN_BUTTON_HEIGHT`/`MIN_ICON_SIZE`) so they cannot be created too small to render.
+Use the spacing scale (`SPACE_2XS`, `SPACE_XS`, `SPACE_S`, `SPACE_M`, `SPACE_L`, `SPACE_XL`) in `gap`, `padding` and `spacer` instead of magic numbers. Buttons, icon buttons and checkboxes clamp to sane minimums (`MIN_BUTTON_WIDTH`/`MIN_BUTTON_HEIGHT`/`MIN_ICON_SIZE`) so they cannot be created too small to render.
 
 Pick the lightest container and never nest backdrops more than one level: a `panel` (window) holds `card`s (distinct sections, used sparingly), and everything else nests in `container`/`section` (no border).
 
@@ -358,7 +359,7 @@ let nestedTable2 = new TableLayout(0.1, 0.05)
 
 new TableLayout(0.25, 0.35)
 ..row()
-..add(nestedTable1.createContainer(baseFrame))..padRight(0.0025)
+..add(nestedTable1.createContainer(baseFrame))..padRight(SPACE_2XS)
 ..add(nestedTable2.createContainer(baseFrame))
 ..applyTo(baseFrame)
 ```
@@ -390,15 +391,16 @@ It ships agent instruction files. Point your agent at these first:
 - [`AGENTS.md`](AGENTS.md): project map, key behaviours, and the rules for changing UI.
 - [`AI_USAGE.md`](AI_USAGE.md): a decision tree and cookbook: which helper to use, copy-pasteable recipes, anti-patterns, and a self-check the agent runs before finishing.
 - [`WC3_FRAMEHANDLE_GUIDE.md`](WC3_FRAMEHANDLE_GUIDE.md): Warcraft III framehandle, focus and desync rules adapted for this library.
+- `python3 tools/table-ui-static-check.py --base <base-revision>`: the diff-oriented static guardrail used before any visual handoff.
 
 What makes it agent-friendly:
 
-- **A real feedback loop.** `layout.checkFits()` / `inspect()` validate a layout (overflow, zero-size cells) *without a running game*, so the agent can verify its own output: at runtime and headless via `grill test`. Runtime `Log.warn`s flag the common mistakes (unsized text, gap+grow overflow, vertical overflow).
+- **A staged feedback loop.** The static checker catches new unsafe patterns, while `layout.checkFits()` / `inspect()` validate layout math (overflow, zero-size cells) without a running game. Only after those pass should a consuming map run WC3/e2e and verify its screenshot/assertions.
 - **Guard rails and sane defaults.** Zero-size/overflow warnings, component minimums, a consistent spacing scale, a container hierarchy, and opt-in safe-area placement keep generated UI inside the lines. APIs that desync or crash in multiplayer (frame destruction, post-creation reparenting, fragile SimpleFrame children) are simply not exposed.
 - **A streamlined, cascade-friendly API** where the boring choice is the correct choice: nest tables and reuse helpers instead of computing frame points.
 - **The whole UI surface, with the quirks encoded.** Custom panels (Frame group), boss bars and band art (SimpleFrames), and the default HUD (`TableUiDefaultUi`) are all reachable through named helpers whose documentation carries the verified WC3 facts (what reappears on selection, what is one-way, what crashes), so the agent does not have to know Warcraft III folklore.
 
-When working with an agent, tell it to read `AGENTS.md` and `AI_USAGE.md`, then run `grill test` (or call `checkFits()`) after building UI and fix anything the report flags.
+When working with an agent, tell it to read `AGENTS.md` and `AI_USAGE.md`, run the static checker and headless tests, then run the actual WC3/e2e harness before handover. A skipped runner is incomplete, not passed.
 
 ## Dynamic changes
 
@@ -406,7 +408,7 @@ There currently is no change detection. If you changed the contained frames and 
 
 ## Changing the default frame parent
 
-Due to quirks in Warcraft III's handling of frames, frames created by the presets are created as children of `GAME_UI` by default. The parent is then changed to the table's base frame after layouting. However, this can cause problems if you're trying to use a table layout inside an existing frame. The clean way is `withParent(parent) -> ...`, a scoped, nestable push/pop of `defaultFrameParent` that creates everything inside under `parent` and restores the previous value automatically (use `inLayer(Layer.DIALOG/OVERLAY) -> ...` for floating UI):
+Due to quirks in Warcraft III's handling of frames, frames created by the presets are created as children of `GAME_UI` by default. The parent is then changed to the table's base frame after layouting. However, this can cause problems if you're trying to use a table layout inside an existing frame. The clean way is `withParent(parent) -> ...`, a scoped, nestable push/pop of `defaultFrameParent` that creates everything inside under `parent` and restores the previous value automatically. For a `panelTable()` / `cardTable()`, use `layout.withContent() -> ...`; it scopes the bound root automatically. Parent-aware overloads such as `h3(parent, text)`, `img(parent, ...)`, and `textButton(parent, ...)` are available when a single component must be created outside a scope. Use `inLayer(Layer.DIALOG/OVERLAY) -> ...` for floating UI:
 
 ```
 withParent(getFrame("SimpleInfoPanelUnitDetail", 0)) ->
@@ -414,7 +416,7 @@ withParent(getFrame("SimpleInfoPanelUnitDetail", 0)) ->
     ..applyTo(getFrame("SimpleInfoPanelUnitDetail", 0))
 ```
 
-If you set `defaultFrameParent` manually instead, restore the **previous** value rather than hardcoding `GAME_UI`, so you don't clobber an intentional baseline parent:
+Direct assignment to `defaultFrameParent` is a library-internal escape hatch and is rejected by the static checker in application changes. If a new library helper truly needs it, restore the **previous** value rather than hardcoding `GAME_UI`, so you don't clobber an intentional baseline parent:
 
 ```
 let prev = defaultFrameParent

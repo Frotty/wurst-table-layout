@@ -21,12 +21,12 @@ If you are modifying a downstream map's `_build/dependencies/wurst-table-layout`
 - Do not destroy Warcraft III frames in multiplayer cleanup. Hide and reuse them.
 - Do not create first-time frame handles inside `localPlayer` blocks.
 - Do not use local UI getters (`getText`, `getValue`, `getWidth`, `getHeight`, `isVisible`, `BlzGetLocalClientWidth/Height`, etc.) as synced game logic or layout authority.
-- Build frames under their eventual parent with `withParent(...)` / `inLayer(...)`; avoid post-creation `setParent`, which leaves the frame in both parents' child lists and can misalign hit areas.
+- Build frames under their eventual parent with `withParent(...)` / `inLayer(...)`; for `panelTable()` / `cardTable()` use `layout.withContent(...)`. Avoid post-creation `setParent`, which leaves the frame in both parents' child lists and can misalign hit areas.
 - Keep ordinary roots in the strict safe band with `placeSafe(...)`; use `placeVisuallySafe(...)` only for deliberate sidecars/status UI where left idle-button overlap is acceptable.
 - Do not move Blizzard chat/message frames with arbitrary coordinates. Create map-owned UI in a safe band instead.
 - Size every non-grow cell. Text presets measure `0` until sized; use `setSize`, `prefSize`, `fixedWidth`, `minWidth`, or `growX/growY`.
 - SimpleFrame components (`simpleBar`/`simpleTexture`, `TableUiSimple`) never go inside `TableLayout` cells or under Frame-group parents; they render below all Frame-group UI and are placed absolutely with `placeAt`. Use them only for boss/HUD bars, tinted textures, and off-4:3 band art.
-- Validate layout math with `checkFits()` / `inspect()` and headless tests before calling WC3 "done".
+- Validate layout math with `checkFits()` / `inspect()` and headless tests before calling WC3 "done". Runtime warnings are diagnostic only; do not turn them into runtime failures.
 
 ## Core Files
 - `wurst/TableLayout.wurst`: core layout engine, rows/cells, validation report, basic helpers.
@@ -53,11 +53,21 @@ Debug helpers create handles globally and show/hide owner-scoped:
 - Components should return a `framehandle` or a small wrapper with `create()` / `getFrame()`.
 - New widgets should create frames lazily in `create()`/`build()` under their own root.
 - Preserve backward compatibility. New layout behavior should be opt-in.
-- Use spacing tokens (`SPACE_XS`..`SPACE_XL`) and existing components before adding new styling primitives.
+- Use spacing tokens (`SPACE_2XS`..`SPACE_XL`) and existing components before adding new styling primitives.
 - Container hierarchy: `panel` for windows/dialogs, `card` sparingly for one nested visual section, `container`/`section` for structure. Do not nest backdrop cards deeply.
 - Library clickables release keyboard focus automatically; for foreign clickables use `onClickReleaseFocus()`, and disable decorative frames.
 
 ## Validation
+Stage 1 — static handoff gate:
+
+```bash
+python3 tools/table-ui-static-check.py --base <base-revision>
+grill typecheck --quiet
+grill test
+```
+
+The static checker is diff-oriented, so it catches new unsafe patterns without requiring a legacy UI rewrite. A skipped compiler, test runner, or e2e suite is not a pass.
+
 After code changes run:
 
 ```bash
@@ -72,3 +82,9 @@ grill test TableLayoutValidationTest
 ```
 
 Run broader `grill test` when layout core, shared components, or validation behavior changed. For visual/manual behavior, update `wurst/TableLayoutTest.wurst` and mention that a WC3 run is still needed.
+
+Stage 2 — WC3 handoff gate:
+
+- Run the real WC3/e2e harness for the consuming map.
+- Require the expected screenshot/assertion artifact.
+- Treat `SKIPPED`, timeout, missing artifact, or harness startup failure as incomplete—not passed.
