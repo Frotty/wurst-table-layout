@@ -15,6 +15,7 @@ import re
 import subprocess
 import sys
 from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass
@@ -34,7 +35,12 @@ AMBIENT_PARENT_IMPLEMENTATION_PREFIX = "wurst/components/"
 
 
 def mask_comments_and_strings(text: str) -> str:
-    """Replace comments and string contents while preserving line structure."""
+    """Replace comments and string contents while preserving line structure.
+
+    Callers should pass the complete source file when possible. That preserves
+    lexical state across an additions block that starts inside a pre-existing
+    block comment.
+    """
     masked: list[str] = []
     index = 0
     in_string = False
@@ -141,10 +147,27 @@ def added_lines(diff: str) -> list[AddedLine]:
 
 def violations(lines: list[AddedLine]) -> list[str]:
     errors: list[str] = []
+    masked_sources: dict[str, str | None] = {}
     for block in added_line_blocks(lines):
         first = block[0]
         location = f"{first.path}:{first.number}"
-        text = mask_comments_and_strings("\n".join(added.text for added in block))
+        if first.path not in masked_sources:
+            try:
+                masked_sources[first.path] = mask_comments_and_strings(
+                    Path(first.path).read_text(encoding="utf-8")
+                )
+            except OSError:
+                masked_sources[first.path] = None
+        masked_source = masked_sources[first.path]
+        if masked_source is None:
+            text = mask_comments_and_strings("\n".join(added.text for added in block))
+        else:
+            source_lines = masked_source.splitlines()
+            text = "\n".join(
+                source_lines[added.number - 1]
+                for added in block
+                if 0 < added.number <= len(source_lines)
+            )
 
         if re.search(r"\bsetScale\s*\(", text):
             errors.append(f"{location}: do not use setScale(); change declared width/height instead")
