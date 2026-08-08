@@ -26,6 +26,7 @@ class AddedLine:
 
 HUNK_RE = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@")
 FRAME_PARENTING_IMPLEMENTATION = {"wurst/TableLayout.wurst"}
+AMBIENT_PARENT_IMPLEMENTATION_PREFIX = "wurst/components/"
 
 
 def mask_comments_and_strings(text: str) -> str:
@@ -147,13 +148,11 @@ def violations(lines: list[AddedLine]) -> list[str]:
         if re.search(r"\bsetParent\s*\(", text) and first.path not in FRAME_PARENTING_IMPLEMENTATION:
             errors.append(f"{location}: create the frame under its eventual parent with withParent(...) or an explicit-parent helper")
 
-        if re.search(r"\bdefaultFrameParent\s*=", text) and first.path not in {
-            "wurst/TableLayout.wurst",
-            "wurst/components/TableUiLayers.wurst",
-        }:
-            errors.append(f"{location}: use withParent(...) / inLayer(...) instead of assigning defaultFrameParent")
-
-        if "defaultFrameParent" in text and "createFrame" in text and not first.path.startswith("wurst/components/"):
+        if (
+            "defaultFrameParent" in text
+            and first.path != "wurst/TableLayout.wurst"
+            and not first.path.startswith(AMBIENT_PARENT_IMPLEMENTATION_PREFIX)
+        ):
             errors.append(f"{location}: create application frames under their parent with withParent(...) or an explicit-parent helper")
 
     return errors
