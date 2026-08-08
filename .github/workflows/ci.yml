@@ -3,9 +3,8 @@ name: CI
 on: [push, pull_request]
 
 jobs:
-  test:
+  static:
     runs-on: ubuntu-latest
-    container: frotty/wurstscript
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -35,6 +34,16 @@ jobs:
 
       - name: Diff integrity
         run: git diff --check "${{ steps.diff-base.outputs.sha }}...HEAD"
+
+  test:
+    runs-on: ubuntu-latest
+    container: frotty/wurstscript
+    needs: static
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install WurstScript compiler
         run: grill install wurstscript
