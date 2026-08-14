@@ -103,6 +103,8 @@ public class UISlider
         return root
 
     ondestroy
+        if root != null
+            root.hide()
         if valueChangeFrameListener != null
             destroy valueChangeFrameListener
             valueChangeFrameListener = null
