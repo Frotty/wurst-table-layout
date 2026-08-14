@@ -18,9 +18,11 @@ public class UISlider
     private real width = 0.
     private string label = ""
     private SliderListener listener = null
+    private boolean syncingValue = false
     private framehandle root = null
     private framehandle sliderFrame = null
     private framehandle valueFrame = null
+    private FrameHandleListener valueChangeFrameListener = null
 
     construct(string label, real width, real minValue, real maxValue)
         this.label = label
@@ -48,7 +50,9 @@ public class UISlider
     function setValue(real newValue) returns thistype
         value = max(minValue, min(maxValue, newValue))
         if sliderFrame != null
+            syncingValue = true
             sliderFrame.setValue(value)
+            syncingValue = false
         if valueFrame != null
             valueFrame.setText(format(value))
         return this
@@ -77,10 +81,12 @@ public class UISlider
             ..setSize(max(0.034, width * 0.18), height)
             ..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_RIGHT)
 
-        sliderFrame.onSliderValueChange() ->
-            value = BlzGetTriggerFrameValue()
+        valueChangeFrameListener = sliderFrame.onSliderValueChange() ->
+            let nextValue = BlzGetTriggerFrameValue()
+            let changed = nextValue != value
+            value = nextValue
             valueFrame.setText(format(value))
-            if listener != null
+            if changed and not syncingValue and listener != null
                 listener.onChange(value)
 
         let layout = new TableLayout(width, height, "Slider")
@@ -95,6 +101,13 @@ public class UISlider
         destroy layout
         defaultFrameParent = prevParent
         return root
+
+    ondestroy
+        if root != null
+            root.hide()
+        if valueChangeFrameListener != null
+            destroy valueChangeFrameListener
+            valueChangeFrameListener = null
 
     function getFrame() returns framehandle
         return create()
