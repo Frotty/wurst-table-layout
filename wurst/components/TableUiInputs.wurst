@@ -56,7 +56,7 @@ public class UIEditBox
         that player's visibility flag - the safe shape. Never wrap this in a localPlayer block.
         NOTE: the typed text is local state by nature; read it only via onSubmit's synced `text`. */
     function setVisible(player p, bool flag) returns thistype
-        create().setVisible(p, flag)
+        create().setVisibleForOwner(p, flag)
         return this
 
     function show(player p) returns thistype

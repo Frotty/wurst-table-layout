@@ -377,6 +377,21 @@ Why the wrong version is not just cosmetic: frame events are synced, so the clic
 client, but only the client that ran `create()` resolves a listener for it. The map's callback then
 executes on exactly one machine - a local branch reaching a synchronized sink.
 
+**`show(player)` is exclusive on first use.** Component roots are created *visible*, which is right
+for the ordinary flow (build it, add it to a layout, everyone sees it) but wrong for per-player UI:
+`BlzFrameSetVisible` under a local guard only touches that player's client, so showing a
+default-visible frame to one player would leave it on every other screen untouched. The first
+player-scoped show therefore hides the frame globally first, then reveals it to that player. Later
+scoped calls are additive, so a set still works:
+
+```wurst
+panel.show(p1)          // p1 only - everyone else loses it
+panel.show(p2)          // now exactly p1 and p2
+panel.hide(p1)          // now p2 only
+```
+
+`framehandle.setVisibleForOwner(player, bool)` exposes the same behaviour for your own frames.
+
 When each player needs UI they own independently, build one tree per owner instead of diverging one
 shared tree (`TableUiPerPlayer`):
 

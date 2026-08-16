@@ -116,7 +116,7 @@ public class UICheckbox
         NOTE: the checked state stays shared - a click by any player toggles it for everyone. */
     function setVisible(player p, bool flag) returns thistype
         if bg != null
-            bg.setVisible(p, flag)
+            bg.setVisibleForOwner(p, flag)
         return this
 
     function show(player p) returns thistype

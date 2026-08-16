@@ -96,7 +96,7 @@ public class UITabs
         NOTE: which TAB is active stays shared - a click by any player switches it for everyone. For
         genuinely independent tabs per player, build one UITabs per owner with perPlayerFrames(). */
     function setVisible(player p, bool flag) returns thistype
-        build().setVisible(p, flag)
+        build().setVisibleForOwner(p, flag)
         return this
 
     function show(player p) returns thistype

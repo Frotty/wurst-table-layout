@@ -272,6 +272,11 @@ statusBar.setVisible(p, false)
 setResourceBarVisible(p, false)     // same shape for the default HUD
 ```
 
+`show(player)` is exclusive on first use: components are created visible (right for the ordinary
+"add it to a layout" flow), so the first player-scoped show hides the frame from everyone else before
+revealing it. Later scoped calls are additive, so `show(p1)` then `show(p2)` leaves exactly those two.
+`framehandle.setVisibleForOwner(player, bool)` gives your own frames the same behaviour.
+
 A single component is shared state: any player's click changes it for everyone, and every listener
 reports who acted (`onSelect(p, index, value)`, `onChange(p, value)`, ...; `p` is null when the
 change was programmatic). When players need genuinely independent instances, build one tree per

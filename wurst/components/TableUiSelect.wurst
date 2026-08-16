@@ -13,6 +13,9 @@ import LinkedList
 public interface SelectListener
     function onSelect(player p, int index, string value)
 
+// Class member arrays need a literal size, so bj_MAX_PLAYER_SLOTS (28) is mirrored here.
+constant MAX_SLOTS = 28
+
 // Inner inset of the dropdown menu and the vertical gap between option buttons.
 constant MENU_PADDING = 0.003
 constant MENU_GAP_Y = 0.001
@@ -23,7 +26,9 @@ public class UISelect
     string placeholder = ""
     real width = 0.
     real optionHeight = 0.024
-    bool open = false
+    // Per player: the dropdown is a transient interaction and its menu sits outside the select's
+    // root, so one shared flag would leak (and steal) it between players. See setOpenFor().
+    private boolean array[MAX_SLOTS] openByPid
     int selectedIndex = -1
 
     framehandle root = null
@@ -120,7 +125,7 @@ public class UISelect
         // are above the barrier (OVERLAY_LEVEL-1) so they still receive their own click events.
         clickCatcher = new UIModalBackdrop(Layer.OVERLAY, OVERLAY_LEVEL - 1, 0.0)
         clickCatcher.onClick() clicker ->
-            setOpen(false)
+            setOpenFor(clicker, false)
         clickCatcher.create()
 
         defaultFrameParent = prevParent
@@ -137,11 +142,24 @@ public class UISelect
         destroy options
         destroy optionFrames
 
+    /** Toggles the dropdown for every player. */
     function toggle()
-        setOpen(not open)
+        setOpen(not isOpenForAnyone())
 
+    /** Toggles the dropdown for ONE player, independently of every other player. */
     function toggleFor(player p)
-        setOpenFor(p, not open)
+        setOpenFor(p, not isOpenFor(p))
+
+    /** Whether the dropdown is currently open for `p`. Derived from the synced open state, not from a
+        local frame getter, so it is safe to branch on. */
+    function isOpenFor(player p) returns bool
+        return p != null and openByPid[p.getId()]
+
+    function isOpenForAnyone() returns bool
+        for i = 0 to MAX_SLOTS - 1
+            if openByPid[i]
+                return true
+        return false
 
     function syncMenuOverlay()
         // menu is created in the OVERLAY band, so on open we only re-anchor it to the toggle and
@@ -154,31 +172,40 @@ public class UISelect
 
     /** Opens/closes the dropdown for every player. */
     function setOpen(bool flag)
-        setOpenFor(null, flag)
-
-    /** Opens the dropdown for ONE player (null = everyone), closing always applies to everyone.
-
-        The menu deliberately lives in the OVERLAY band, OUTSIDE this select's root, so that it renders
-        above panels - which also means root visibility does not cover it. Opening it globally would
-        therefore put one player's dropdown on every screen, and on an owner-scoped select it would
-        show the menu to players who cannot even see the select. Opening it only for the acting player
-        is both the correct per-player behaviour and better shared-UI behaviour. */
-    function setOpenFor(player p, bool flag)
         create()
-        if flag == open
+        for i = 0 to MAX_SLOTS - 1
+            openByPid[i] = flag
+        applyOpen(null, flag)
+
+    /** Opens/closes the dropdown for ONE player (null = everyone).
+
+        Open state is tracked PER PLAYER because the menu lives in the OVERLAY band, OUTSIDE this
+        select's root: root visibility does not cover it, so a single shared flag meant one player's
+        dropdown appeared on every screen - and on an owner-scoped select it appeared for players who
+        cannot see the select at all. Per-player state also keeps a shared select usable by several
+        players at once: B opening their menu no longer closes A's. */
+    function setOpenFor(player p, bool flag)
+        if p == null
+            setOpen(flag)
             return
-        open = flag
-        if open
+        create()
+        if openByPid[p.getId()] == flag
+            return
+        openByPid[p.getId()] = flag
+        applyOpen(p, flag)
+
+    // Runs on every client; only the setVisible calls are player-scoped, and the geometry work below
+    // is identical everywhere, so no client diverges in anything but the visibility flag.
+    private function applyOpen(player p, bool flag)
+        if flag
             syncMenuOverlay()
             menu.setVisible(p, true)
             optionFrames.forEach(option -> option.setVisible(p, true))
             clickCatcher.setVisible(p, true)
         else
-            // Closing is unconditional: hiding a frame nobody can see is a harmless no-op, and it
-            // guarantees no client is left with a stale open menu.
-            clickCatcher.hide()
-            optionFrames.forEach(option -> option.hide())
-            menu.hide()
+            clickCatcher.setVisible(p, false)
+            optionFrames.forEach(option -> option.setVisible(p, false))
+            menu.setVisible(p, false)
             menuBackdrop.setAllPoints(menu)
 
     /** Shows or hides the select FOR ONE PLAYER. Creates it on every client first, then flips only
@@ -186,9 +213,9 @@ public class UISelect
         NOTE: the selected option stays shared - a pick by any player changes it for everyone. For an
         independent choice per player, build one UISelect per owner with perPlayerFrames(). */
     function setVisible(player p, bool flag) returns thistype
-        create().setVisible(p, flag)
+        create().setVisibleForOwner(p, flag)
         if not flag
-            setOpen(false)
+            setOpenFor(p, false)
         return this
 
     function show(player p) returns thistype
@@ -207,7 +234,7 @@ public class UISelect
         selectedIndex = index
         let value = options.get(index)
         toggleButton.setText(value)
-        setOpen(false)
+        setOpenFor(p, false)
         if listener != null
             listener.onSelect(p, index, value)
 

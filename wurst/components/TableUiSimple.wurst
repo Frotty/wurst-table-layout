@@ -84,7 +84,7 @@ public class UISimpleBar
     /** Shows or hides the bar FOR ONE PLAYER. Creates it on every client first, then flips only that
         player's visibility flag - the safe shape. Never wrap this in a localPlayer block. */
     function setVisible(player p, bool flag) returns thistype
-        create().setVisible(p, flag)
+        create().setVisibleForOwner(p, flag)
         return this
 
     function show(player p) returns thistype
@@ -163,7 +163,7 @@ public class UISimpleTexture
         that player's visibility flag - the safe shape. Never wrap this in a localPlayer block.
         Only the main frame is toggled; the fragile Texture child is never touched. */
     function setVisible(player p, bool flag) returns thistype
-        create().setVisible(p, flag)
+        create().setVisibleForOwner(p, flag)
         return this
 
     function show(player p) returns thistype
