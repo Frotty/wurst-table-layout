@@ -155,9 +155,12 @@ public class UISelect
     function isOpenFor(player p) returns bool
         return p != null and openByPid[p.getId()]
 
+    /** Whether any real client currently has the dropdown open. Empty, AI and departed slots are
+        skipped: they can never open or close the menu themselves, so a flag left over from a global
+        setOpen(true) would otherwise report an invisible menu as open forever. */
     function isOpenForAnyone() returns bool
         for i = 0 to MAX_SLOTS - 1
-            if openByPid[i]
+            if openByPid[i] and players[i].isIngame()
                 return true
         return false
 
@@ -174,7 +177,12 @@ public class UISelect
     function setOpen(bool flag)
         create()
         for i = 0 to MAX_SLOTS - 1
-            openByPid[i] = flag
+            // Only real client slots get an open flag. Marking all 28 left empty and AI slots stuck at
+            // true once every actual player had closed their own menu, so isOpenForAnyone() reported an
+            // invisible menu as open and the next toggle() closed those stale flags instead of
+            // reopening. Slot and controller state are lockstep values, so this stays identical on
+            // every client.
+            openByPid[i] = flag and players[i].isIngame()
         applyOpen(null, flag)
 
     /** Opens/closes the dropdown for ONE player (null = everyone).
