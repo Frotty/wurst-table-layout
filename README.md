@@ -26,6 +26,7 @@ It began as a table/flexbox layout (rows → cells → framehandles, with option
   See the [universal font glyph guide](UNIVERSAL_FONT_GLYPHS.md) for the verified catalog and setup notes.
 - **SimpleFrame helpers**: `simpleBar` (boss/HUD bars with native fill + runtime tinting) and `simpleTexture` (tintable, full-width band art) for what Frame-group UI cannot do.
 - **Default-HUD control**: hide or modify the day/night clock, resource bar, menu buttons, minimap, portrait, hero bar and command card by name (`TableUiDefaultUi`), attach custom content to a self-healing native multiboard shell (`attachToMultiboard`), or go fully custom-UI with `hideDefaultUi()`.
+- **Per-player UI without desync risk**: every component has `show(player)` / `hide(player)` / `setVisible(player, bool)` overloads that allocate for all clients and then flip only that player's visibility flag, and `perPlayerFrames(...)` builds one tree per owner when players need independent instances. You should never write a `localPlayer` block; an opt-in `checkUiSync()` diagnostic catches it if you did.
 - **Sane defaults**: a spacing scale (`SPACE_*`), automatic component minimums, automatic keyboard-focus release, a container hierarchy, and safe-area placement that keeps panels clear of the melee HUD.
 - **Built-in validation**: `checkFits()` / `inspect()` catch overflow and unsized cells, at runtime and headless in `grill test`.
 - **Agent support**: ships agent instruction files (decision tree, recipes, verified WC3 frame rules) and a headless feedback loop, so an LLM can generate correct UI on the first try (see [AI readiness](#ai-readiness)).
@@ -250,6 +251,47 @@ new TableLayout(0.5, 0.25)
 ..createFrame()
 ```
 
+## Per-player UI
+
+Warcraft III is lockstep: frames must be **allocated** identically on every client, and only the
+visibility flag may differ per player. So the tempting shortcut is the one thing you must not write:
+
+```
+if localPlayer == p
+    dialog.show()          // WRONG: creates frames + click triggers on ONE client
+```
+
+Frame events are synced, so that button's click fires on every client - but only the client that
+created it resolves a listener and runs your callback. Instead, every component takes the player
+directly. These allocate for all clients first, then flip only that player's visibility flag:
+
+```
+dialog.show(p)
+volumeSlider.hide(p)
+statusBar.setVisible(p, false)
+setResourceBarVisible(p, false)     // same shape for the default HUD
+```
+
+A single component is shared state: any player's click changes it for everyone, and every listener
+reports who acted (`onSelect(p, index, value)`, `onChange(p, value)`, ...; `p` is null when the
+change was programmatic). When players need genuinely independent instances, build one tree per
+owner - `perPlayerFrames` runs the factory once per owner on **every** client:
+
+```
+UISelect array difficulty
+
+let picker = perPlayerFrames() owner ->
+    let s = select("Difficulty", 0.13)..addOption("Normal")..addOption("Hard")
+    difficulty[owner.getId()] = s
+    return s.getFrame()
+
+picker.showEach()                   // each player sees their own, nobody sees anyone else's
+```
+
+`import TableUiSyncCheck` and call `checkUiSync()` to verify: it asks every player for their UI
+allocation count and logs an error naming any player whose count differs. It is a diagnostic - never
+branch game logic on it.
+
 ## Higher-level UI helpers
 
 For common UI, import `TableUi` and use its small component helpers on top of `TableLayout`.
@@ -305,7 +347,17 @@ setMinimapVisible(false)
 hideDefaultUi()
 ```
 
-Individual elements: `dayNightClock()`, `resourceBar()`, `upperButtonBar()`, `minimapFrame()`, `portraitFrame()`, `heroBar()`, `commandButton(0..11)`, `inventoryButton(0..5)`, each with a `setXVisible` helper. Call `reserveDefaultUiHandles()` once at elapsed `0.` before any per-player (local) show/hide. The quirks (command buttons reappearing on selection, menu hotkeys surviving a hide, Reforged 2.0 console changes) are documented in [`WC3_FRAMEHANDLE_GUIDE.md`](WC3_FRAMEHANDLE_GUIDE.md).
+Individual elements: `dayNightClock()`, `resourceBar()`, `upperButtonBar()`, `minimapFrame()`, `portraitFrame()`, `heroBar()`, `commandButton(0..11)`, `inventoryButton(0..5)`, each with a `setXVisible` helper.
+
+For a per-player HUD, use the `(player, bool)` overload rather than a local block - it acquires the handle for every client and only then applies that player's visibility flag:
+
+```
+setResourceBarVisible(observer, false)
+setMinimapVisible(observer, false)
+hideDayNightClock(observer)
+```
+
+`hideDefaultUi()` has no per-player form on purpose: it reparents frames and resizes the console backdrop, so it must run identically everywhere. Call it for everyone, then differentiate with the setters above. `reserveDefaultUiHandles()` remains available for hand-written local blocks against raw default frames. The quirks (command buttons reappearing on selection, menu hotkeys surviving a hide, Reforged 2.0 console changes) are documented in [`WC3_FRAMEHANDLE_GUIDE.md`](WC3_FRAMEHANDLE_GUIDE.md).
 
 Layout additions such as `gap`, `growY`, `minWidth`, `minHeight`, `fixedWidth`, `fixedHeight`, and `fixedSize` are opt-in and do not alter existing layouts unless called.
 

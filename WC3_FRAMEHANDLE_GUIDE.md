@@ -327,6 +327,18 @@ Available wrappers include `onClick`, `onMouseEnter`, `onMouseLeave`, `onSliderV
 
 Frame events are synchronized. For game-affecting input, read the event data inside the event and store it in synced/player-indexed state. Do not read local UI getters later and use them for synced game logic.
 
+Two consequences worth internalising, because they surprise people in opposite directions:
+
+- **A handler runs on every client, for a click by any player.** One shared widget means player 12 can
+  fire the callback that "belongs" to player 1. Every library listener therefore passes the acting
+  `player` first (`onSelect(p, index, value)`, `onChange(p, value)`, ...); it is null when the change
+  was programmatic rather than a click. Check it, or build per-player instances.
+- **Widget state a player changes by hand is still local.** Dragging a slider moves the knob only on
+  the dragging client, even though `SLIDER_VALUE_CHANGED` reaches everyone with the same value; the
+  same goes for text typed into an edit box. Re-assert such state from inside the (synced) event on
+  every client - `UISlider` does exactly this - and read the value from `BlzGetTriggerFrameValue()` /
+  `BlzGetTriggerFrameText()`, never from `BlzFrameGetValue` / `BlzFrameGetText`.
+
 ### Keyboard focus
 
 Clicked frames steal keyboard focus, and a focused frame swallows the **Enter** key. Because Enter normally opens chat, a stray focus means Enter either does nothing (chat won't open) or re-fires the focused control, which can be destructive (an accidental button press). This affects buttons, edit boxes and even clickable backdrops (e.g. Blizzard's chat window).
@@ -345,6 +357,40 @@ How this library handles it:
 ## Multiplayer Safety
 
 WC3 is lockstep. UI visuals may be local, but handle allocation and game-affecting results must remain deterministic.
+
+**With this library you should not be writing `localPlayer` blocks at all.** Every component exposes
+player-scoped overloads that do the allocation for all clients and then flip only that player's
+visibility flag, so the unsafe shape is not reachable through the normal API:
+
+```wurst
+// Right: one allocation for everyone, one local flag.
+dialog.show(p)
+volumeSlider.hide(p)
+setResourceBarVisible(p, false)
+
+// Wrong: the allocation moves inside the local branch.
+if localPlayer == p
+    dialog.show()            // creates frames, click triggers and listener closures on ONE client
+```
+
+Why the wrong version is not just cosmetic: frame events are synced, so the click fires on every
+client, but only the client that ran `create()` resolves a listener for it. The map's callback then
+executes on exactly one machine - a local branch reaching a synchronized sink.
+
+When each player needs UI they own independently, build one tree per owner instead of diverging one
+shared tree (`TableUiPerPlayer`):
+
+```wurst
+UISelect array difficulty
+
+let picker = perPlayerFrames() owner ->
+    let s = select("Difficulty", 0.13)..addOption("Normal")..addOption("Hard")
+    difficulty[owner.getId()] = s
+    return s.getFrame()
+picker.showEach()            // every player sees their own, nobody sees anyone else's
+```
+
+If you do reach past the library to a raw frame, the classic rules still apply.
 
 Safe pattern:
 
@@ -367,12 +413,29 @@ Rules:
 - Do not create/get first-time UI handles only inside a local-player block.
 - Do not destroy UI frames in MP code; use `hide()`.
 - Do not use local UI state getters as synced data sources.
-- Create all per-player copies for all players, then hide/show locally.
+- Create all per-player copies for all players, then hide/show locally (`perPlayerFrames(...)` does this for you).
 - Cache handles. Do not repeatedly create duplicate UI.
+- Prefer the `show(player)` / `hide(player)` / `setVisible(player, bool)` overloads over hand-written local blocks; they put the allocation on the safe side of the guard by construction.
+- `hideDefaultUi()` and the `MultiboardAttach` functions are global-only: they acquire handles, reparent frames, create a timer and mutate synchronized multiboard state. Never scope them to a player.
 
 Be careful with these getters in MP because their values can differ locally: `getText`, `getValue`, `isEnabled`, `getAlpha`, `getHeight`, `getWidth`, `getParent`, `isVisible`, `BlzGetLocalClientWidth()`, and `BlzGetLocalClientHeight()`.
 
 **The handleId reservation pattern** (the safe way to touch frames locally): acquire every frame handle once, synchronously for all players (as in the safe pattern above). Once the handle exists in the map script, getting and using that frame inside a `localPlayer` block no longer allocates a handleId, so it cannot desync handle counters. The unsafe pattern is unsafe precisely because the FIRST acquisition happens locally.
+
+**Detecting a divergence you already shipped.** `TableUiSyncCheck` (opt-in import; not re-exported by
+the `TableUi` facade) asks every ingame player for their library UI allocation count and logs an error
+naming the counts when they disagree - the signature of a tree built inside a local block:
+
+```wurst
+import TableUiSyncCheck
+...
+doAfter(5.) -> checkUiSync()
+```
+
+It is a diagnostic and runs asynchronously (the counts arrive over the network). Never branch game
+logic on its result. It covers library container/component allocation (`layoutFrame` /
+`nextUiContext`), which is what per-player UI is built from; a bare `p()` / `img()` / `btn()` created
+inside a local block is not counted.
 
 **Frames that do not exist until locally triggered** are a handleId trap: quest dialog frames only exist after the quest button was clicked, chat frames only exist in multiplayer, the log dialog only in single player, and the portrait HP text only after a unit was selected. Touching these "on demand" acquires handles at different times on different clients. If you must use one, force-create it synchronously for everyone first (e.g. `BlzFrameClick` on the quest button) or avoid it entirely; this library builds its own panels instead.
 
@@ -405,7 +468,8 @@ Use `TableUiDefaultUi` instead of memorising frame names, child indices and patc
 - `dayNightClock()` / `hideDayNightClock()` / `setDayNightClockVisible(bool)`: the clock has **no frame name**; it is `GAME_UI` child `[5]` child `[0]`, reachable only on 1.32.6+. Never hide its *parent* `[5]`: that is also the minimap's ancestor.
 - `resourceBar()`, `upperButtonBar()`, `minimapFrame()`, `portraitFrame()`, `heroBar()`, `commandButton(0..11)`, `inventoryButton(0..5)` with matching `setXVisible(bool)` helpers.
 - `hideDefaultUi()`: the full custom-UI recipe (`enableUIAutoPosition(false)` + `BlzHideOriginFrames` + collapsing `ConsoleUIBackdrop` to `0 x 0.0001` rather than hiding it + hiding the invisible mouse dead zone at the command card + on Reforged 2.0 also the `ConsoleTopBar`/`ConsoleBottomBar` art, reparenting the tooltip frame out first so tooltips survive).
-- `reserveDefaultUiHandles()`: touches every handle once, synchronously: call it at elapsed 0.00 for all players BEFORE any per-player (`localPlayer`) show/hide of default UI.
+- `setXVisible(player, bool)` overloads on every helper (`setResourceBarVisible(p, false)`, `setMinimapVisible(p, false)`, `hideDayNightClock(p)`, ...): they acquire the handle for all clients and then apply only that player's visibility flag. This is the per-player HUD path; do not wrap them in a `localPlayer` block. All of them tolerate a frame missing on the running patch.
+- `reserveDefaultUiHandles()`: touches every handle once, synchronously. With the player-scoped overloads this is belt-and-braces rather than load-bearing; it stays the right call at elapsed 0.00 when you hand-write a `localPlayer` block against a raw default frame.
 
 Facts that shape correct usage (do not fight these):
 
@@ -415,7 +479,8 @@ Facts that shape correct usage (do not fight these):
 - **Hiding the upper menu buttons does not disable their hotkeys** (F9-F12); disable the button frames to stop those, and note the game re-enables them whenever a menu closes.
 - **The portrait uses whole-screen coordinates**, not the 4:3 system.
 - **Never hide `"InventoryText"`'s parent** (GAME_UI child `[4]`): it makes ALL SimpleFrames invisible yet still clickable.
-- Visibility changes on default frames are local-state and safe per-player AFTER handles are reserved; handle acquisition inside `localPlayer` blocks desyncs.
+- Visibility changes on default frames are local-state and safe per-player AFTER handles are reserved; handle acquisition inside `localPlayer` blocks desyncs. The `setXVisible(player, bool)` overloads reserve then apply in one call, which is why they are the recommended path.
+- **`hideDefaultUi()` is not per-player.** It calls `enableUIAutoPosition(false)`, reparents the ubertooltip and resizes the console backdrop - shared structural work. Call it for everyone, then differentiate with the player-scoped setters.
 
 ## Multiboard Attach
 
@@ -466,7 +531,7 @@ button.setTooltip(tooltip)
 
 Cautions:
 
-- `setTooltip` cannot really be undone.
+- `setTooltip` cannot really be undone. `removeTooltip()` / `clearTooltips()` therefore only hide the tooltip box (which is what stops it rendering); they deliberately do not clear the owner association, because re-setting the pair is the documented way to crash on hover.
 - Calling `setTooltip` twice with the same frame/tooltip pair can crash on hover.
 - Prefer per-tooltip frames when styled text matters.
 - Disable tooltip text/backdrops if they should not capture mouse input.

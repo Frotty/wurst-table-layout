@@ -19,7 +19,11 @@ If you are modifying a downstream map's `_build/dependencies/wurst-table-layout`
 - Create UI at elapsed time `0.00` or later; only TOC loading belongs in blocking `init`.
 - Create/get frame handles for all clients, cache them, and use owner-scoped show/hide for per-player UI.
 - Do not destroy Warcraft III frames in multiplayer cleanup. Hide and reuse them.
+- **Never write a `localPlayer` block around a library call.** Every component has `show(player)` / `hide(player)` / `setVisible(player, bool)` overloads that allocate for all clients first and then flip only that player's visibility flag. Same for the default HUD: `setResourceBarVisible(p, false)`, not `if localPlayer == p`. Visibility is the only state allowed to differ per client.
+- For UI each player must own independently (their own selection, their own dialog answer), build one tree per owner with `perPlayerFrames(...)` from `TableUiPerPlayer`. A single shared component is shared state: any player's click changes it for everyone.
+- `hideDefaultUi()` and everything in `MultiboardAttach` are global-only (they acquire handles, reparent frames, create a timer, and mutate synchronized multiboard state). They have no per-player form and must run identically on every client.
 - Do not create first-time frame handles inside `localPlayer` blocks.
+- Listener callbacks pass the acting `player` first (null when the change was programmatic). Use it instead of assuming the handler belongs to one player: a shared widget fires for everyone.
 - Do not use local UI getters (`getText`, `getValue`, `getWidth`, `getHeight`, `isVisible`, `BlzGetLocalClientWidth/Height`, etc.) as synced game logic or layout authority.
 - Build frames under their eventual parent with `withParent(...)` / `inLayer(...)`; for `panelTable()` / `cardTable()` use `layout.withContent(...)`. Avoid post-creation `setParent`, which leaves the frame in both parents' child lists and can misalign hit areas.
 - Keep ordinary roots in the strict safe band with `placeSafe(...)`; use `placeVisuallySafe(...)` only for deliberate sidecars/status UI where left idle-button overlap is acceptable.
@@ -32,6 +36,8 @@ If you are modifying a downstream map's `_build/dependencies/wurst-table-layout`
 - `wurst/TableLayout.wurst`: core layout engine, rows/cells, validation report, basic helpers.
 - `wurst/TableUi.wurst`: public facade exporting components.
 - `wurst/components/`: component implementations (`TableUiSafeArea`, dialogs, layers, panels, inputs, tooltips, etc.).
+- `wurst/components/TableUiPerPlayer.wurst`: `perPlayerFrames(...)` - one UI tree per owner, allocated on every client, with owner-scoped visibility.
+- `wurst/components/TableUiSyncCheck.wurst`: opt-in `checkUiSync()` desync diagnostic. Not re-exported by the `TableUi` facade; import it explicitly.
 - `wurst/MultiboardAttach.wurst`: custom content inside default multiboard shells.
 - `wurst/TableLayoutValidationTest.wurst`: headless layout/safe-area validation tests.
 - `wurst/TableLayoutTest.wurst`: manual visual demo; requires a real WC3 map run.
