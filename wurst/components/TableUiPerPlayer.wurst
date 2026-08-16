@@ -1,0 +1,130 @@
+package TableUiPerPlayer
+// One UI tree per player, allocated synchronously on every client.
+//
+// WHY THIS EXISTS: Warcraft III is lockstep. Frame HANDLES must be allocated in the same order on
+// every client; only the visibility flag may legally differ per player. The tempting shortcut
+//
+//     if localPlayer == p
+//         myDialog.show()          // <- allocates the dialog on ONE client
+//
+// desyncs, because the frames, their click triggers and their listener closures only exist for that
+// one player: the click event is synced and fires everywhere, but only that client resolves a
+// listener and runs the map's callback. This helper removes the whole class of mistake - it builds
+// one tree per owner for ALL clients, then exposes owner-scoped visibility as the only divergent
+// state.
+//
+//     UISlider array volume
+//
+//     let volumeUi = perPlayerFrames() owner ->
+//         let s = slider("Volume", 0.20, 0., 100.)
+//         volume[owner.getId()] = s
+//         return s.getFrame()
+//     volumeUi.showEach()          // every player sees their own copy, nobody sees anyone else's
+//
+// Build the tree in the factory and keep your own typed handles (as above); the returned object owns
+// only the roots and their visibility.
+import TableLayout
+import ArrayList
+
+/** Builds one owner's UI tree and returns its root frame. Runs once per owner on EVERY client. */
+public interface PerPlayerFrameFactory
+    function build(player owner) returns framehandle
+
+/** The per-owner roots produced by perPlayerFrames(). Visibility is the only per-player state here;
+    the frames themselves already exist on every client.
+
+    Every root is hidden globally at construction, so a player only ever sees a tree that was
+    explicitly shown to them. The factory does not need to hide what it builds. */
+public class PerPlayerFrames
+    // ArrayList, presized to the slot count: this is append-only with indexed lookup and never
+    // removes, which is exactly ArrayList's sweet spot, and presizing means one allocation and no
+    // resize copy. Iterate by index - ArrayList has no iterator by design.
+    private constant owners = new ArrayList<player>(bj_MAX_PLAYER_SLOTS)
+    private constant roots = new ArrayList<framehandle>(bj_MAX_PLAYER_SLOTS)
+
+    /** Builds one root per owner, in the given order, on every client. */
+    construct(ArrayList<player> buildFor, PerPlayerFrameFactory factory)
+        for i = 0 to buildFor.size() - 1
+            let owner = buildFor.get(i)
+            // The factory runs for EVERY owner on EVERY client - that is the whole point. A null root
+            // is recorded as "no tree for this owner" rather than stored, so get() and the visibility
+            // helpers stay null-safe; the factory must not decide this from client-local state.
+            let root = factory.build(owner)
+            if root != null
+                // Hide GLOBALLY, on every client, before any owner-scoped call runs. A freshly created
+                // frame defaults to visible, and setVisible(owner, flag) only ever touches the owner's
+                // client - so without this every player would keep seeing every other owner's tree,
+                // since nothing would hide it for them. Owner-scoped show is the only reveal.
+                root.hide()
+                owners.add(owner)
+                roots.add(root)
+            else if tableWarnings
+                Log.warn("perPlayerFrames: the factory returned null for player "
+                    + (owner.getId() + 1) + "; no tree was registered for them.")
+
+    private function indexOf(player owner) returns int
+        for i = 0 to owners.size() - 1
+            if owners.get(i) == owner
+                return i
+        return -1
+
+    /** That owner's root frame, or null when no tree was built for them. */
+    function get(player owner) returns framehandle
+        let i = indexOf(owner)
+        return i < 0 ? null : roots.get(i)
+
+    /** Shows or hides `owner`'s tree, TO THAT OWNER ONLY. The single legal per-player operation:
+        the frame already exists everywhere, so only the local visibility flag diverges. */
+    function setVisible(player owner, bool flag) returns thistype
+        let root = get(owner)
+        if root != null
+            root.setVisible(owner, flag)
+        return this
+
+    function show(player owner) returns thistype
+        return setVisible(owner, true)
+
+    function hide(player owner) returns thistype
+        return setVisible(owner, false)
+
+    /** Every owner sees their own tree and nobody else's. The usual "open the menu for everyone" call. */
+    function showEach() returns thistype
+        for i = 0 to owners.size() - 1
+            setVisible(owners.get(i), true)
+        return this
+
+    /** Hides every owner's tree from its owner. */
+    function hideEach() returns thistype
+        for i = 0 to owners.size() - 1
+            setVisible(owners.get(i), false)
+        return this
+
+    /** The owners a tree was built for, in build order. Do not mutate. */
+    function getOwners() returns ArrayList<player>
+        return owners
+
+    // Frees the wrapper lists only. Warcraft III frames are never destroyed in multiplayer
+    // (BlzDestroyFrame is banned); the roots stay allocated and hidden, ready for reuse.
+    // Hidden globally rather than per owner, so teardown leaves nothing visible on any client.
+    ondestroy
+        for i = 0 to roots.size() - 1
+            roots.get(i).hide()
+        destroy owners
+        destroy roots
+
+/** Builds one UI tree per currently ingame player, synchronously on every client, in slot order. */
+public function perPlayerFrames(PerPlayerFrameFactory factory) returns PerPlayerFrames
+    let ingame = new ArrayList<player>(bj_MAX_PLAYER_SLOTS)
+    for i = 0 to bj_MAX_PLAYER_SLOTS - 1
+        let p = players[i]
+        if p.isIngame()
+            ingame.add(p)
+    let result = new PerPlayerFrames(ingame, factory)
+    destroy ingame
+    return result
+
+/** Builds one UI tree per listed owner (teams, observers, a hand-picked subset), synchronously on
+    every client, in list order. The list must be identical on every client - derive it from synced
+    state (slot/controller state, forces, map setup), never from a local value. */
+public function perPlayerFrames(ArrayList<player> owners, PerPlayerFrameFactory factory) returns PerPlayerFrames
+    return new PerPlayerFrames(owners, factory)

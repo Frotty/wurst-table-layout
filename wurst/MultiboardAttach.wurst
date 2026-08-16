@@ -7,6 +7,16 @@ import TableLayout
     Attach custom content to the existing multiboard UI (reuse maximize/minimize behavior).
     The native multiboard backdrop remains the single panel background.
 
+    MULTIPLAYER - THIS PACKAGE IS NOT PER-PLAYER. Unlike the rest of the library it does not deal in
+    frames alone: multiboard row count and item style (MultiboardSetRowCount / MultiboardSetItemsStyle)
+    are SYNCHRONIZED game state, and the refresh ticker is a timer handle created on first attach.
+    Every attach/refresh function here must therefore run identically on every client. Never call one
+    inside a localPlayer block, and never make an attach conditional on client-local state.
+
+    To show a board to only some players, attach it for everyone and scope the native multiboard's own
+    visibility per player (multiboard display is player-scoped by the engine), or build a map-owned
+    panel with panelTable() and perPlayerFrames() instead.
+
     Non-TableLayout callers must provide an accurate content height. Table layouts should use
     attachTableLayoutToMultiboard(), which measures their rows and padding.
 

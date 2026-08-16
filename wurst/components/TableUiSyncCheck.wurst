@@ -1,0 +1,138 @@
+package TableUiSyncCheck
+// OPT-IN desync detector for UI allocation. Deliberately NOT re-exported by the TableUi facade:
+// importing it registers stdlib sync events, so only maps that want the check pay for it.
+//
+// The failure it catches is the one the library cannot prevent for you: a frame tree built inside a
+// localPlayer block. Every client must allocate the same number of library containers/components, so
+// this asks each player for their uiAllocationCount() and reports any player whose count differs.
+//
+//     import TableUiSyncCheck
+//     ...
+//     doAfter(5.) -> checkUiSync()      // logs an error naming any divergent player
+//
+// This is a DIAGNOSTIC. It runs asynchronously (the counts arrive over the network a moment later)
+// and its result must never drive game logic - only logging. It detects divergence in library
+// container/component allocation (layoutFrame / nextUiContext), which is what per-player UI is made
+// of; a bare p()/img()/btn() created inside a local block is not counted.
+import TableLayout
+import ArrayList
+import SyncSimple
+import ClosureTimers
+
+/** Reports the outcome of checkUiSync(). `ok` is false when at least one player's UI allocation
+    count differs from the others, or when a player never answered. */
+public interface UiSyncReport
+    function onResult(bool ok, string detail)
+
+/** How long to wait for every player's count before giving up and reporting what arrived. A player
+    who leaves mid-check never transmits, so without this the check would hang forever. */
+public var uiSyncTimeout = 10.
+
+int array countByPid
+bool array reportedByPid
+bool array awaitedByPid
+var pending = 0
+// Bumped per check so a late or post-timeout sync callback from an earlier run is ignored instead of
+// driving `pending` negative and firing a second, bogus finish().
+var checkEpoch = 0
+UiSyncReport activeListener = null
+
+function finish()
+    var reference = -1
+    var referencePid = -1
+    var answered = 0
+    // Kept apart on purpose: a genuine count DIVERGENCE means a frame tree was built in a local block
+    // and is an error, whereas a MISSING answer just means someone left mid-check. Reporting the
+    // second as the first would send people hunting a desync that is not there.
+    var mismatch = false
+    var detail = ""
+    var missing = ""
+    for i = 0 to bj_MAX_PLAYER_SLOTS - 1
+        if reportedByPid[i]
+            answered++
+            if reference < 0
+                reference = countByPid[i]
+                referencePid = i
+            else if countByPid[i] != reference
+                mismatch = true
+            detail += "P" + (i + 1) + "=" + countByPid[i] + " "
+        else if awaitedByPid[i]
+            missing += "P" + (i + 1) + " "
+    pending = 0
+    if missing != ""
+        detail += "(no answer: " + missing.trim() + ")"
+
+    if mismatch
+        Log.error("checkUiSync: UI allocation counts DIFFER between players (" + detail.trim()
+            + "). A frame tree was created inside a localPlayer block; allocate for all clients and"
+            + " use the player-scoped show/hide overloads instead.")
+    else if missing != ""
+        Log.warn("checkUiSync: no count arrived from " + missing.trim() + " within " + uiSyncTimeout
+            + "s (they most likely left mid-check). The " + answered
+            + " count(s) that did arrive agree; the check is inconclusive, not failed.")
+    else if answered == 0
+        Log.warn("checkUiSync: no ingame players to check.")
+    else if tableWarnings
+        Log.info("checkUiSync: UI allocation counts agree across " + answered
+            + " player(s) (" + reference + " via P" + (referencePid + 1) + ").")
+
+    let listener = activeListener
+    activeListener = null
+    if listener != null
+        listener.onResult(not mismatch and missing == "", detail.trim())
+        destroy listener
+
+/** Asks every ingame player for their library UI allocation count and logs an error naming the
+    counts when they disagree. Diagnostic only; the result arrives asynchronously. */
+public function checkUiSync()
+    checkUiSync(null)
+
+/** checkUiSync() with a callback for the outcome. Do not branch game logic on the result. */
+public function checkUiSync(UiSyncReport listener)
+    if pending > 0
+        Log.warn("checkUiSync: a check is already in flight; ignoring this call.")
+        if listener != null
+            destroy listener
+        return
+
+    checkEpoch++
+    let epoch = checkEpoch
+    // isIngame() is slot PLAYING *and* controller MAP_CONTROL_USER, so computer slots are already
+    // excluded - only real clients can transmit through SyncSimple.
+    let participants = new ArrayList<player>(bj_MAX_PLAYER_SLOTS)
+    for i = 0 to bj_MAX_PLAYER_SLOTS - 1
+        reportedByPid[i] = false
+        awaitedByPid[i] = false
+        countByPid[i] = 0
+        if players[i].isIngame()
+            participants.add(players[i])
+            awaitedByPid[i] = true
+
+    pending = participants.size()
+    activeListener = listener
+
+    if pending == 0
+        destroy participants
+        finish()
+        return
+
+    for i = 0 to participants.size() - 1
+        let p = participants.get(i)
+        let pid = p.getId()
+        // Evaluated on every client, but SyncSimple only lets `p` transmit, so every client receives
+        // p's local count. Allocation happens here, globally - never inside a local block.
+        uiAllocationCount().sync(p) value ->
+            if epoch == checkEpoch and not reportedByPid[pid]
+                countByPid[pid] = value
+                reportedByPid[pid] = true
+                pending--
+                if pending == 0
+                    finish()
+    destroy participants
+
+    // A player who leaves after the request is queued never transmits, so pending would never reach
+    // zero: the listener would never fire and the `pending > 0` guard would reject every later check
+    // for the rest of the game. Time out instead and report whoever answered.
+    doAfter(uiSyncTimeout) ->
+        if epoch == checkEpoch and pending > 0
+            finish()

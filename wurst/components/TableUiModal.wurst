@@ -38,8 +38,9 @@ constant DIM_STRIP_W = 0.4
 function namedChild(string name, int context) returns framehandle
     return getFrame(name, context)
 
+/** `p` is the player who clicked the barrier. */
 public interface ModalDismissCallback
-    function run()
+    function run(player p)
 
 /** Full-screen modal barrier: a click-catcher placed one level below its paired dialog or
     dropdown within a shared z-band.
@@ -113,10 +114,26 @@ public class UIModalBackdrop
             dimRight.hide()
         return this
 
+    /** Shows or hides the barrier (and the widescreen dim strips) FOR ONE PLAYER. Creates the frames
+        on every client first, then flips only that player's visibility flag - the safe shape.
+        Never wrap this in a localPlayer block. */
+    function setVisible(player p, bool flag) returns thistype
+        create().setVisible(p, flag)
+        if dimLeft != null
+            dimLeft.setVisible(p, flag)
+            dimRight.setVisible(p, flag)
+        return this
+
+    function show(player p) returns thistype
+        return setVisible(p, true)
+
+    function hide(player p) returns thistype
+        return setVisible(p, false)
+
     /** Registers the callback fired when the barrier is clicked (outside the dialog/menu). */
     function onClick(ModalDismissCallback cb) returns thistype
         create()
         barrier.onClick() ->
             barrier.releaseKeyboardFocus(GetTriggerPlayer())
-            cb.run()
+            cb.run(GetTriggerPlayer())
         return this

@@ -26,3 +26,6 @@ import public TableUiTabs
 import public TableUiCards
 import public TableUiSimple
 import public TableUiDefaultUi
+import public TableUiPerPlayer
+// TableUiSyncCheck is deliberately NOT re-exported: importing it registers stdlib sync events, so
+// only maps that want the desync diagnostic pay for it. `import TableUiSyncCheck` to opt in.

@@ -33,12 +33,15 @@ Before creating any UI, follow this order:
    Use `TableUiSimple`: `simpleBar` (native SIMPLESTATUSBAR fill + tint) and `simpleTexture` (tintable band art). These are SimpleFrames: they render BELOW all Frame-group UI, cannot be parented under panels, and can NEVER go inside `TableLayout` cells; place them absolutely with `placeAt`. For bars/images INSIDE layouts keep using `UIBar`/`statBar`/`img`.
 
 5. Need to hide or modify the DEFAULT Warcraft III UI (day/night clock, resource bar, menu buttons, minimap, portrait, hero bar, command card - or all of it)?
-   Use `TableUiDefaultUi`: named getters (`dayNightClock()`, `resourceBar()`, `commandButton(i)`, ...), `setXVisible(...)` helpers, `hideDefaultUi()` for fully custom-UI maps (treat as one-way), and `reserveDefaultUiHandles()` before any per-player show/hide. Do NOT hand-roll `BlzGetFrameByName`/child-index lookups; the package encodes the verified names, child indices and patch quirks. For multiboards, use `attachToMultiboard`.
+   Use `TableUiDefaultUi`: named getters (`dayNightClock()`, `resourceBar()`, `commandButton(i)`, ...), `setXVisible(bool)` helpers plus their `setXVisible(player, bool)` overloads for per-player HUD work, and `hideDefaultUi()` for fully custom-UI maps (treat as one-way, and global-only). Do NOT hand-roll `BlzGetFrameByName`/child-index lookups; the package encodes the verified names, child indices and patch quirks. For multiboards, use `attachToMultiboard` - global-only, it mutates synchronized multiboard state.
 
-6. Need FDF-only behavior?
+6. Should this UI differ per player?
+   Use the player-scoped overloads (`comp.show(p)`, `setResourceBarVisible(p, false)`) for "same UI, only some players see it", and `perPlayerFrames(...)` when each player needs their own instance. Do NOT write `if localPlayer == p` around a library call: that moves frame/trigger allocation into the local branch, which desyncs. Visibility is the only state allowed to differ per client.
+
+7. Need FDF-only behavior?
    Add a minimal reusable template to `imports/TableLayout.fdf`, then expose it through a Wurst helper in `TableUi.wurst` or `TableLayout.wurst`.
 
-7. Still need custom frame code?
+8. Still need custom frame code?
    Add a small reusable helper instead of inline one-off frame construction.
 
 Raw `BlzCreateFrame*` / `createFrameByType` code should be the last step, not the first draft.
@@ -60,7 +63,8 @@ Use these helpers instead of custom frame construction:
 - Navigation: `tabs(w, contentHeight)` (`addTab(title)` returns a content frame to build into, then `build()`)
 - Feedback: `UIBar`, `statBar`, `textArea`
 - HUD band / off-4:3 (SimpleFrames, never inside layouts): `simpleBar` (boss bar, tintable), `simpleTexture` (tintable band art)
-- Default WC3 UI: `hideDayNightClock`, `setResourceBarVisible`, `setMinimapVisible`, `hideDefaultUi`, `reserveDefaultUiHandles` (TableUiDefaultUi; never raw `BlzGetFrameByName` + child indices)
+- Default WC3 UI: `hideDayNightClock`, `setResourceBarVisible`, `setMinimapVisible`, `hideDefaultUi`, `reserveDefaultUiHandles` (TableUiDefaultUi; never raw `BlzGetFrameByName` + child indices). Each `setXVisible` also has a `(player, bool)` overload for per-player HUD work
+- Per-player UI: `comp.show(p)` / `comp.hide(p)` / `comp.setVisible(p, flag)` on every component; `perPlayerFrames(...)` (TableUiPerPlayer) when each player needs their own instance. **Never** write `if localPlayer == p` around a library call
 - Tooltips: `withTooltip`, `boxedTooltip`
 - Dialogs: `confirmDialog`, `closeButton` for the EscMenu-styled X close control; `dialog.closeButton()` on a `UIDialog` instance when a modal is attached (so the backdrop dismisses with the panel)
 - Multiboard UI: `attachToMultiboard`
@@ -318,6 +322,48 @@ d..withModal()..placeSafe(vec2(0.35, 0.45))..show()
 
 Use `confirmDialog` for ordinary yes/no UI. Native `DIALOG` is FDF-rigid and is usually unnecessary for map UI.
 
+To prompt a single player, use the player-scoped overload - never a `localPlayer` block:
+
+```wurst
+dialog.show(p)          // created for every client, visible only to p
+```
+
+The dialog is still one shared instance, so the first click resolves it and `onAccept(p)` reports who
+clicked. When each player must answer independently, give each their own (see below).
+
+### Per-player UI
+
+One shared component is shared state: any player's click changes it for everyone, and the callback runs
+on every client. When that is wrong, build one tree per owner. `perPlayerFrames` runs the factory once
+per owner on **every** client (so handle allocation stays identical) and gives you owner-scoped
+visibility, which is the only state allowed to differ:
+
+```wurst
+import TableUi
+
+UISelect array difficulty
+
+let picker = perPlayerFrames() owner ->
+    let s = select("Difficulty", 0.13)
+    ..addOption("Normal")..addOption("Hard")
+    ..onSelect((p, index, value) -> applyDifficulty(owner, index))
+    difficulty[owner.getId()] = s
+    return s.getFrame()
+
+picker.showEach()               // each player sees their own picker
+picker.hide(somePlayer)         // and only theirs can be hidden
+```
+
+Use `perPlayerFrames(owners, factory)` with an `ArrayList<player>` (e.g. `asArrayList(p1, p2)`) to
+build for an explicit set - a team, observers. Derive that list from synced state - slot/controller
+state, forces, map setup - never from a client-local value.
+
+Each root is created globally hidden, so a player only ever sees a tree explicitly shown to them; the
+factory does not need to hide what it builds.
+
+To catch a divergence that slipped through, import `TableUiSyncCheck` and call `checkUiSync()`; it
+logs an error naming any player whose UI allocation count differs. Diagnostic only, never game logic.
+
 ### Stat Bar
 
 ```wurst
@@ -509,6 +555,8 @@ At runtime the library also warns automatically: a `Log.warn` fires once per cel
 - Is root placement done with `placeSafe(...)` or an explicitly documented safe-band coordinate?
 - Is all custom frame creation/manipulation delayed until after map load (`doAfter(0.)` or later), with only TOC loading in `init`?
 - Does the layout avoid `BlzGetLocalClientWidth()` / `BlzGetLocalClientHeight()` and other local frame getters for sizing/placement decisions?
+- Is there a `localPlayer` block anywhere around a library call? There should not be: use `comp.show(p)` / `setXVisible(p, ...)` / `perPlayerFrames(...)` instead.
+- Does any listener assume it belongs to one player? Handlers run on every client for a click by any player - check the `player` argument or build per-player instances.
 - Are tooltips created through `withTooltip` or `boxedTooltip`?
 - Library buttons release keyboard focus automatically; for any clickable frame the library did NOT create, did it get `onClickReleaseFocus()` (or `disable()` if decorative)?
 - If multiboard code changed, was minimize/maximize considered?

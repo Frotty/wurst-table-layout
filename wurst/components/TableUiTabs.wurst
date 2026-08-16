@@ -91,6 +91,20 @@ public class UITabs
     function getFrame() returns framehandle
         return build()
 
+    /** Shows or hides the whole tab container FOR ONE PLAYER. Builds for every client first, then
+        flips only that player's visibility flag. Never wrap this in a localPlayer block.
+        NOTE: which TAB is active stays shared - a click by any player switches it for everyone. For
+        genuinely independent tabs per player, build one UITabs per owner with perPlayerFrames(). */
+    function setVisible(player p, bool flag) returns thistype
+        build().setVisibleForOwner(p, flag)
+        return this
+
+    function show(player p) returns thistype
+        return setVisible(p, true)
+
+    function hide(player p) returns thistype
+        return setVisible(p, false)
+
     // Frees the title/content/button lists. Frames are shared and MP-sensitive, so they are not
     // destroyed here (hide/reuse instead); this just releases the wrapper lists.
     ondestroy

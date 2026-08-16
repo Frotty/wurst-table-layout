@@ -55,10 +55,10 @@ public class UIConfirmDialog
     function withModal(real opacity) returns thistype
         if modal == null
             modal = new UIModalBackdrop(Layer.DIALOG, MODAL_BARRIER_LEVEL, opacity)
-            modal.onClick() ->
+            modal.onClick() clicker ->
                 hide()
                 if listener != null
-                    listener.onCancel(GetTriggerPlayer())
+                    listener.onCancel(clicker)
         return this
 
     function create() returns framehandle
@@ -130,6 +130,24 @@ public class UIConfirmDialog
             modal.hide()
         return this
 
+    /** Shows or hides the dialog (and its modal backdrop) FOR ONE PLAYER. Creates the dialog on every
+        client first, then flips only that player's visibility flag - the safe shape for prompting a
+        single player. Never wrap this in a localPlayer block.
+        NOTE: the dialog is one shared instance, so the first click resolves it for whoever it is
+        visible to. For a prompt each player answers independently, build one per owner with
+        perPlayerFrames(). */
+    function setVisible(player p, bool flag) returns thistype
+        create().setVisible(p, flag)
+        if modal != null
+            modal.setVisible(p, flag)
+        return this
+
+    function show(player p) returns thistype
+        return setVisible(p, true)
+
+    function hide(player p) returns thistype
+        return setVisible(p, false)
+
     function getFrame() returns framehandle
         return create()
 
@@ -175,7 +193,7 @@ public class UIDialog
     function withModal(real opacity) returns thistype
         if modal == null
             modal = new UIModalBackdrop(Layer.DIALOG, MODAL_BARRIER_LEVEL, opacity)
-            modal.onClick() ->
+            modal.onClick() clicker ->
                 hide()
         return this
 
@@ -218,6 +236,25 @@ public class UIDialog
         if modal != null
             modal.hide()
         return this
+
+    /** Creates (once) the dialog on every client. Call this at elapsed 0.00 for all players when the
+        dialog is later shown per-player, so no allocation can ever happen inside a local block. */
+    function create() returns framehandle
+        return getFrame()
+
+    /** Shows or hides the dialog (and its modal backdrop) FOR ONE PLAYER. Creates it on every client
+        first, then flips only that player's visibility flag. Never wrap this in a localPlayer block. */
+    function setVisible(player p, bool flag) returns thistype
+        getFrame().setVisible(p, flag)
+        if modal != null
+            modal.setVisible(p, flag)
+        return this
+
+    function show(player p) returns thistype
+        return setVisible(p, true)
+
+    function hide(player p) returns thistype
+        return setVisible(p, false)
 
     /** Returns a sized "X" button that calls hide() on this dialog (including its modal backdrop).
         Use this instead of closeButton(getFrame()) when a modal is attached, so the backdrop
