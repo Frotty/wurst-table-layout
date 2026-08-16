@@ -9,8 +9,9 @@ import TableUiLayers
 import TableUiModal
 import LinkedList
 
+/** `p` is the player who picked the option, or null when the change came from selectOption(index). */
 public interface SelectListener
-    function onSelect(int index, string value)
+    function onSelect(player p, int index, string value)
 
 // Inner inset of the dropdown menu and the vertical gap between option buttons.
 constant MENU_PADDING = 0.003
@@ -105,7 +106,7 @@ public class UISelect
                 ..hide()
             option.onClick() ->
                 option.releaseKeyboardFocus(GetTriggerPlayer())
-                selectOption(index)
+                selectOption(GetTriggerPlayer(), index)
             optionFrames.add(option)
             menuLayout..row()..add(option)
 
@@ -116,7 +117,7 @@ public class UISelect
         // the dropdown and closes it. The menu (OVERLAY_LEVEL) and its options (OVERLAY_LEVEL+1)
         // are above the barrier (OVERLAY_LEVEL-1) so they still receive their own click events.
         clickCatcher = new UIModalBackdrop(Layer.OVERLAY, OVERLAY_LEVEL - 1, 0.0)
-        clickCatcher.onClick() ->
+        clickCatcher.onClick() clicker ->
             setOpen(false)
         clickCatcher.create()
 
@@ -162,7 +163,27 @@ public class UISelect
             menu.hide()
             menuBackdrop.setAllPoints(menu)
 
+    /** Shows or hides the select FOR ONE PLAYER. Creates it on every client first, then flips only
+        that player's visibility flag - the safe shape. Never wrap this in a localPlayer block.
+        NOTE: the selected option stays shared - a pick by any player changes it for everyone. For an
+        independent choice per player, build one UISelect per owner with perPlayerFrames(). */
+    function setVisible(player p, bool flag) returns thistype
+        create().setVisible(p, flag)
+        if not flag
+            setOpen(false)
+        return this
+
+    function show(player p) returns thistype
+        return setVisible(p, true)
+
+    function hide(player p) returns thistype
+        return setVisible(p, false)
+
+    /** Selects an option programmatically (no acting player). */
     function selectOption(int index)
+        selectOption(null, index)
+
+    function selectOption(player p, int index)
         if index < 0 or index >= options.size()
             return
         selectedIndex = index
@@ -170,7 +191,7 @@ public class UISelect
         toggleButton.setText(value)
         setOpen(false)
         if listener != null
-            listener.onSelect(index, value)
+            listener.onSelect(p, index, value)
 
 public function select(string placeholder, real width) returns UISelect
     return new UISelect(placeholder, width)

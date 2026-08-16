@@ -67,6 +67,20 @@ public class UIBar
         if frame != null
             applyValue()
 
+    function getFrame() returns framehandle
+        return create()
+
+    /** Shows or hides the bar FOR ONE PLAYER. Creates it on every client first, then flips only that
+        player's visibility flag - the safe shape. Never wrap this in a localPlayer block. */
+    function setVisible(player p, bool flag)
+        create().setVisible(p, flag)
+
+    function show(player p)
+        setVisible(p, true)
+
+    function hide(player p)
+        setVisible(p, false)
+
 // --- Stat bar ----------------------------------------------------------------
 // A labelled bar: [label .......... value] over [====fill====].
 
@@ -130,6 +144,18 @@ public class UIStatBar
 
     function getFrame() returns framehandle
         return create()
+
+    /** Shows or hides the stat bar FOR ONE PLAYER. Creates it on every client first, then flips only
+        that player's visibility flag - the safe shape. Never wrap this in a localPlayer block. */
+    function setVisible(player p, bool flag) returns thistype
+        create().setVisible(p, flag)
+        return this
+
+    function show(player p) returns thistype
+        return setVisible(p, true)
+
+    function hide(player p) returns thistype
+        return setVisible(p, false)
 
 public function statBar(string label, real width) returns UIStatBar
     return new UIStatBar(label, width)

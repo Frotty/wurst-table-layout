@@ -24,6 +24,7 @@ init
         let custom = buildCustomDialog()
 
         buildComponentsPanel(confirm, custom)
+        buildPerPlayerDemo()
         buildDisplayPanel()
         buildTypographyPanel()
         buildShowcasePanel()
@@ -124,6 +125,34 @@ function buildComponentsPanel(UIConfirmDialog confirm, UIDialog custom)
 
     doPeriodically(0.03) cb ->
         bar.setValue((1 + currentTime.cos()) / 2.)
+
+// ===== Per-player UI (TableUiPerPlayer): one tree per owner, owner-scoped visibility =====
+// Visual check: each player sees exactly ONE card, naming themselves. In a single-player run that is
+// P1's card and nothing else. The point is what you CANNOT see: every owner's card is allocated on
+// every client, in the same order, so the only thing that differs per player is the visibility flag.
+// This is the shape to copy instead of building a tree inside a localPlayer block.
+function buildPerPlayerDemo()
+    let cw = 0.17
+    let chh = 0.052
+    let inner = cw - 2. * PANEL_BORDER_INSET
+    let ui = perPlayerFrames() owner ->
+        let root = card(cw, chh)
+        let prev = defaultFrameParent
+        defaultFrameParent = root
+        let l = new TableLayout(cw, chh, "PerPlayerCard")
+        l.padding = padding(PANEL_BORDER_INSET, PANEL_BORDER_INSET, PANEL_BORDER_INSET, PANEL_BORDER_INSET)
+        l.gap(0, 0.003)
+        l
+        ..row()..add(h5("Private panel")..setSize(inner, 0.014))..growX()
+        ..row()..add(p(accent(owner.getName()))..setSize(inner, 0.014))..growX()
+        l.applyTo(root)
+        destroy l
+        root.placeSafe(vec2(0.60, 0.30), cw, chh)
+        root.disable()
+        defaultFrameParent = prev
+        return root
+    // Every owner sees their own card and nobody else's. No localPlayer block anywhere.
+    ui.showEach()
 
 // A custom tooltip BUILT FROM FRAMES (icon + heading + body, each its own size), not just a string.
 // Created hidden in the OVERLAY band, anchored above its owner, then attached with setTooltip so WC3
@@ -289,7 +318,7 @@ function buildShowcasePanel()
     let woodCard = barCard("Lumber", lumber("640"), woodBar, cardW)
     cardGroup.add(goldCard).setSelected(true)   // pre-select one so it is obvious the cards are clickable
     cardGroup.add(woodCard)
-    cardGroup.onSelect(idx -> print("|cff40ff40clicked card " + idx + " while its bar animates -> overlay still works|r"))
+    cardGroup.onSelect((clicker, idx) -> print("|cff40ff40" + clicker.getName() + " clicked card " + idx + " while its bar animates -> overlay still works|r"))
     let statsLayout = new TableLayout(inner, 0.058, "StatsTab")
     statsLayout.padding = padding(0.002, 0.002, 0.002, 0.002)
     statsLayout.gap(0.004, 0)

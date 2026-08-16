@@ -52,6 +52,19 @@ public class UIEditBox
     function getFrame() returns framehandle
         return create()
 
+    /** Shows or hides the edit box FOR ONE PLAYER. Allocates for every client first, then flips only
+        that player's visibility flag - the safe shape. Never wrap this in a localPlayer block.
+        NOTE: the typed text is local state by nature; read it only via onSubmit's synced `text`. */
+    function setVisible(player p, bool flag) returns thistype
+        create().setVisible(p, flag)
+        return this
+
+    function show(player p) returns thistype
+        return setVisible(p, true)
+
+    function hide(player p) returns thistype
+        return setVisible(p, false)
+
 public function textInput(string initialText, real width) returns UIEditBox
     return new UIEditBox(initialText, width)
 

@@ -81,6 +81,18 @@ public class UISimpleBar
     function getFrame() returns framehandle
         return create()
 
+    /** Shows or hides the bar FOR ONE PLAYER. Creates it on every client first, then flips only that
+        player's visibility flag - the safe shape. Never wrap this in a localPlayer block. */
+    function setVisible(player p, bool flag) returns thistype
+        create().setVisible(p, flag)
+        return this
+
+    function show(player p) returns thistype
+        return setVisible(p, true)
+
+    function hide(player p) returns thistype
+        return setVisible(p, false)
+
     // Hides the frame and frees the wrapper. The frame is pooled (hidden), never destroyed,
     // matching the library's MP-safe hide/reuse convention.
     ondestroy
@@ -146,6 +158,19 @@ public class UISimpleTexture
     /** The main SimpleFrame: safe for show/hide and positioning. Do NOT add it to a TableLayout. */
     function getFrame() returns framehandle
         return create()
+
+    /** Shows or hides the texture FOR ONE PLAYER. Creates it on every client first, then flips only
+        that player's visibility flag - the safe shape. Never wrap this in a localPlayer block.
+        Only the main frame is toggled; the fragile Texture child is never touched. */
+    function setVisible(player p, bool flag) returns thistype
+        create().setVisible(p, flag)
+        return this
+
+    function show(player p) returns thistype
+        return setVisible(p, true)
+
+    function hide(player p) returns thistype
+        return setVisible(p, false)
 
     // Hides the frame and frees the wrapper. The frame is pooled (hidden), never destroyed.
     // The fragile Texture child is left untouched (visibility natives can crash on it).

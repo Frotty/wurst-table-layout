@@ -9,11 +9,13 @@ import TableUiButtons
 import TableUiTooltip
 import LinkedList
 
+/** `p` is the player who clicked, or null when the state came from setSelected(). */
 public interface SelectableListener
-    function onSelect(bool selected)
+    function onSelect(player p, bool selected)
 
+/** `p` is the player who clicked, or null when the selection came from select(chosen). */
 public interface SelectableGroupListener
-    function onSelect(int index)
+    function onSelect(player p, int index)
 
 /** General-purpose interaction directive for display-only frames: whole-frame hover/click plus an
     optional disabled scrim. Click + disable only by DEFAULT - a selected/active border is opt-in via
@@ -117,11 +119,11 @@ public class UISelectable
         overlay.onClick() ->
             overlay.releaseKeyboardFocus(GetTriggerPlayer())
             if ownerGroup != null
-                ownerGroup.select(this)
+                ownerGroup.select(GetTriggerPlayer(), this)
             else
                 setSelected(not selectedState)
             if listener != null
-                listener.onSelect(selectedState)
+                listener.onSelect(GetTriggerPlayer(), selectedState)
 
     /** Shows or hides the selection border. */
     function setSelected(bool flag)
@@ -161,8 +163,12 @@ public class UISelectableGroup
         members.add(sel)
         return sel
 
-    /** Selects `chosen`, clears the others, and fires the group listener with its index. */
+    /** Selects `chosen` programmatically (no acting player), clears the others, and fires the group
+        listener with its index. */
     function select(UISelectable chosen)
+        select(null, chosen)
+
+    function select(player p, UISelectable chosen)
         var index = 0
         var chosenIndex = -1
         for sel in members
@@ -172,7 +178,7 @@ public class UISelectableGroup
                 chosenIndex = index
             index++
         if listener != null and chosenIndex >= 0
-            listener.onSelect(chosenIndex)
+            listener.onSelect(p, chosenIndex)
 
     /** Clears all selection in the group. */
     function clearSelection()

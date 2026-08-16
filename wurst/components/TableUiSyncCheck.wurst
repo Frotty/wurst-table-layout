@@ -1,0 +1,97 @@
+package TableUiSyncCheck
+// OPT-IN desync detector for UI allocation. Deliberately NOT re-exported by the TableUi facade:
+// importing it registers stdlib sync events, so only maps that want the check pay for it.
+//
+// The failure it catches is the one the library cannot prevent for you: a frame tree built inside a
+// localPlayer block. Every client must allocate the same number of library containers/components, so
+// this asks each player for their uiAllocationCount() and reports any player whose count differs.
+//
+//     import TableUiSyncCheck
+//     ...
+//     doAfter(5.) -> checkUiSync()      // logs an error naming any divergent player
+//
+// This is a DIAGNOSTIC. It runs asynchronously (the counts arrive over the network a moment later)
+// and its result must never drive game logic - only logging. It detects divergence in library
+// container/component allocation (layoutFrame / nextUiContext), which is what per-player UI is made
+// of; a bare p()/img()/btn() created inside a local block is not counted.
+import TableLayout
+import LinkedList
+import SyncSimple
+
+/** Reports the outcome of checkUiSync(). `ok` is false when at least one player's UI allocation
+    count differs from the others. */
+public interface UiSyncReport
+    function onResult(bool ok, string detail)
+
+int array countByPid
+bool array reportedByPid
+var pending = 0
+var expected = 0
+UiSyncReport activeListener = null
+
+function finish()
+    var reference = -1
+    var referencePid = -1
+    var ok = true
+    var detail = ""
+    for i = 0 to bj_MAX_PLAYER_SLOTS - 1
+        if reportedByPid[i]
+            if reference < 0
+                reference = countByPid[i]
+                referencePid = i
+            else if countByPid[i] != reference
+                ok = false
+            detail += "P" + (i + 1) + "=" + countByPid[i] + " "
+    if not ok
+        Log.error("checkUiSync: UI allocation counts DIFFER between players (" + detail.trim()
+            + "). A frame tree was created inside a localPlayer block; allocate for all clients and"
+            + " use the player-scoped show/hide overloads instead.")
+    else if tableWarnings
+        Log.info("checkUiSync: UI allocation counts agree across " + expected
+            + " player(s) (" + reference + " via P" + (referencePid + 1) + ").")
+    let listener = activeListener
+    activeListener = null
+    if listener != null
+        listener.onResult(ok, detail.trim())
+        destroy listener
+
+/** Asks every ingame player for their library UI allocation count and logs an error naming the
+    counts when they disagree. Diagnostic only; the result arrives asynchronously. */
+public function checkUiSync()
+    checkUiSync(null)
+
+/** checkUiSync() with a callback for the outcome. Do not branch game logic on the result. */
+public function checkUiSync(UiSyncReport listener)
+    if pending > 0
+        Log.warn("checkUiSync: a check is already in flight; ignoring this call.")
+        if listener != null
+            destroy listener
+        return
+
+    let participants = new LinkedList<player>()
+    for i = 0 to bj_MAX_PLAYER_SLOTS - 1
+        reportedByPid[i] = false
+        countByPid[i] = 0
+        if players[i].isIngame()
+            participants.add(players[i])
+
+    expected = participants.size()
+    pending = expected
+    activeListener = listener
+
+    if pending == 0
+        destroy participants
+        finish()
+        return
+
+    for p in participants
+        let pid = p.getId()
+        // Evaluated on every client, but SyncSimple only lets `p` transmit, so every client receives
+        // p's local count. Allocation happens here, globally - never inside a local block.
+        uiAllocationCount().sync(p) value ->
+            countByPid[pid] = value
+            reportedByPid[pid] = true
+            pending--
+            if pending == 0
+                finish()
+    destroy participants

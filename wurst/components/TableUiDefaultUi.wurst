@@ -7,9 +7,11 @@ package TableUiDefaultUi
 // RULES (these are WC3 facts, not style):
 //   - Call these at elapsed time 0.00+, not in blocking init (frames mis-pose / crash at init).
 //   - Handle acquisition must happen synchronously for ALL players. Every getter here caches its
-//     handle on first call; if you plan per-player (localPlayer) show/hide, call
-//     reserveDefaultUiHandles() once for everyone first, then BlzFrameSetVisible-style changes
-//     inside localPlayer blocks are safe (visuals may differ per player; handles may not).
+//     handle on first call. For per-player HUD work use the setXVisible(player, bool) overloads:
+//     they acquire the handle for every client and only then apply the local visibility flag, so
+//     there is nothing left to get wrong. Do NOT wrap them in a localPlayer block - that puts the
+//     acquisition back inside the local branch, which is the actual desync. reserveDefaultUiHandles()
+//     stays available for hand-written local blocks against raw frames.
 //   - Command card / inventory buttons REAPPEAR on every unit selection, even while hidden via
 //     BlzHideOriginFrames. A one-shot hide of those is not permanent; re-hide on selection.
 //   - Hiding a container hides its children, and a child cannot be shown while its container is
@@ -30,6 +32,9 @@ framehandle upperButtonBarFrame = null
 framehandle cachedMinimap = null
 framehandle cachedPortrait = null
 framehandle heroBarFrame = null
+framehandle minimapButtonBarFrame = null
+framehandle array commandButtonFrame
+framehandle array inventoryButtonFrame
 
 /** The day/night cycle dial. It has NO frame name: it is GAME_UI child [5] -> child [0]
     (1.32.6+ only; returns null before that). Its parent [5] is ALSO the minimap's ancestor,
@@ -78,18 +83,40 @@ public function heroBar() returns framehandle
         heroBarFrame = getOriginFrame(ORIGIN_FRAME_HERO_BAR)
     return heroBarFrame
 
+/** The five minimap filter buttons' container ("MiniMapButtonBar"). */
+public function minimapButtonBar() returns framehandle
+    if minimapButtonBarFrame == null
+        minimapButtonBarFrame = getFrame("MiniMapButtonBar") // in stdlib FramehandleDefaultNames upstream
+    return minimapButtonBarFrame
+
 /** Command card button 0..11 ("CommandButton_N", 1.32+): 0 is top-left, 11 bottom-right. Move/hide
     via these named frames (the origin frames glitch when moved in 1.32+). They reappear/update on
-    every unit selection. */
+    every unit selection. Cached, so a re-hide loop on selection events never re-acquires a handle. */
 public function commandButton(int index) returns framehandle
-    return getFrame("CommandButton_" + index)
+    if index < 0 or index > 11
+        return null
+    if commandButtonFrame[index] == null
+        commandButtonFrame[index] = getFrame("CommandButton_" + index)
+    return commandButtonFrame[index]
 
 /** Inventory item button 0..5 ("InventoryButton_N", 1.32+). Same reappear-on-selection rule as
-    command buttons. */
+    command buttons. Cached, like commandButton(). */
 public function inventoryButton(int index) returns framehandle
-    return getFrame("InventoryButton_" + index)
+    if index < 0 or index > 5
+        return null
+    if inventoryButtonFrame[index] == null
+        inventoryButtonFrame[index] = getFrame("InventoryButton_" + index)
+    return inventoryButtonFrame[index]
 
 // --- Visibility helpers ----------------------------------------------------------
+// Each setter comes in two shapes:
+//   setXVisible(bool)            - every player.
+//   setXVisible(player, bool)    - ONE player. It acquires the handle for every client FIRST and only
+//                                  then applies the local visibility flag, so it is safe to call
+//                                  directly. Do NOT wrap it in a localPlayer block: that would move
+//                                  the handle acquisition into the local branch, which is the actual
+//                                  desync (see WC3_FRAMEHANDLE_GUIDE.md "Multiplayer Safety").
+// All of them tolerate a frame that does not exist on the running patch.
 
 /** Shows/hides the day/night dial. No-op (with a warning) before 1.32.6, where the dial is not
     reachable; there the only option is blanking its textures in gameplay interface settings. */
@@ -100,27 +127,81 @@ public function setDayNightClockVisible(bool visible)
     else if tableWarnings
         Log.warn("dayNightClock(): not reachable (needs WC3 1.32.6+); cannot change its visibility.")
 
+/** Shows/hides the day/night dial for ONE player. Safe to call directly; never wrap in localPlayer. */
+public function setDayNightClockVisible(player p, bool visible)
+    let clock = dayNightClock()
+    if clock != null
+        clock.setVisible(p, visible)
+    else if tableWarnings
+        Log.warn("dayNightClock(): not reachable (needs WC3 1.32.6+); cannot change its visibility.")
+
 public function hideDayNightClock()
     setDayNightClockVisible(false)
 
+public function hideDayNightClock(player p)
+    setDayNightClockVisible(p, false)
+
 public function setResourceBarVisible(bool visible)
-    resourceBar().setVisible(visible)
+    let frame = resourceBar()
+    if frame != null
+        frame.setVisible(visible)
+
+/** Shows/hides the resource bar for ONE player. Safe to call directly; never wrap in localPlayer. */
+public function setResourceBarVisible(player p, bool visible)
+    let frame = resourceBar()
+    if frame != null
+        frame.setVisible(p, visible)
 
 public function setUpperButtonBarVisible(bool visible)
-    upperButtonBar().setVisible(visible)
+    let frame = upperButtonBar()
+    if frame != null
+        frame.setVisible(visible)
+
+/** Shows/hides the Quests/Menu/Allies/Log bar for ONE player. Safe to call directly. */
+public function setUpperButtonBarVisible(player p, bool visible)
+    let frame = upperButtonBar()
+    if frame != null
+        frame.setVisible(p, visible)
 
 public function setMinimapVisible(bool visible)
-    minimapFrame().setVisible(visible)
+    let frame = minimapFrame()
+    if frame != null
+        frame.setVisible(visible)
     // The five filter buttons live in their own container next to the minimap; toggle it too.
-    let buttonBar = getFrame("MiniMapButtonBar") // in stdlib FramehandleDefaultNames upstream
+    let buttonBar = minimapButtonBar()
     if buttonBar != null
         buttonBar.setVisible(visible)
 
+/** Shows/hides the minimap and its filter buttons for ONE player. Safe to call directly. */
+public function setMinimapVisible(player p, bool visible)
+    let frame = minimapFrame()
+    if frame != null
+        frame.setVisible(p, visible)
+    let buttonBar = minimapButtonBar()
+    if buttonBar != null
+        buttonBar.setVisible(p, visible)
+
 public function setPortraitVisible(bool visible)
-    portraitFrame().setVisible(visible)
+    let frame = portraitFrame()
+    if frame != null
+        frame.setVisible(visible)
+
+/** Shows/hides the unit portrait for ONE player. Safe to call directly. */
+public function setPortraitVisible(player p, bool visible)
+    let frame = portraitFrame()
+    if frame != null
+        frame.setVisible(p, visible)
 
 public function setHeroBarVisible(bool visible)
-    heroBar().setVisible(visible)
+    let frame = heroBar()
+    if frame != null
+        frame.setVisible(visible)
+
+/** Shows/hides the left hero-icon stack for ONE player. Safe to call directly. */
+public function setHeroBarVisible(player p, bool visible)
+    let frame = heroBar()
+    if frame != null
+        frame.setVisible(p, visible)
 
 // --- Full custom-UI mode ----------------------------------------------------------
 
@@ -132,7 +213,12 @@ public function setHeroBarVisible(bool visible)
 
     Treat as ONE-WAY: re-showing everything afterwards is not reliable across patches (2.0.1
     cannot re-show the resource bar at all). Re-show single pieces with the setXVisible helpers
-    where supported. The world remains fully clickable where the console was. */
+    where supported. The world remains fully clickable where the console was.
+
+    MULTIPLAYER: this is NOT a per-player operation and has no player-scoped overload. It acquires
+    handles, reparents the ubertooltip and resizes the console backdrop - shared structural work that
+    must run identically on every client. Never call it inside a localPlayer block. To give one player
+    a different HUD, call this for everyone and then use the setXVisible(player, bool) overloads. */
 public function hideDefaultUi()
     // Stop the game re-positioning default frames on resolution/window changes.
     enableUIAutoPosition(false)
@@ -160,14 +246,17 @@ public function hideDefaultUi()
             bottomBar.hide()
 
 /** Touches every handle this package manages, once, synchronously - the handleId reservation
-    pattern. Call this at elapsed 0.00 for ALL players if you later show/hide default UI inside
-    localPlayer blocks (e.g. observer-only HUD); after reserving, local visibility changes cannot
-    desync handle counters. */
+    pattern. Call this at elapsed 0.00 for ALL players before any per-player default-UI work.
+
+    With the setXVisible(player, bool) overloads this is now belt-and-braces rather than load-bearing:
+    those acquire the handle for every client before applying the local flag. It stays the right call
+    when you reach past this package to a raw frame yourself, or hand-write a localPlayer block. */
 public function reserveDefaultUiHandles()
     dayNightClock()
     resourceBar()
     upperButtonBar()
     minimapFrame()
+    minimapButtonBar()
     portraitFrame()
     heroBar()
     getFrame(FramehandleDefaultNames.consoleUI)

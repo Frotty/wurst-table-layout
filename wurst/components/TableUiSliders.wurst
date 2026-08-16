@@ -3,8 +3,9 @@ package TableUiSliders
 import TableLayout
 import TableUiText
 
+/** `p` is the player whose drag produced the value, or null when the change came from setValue(). */
 public interface SliderListener
-    function onChange(real value)
+    function onChange(player p, real value)
 
 /** A labelled value slider on WC3's native SLIDER: [label] [====O====] [value]. Set the range in the
     constructor, tune step/decimals, read getValue(), and react with onChange(); the value text and
@@ -82,12 +83,23 @@ public class UISlider
             ..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_RIGHT)
 
         valueChangeFrameListener = sliderFrame.onSliderValueChange() ->
+            // The event itself is synced (every client gets the same BlzGetTriggerFrameValue), but a
+            // DRAG only moved the knob on the dragging client's machine - no script call touched the
+            // others. Without the re-assert below, remote clients show the new number against a stale
+            // knob. Re-asserting brings the knob into the synced half, leaving visibility as the only
+            // per-player state. Re-entry terminates: the re-fired event carries the same value, so
+            // `changed` is false and this branch is skipped.
+            let programmatic = syncingValue
             let nextValue = BlzGetTriggerFrameValue()
             let changed = nextValue != value
             value = nextValue
             valueFrame.setText(format(value))
-            if changed and not syncingValue and listener != null
-                listener.onChange(value)
+            if changed and not programmatic
+                syncingValue = true
+                sliderFrame.setValue(value)
+                syncingValue = false
+                if listener != null
+                    listener.onChange(GetTriggerPlayer(), value)
 
         let layout = new TableLayout(width, height, "Slider")
         layout.padding = padding(0, 0, 0, 0)
@@ -111,6 +123,18 @@ public class UISlider
 
     function getFrame() returns framehandle
         return create()
+
+    /** Shows or hides the slider FOR ONE PLAYER. Allocates for every client first, then flips only
+        that player's visibility flag - the safe shape. Never wrap this in a localPlayer block. */
+    function setVisible(player p, bool flag) returns thistype
+        create().setVisible(p, flag)
+        return this
+
+    function show(player p) returns thistype
+        return setVisible(p, true)
+
+    function hide(player p) returns thistype
+        return setVisible(p, false)
 
 public function slider(string label, real width, real minValue, real maxValue) returns UISlider
     return new UISlider(label, width, minValue, maxValue)

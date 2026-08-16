@@ -54,11 +54,13 @@ public class UITooltip
     function getFrame() returns framehandle
         return box
 
-    // Detaches the tooltip from its owner and hides its frames. The box/text frames are pooled (hidden),
-    // not destroyed, matching the library's MP-safe hide/reuse convention; this frees the wrapper object.
+    // Hides the tooltip frames and frees the wrapper object. The box/text frames are pooled (hidden),
+    // not destroyed, matching the library's MP-safe hide/reuse convention.
+    //
+    // The owner/tooltip association is deliberately NOT cleared: setTooltip cannot really be undone
+    // (WC3_FRAMEHANDLE_GUIDE.md "Tooltips"), and re-setting the pair is the documented way to crash on
+    // hover. Hiding the box is what actually stops the tooltip from rendering, so that is all we do.
     ondestroy
-        if owner != null
-            owner.setTooltip(null)
         if box != null
             box.hide()
         if textFrame != null

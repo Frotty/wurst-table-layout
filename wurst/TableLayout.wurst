@@ -29,9 +29,20 @@ public var legacyGapMath = false
 // Frames are stored by (name, createContext); use a fresh context per repeated/instanced frame so
 // copies do not collide. nextUiContext() hands out monotonically increasing contexts.
 var nextCreateContext = 1000
+// Counts library container / component allocations on THIS client. Every client must land on the same
+// number: a differing count means a frame tree was built inside a localPlayer block, which desyncs
+// handle allocation. TableUiSyncCheck.checkUiSync() compares it across players.
+var uiAllocations = 0
+
 public function nextUiContext() returns int
     nextCreateContext++
+    uiAllocations++
     return nextCreateContext
+
+/** Number of container / component frames this client has allocated through the library. Compare it
+    across clients with TableUiSyncCheck.checkUiSync(); it is a diagnostic, never game logic. */
+public function uiAllocationCount() returns int
+    return uiAllocations
 
 // --- Focus -------------------------------------------------------------------
 // When true (default), clickable presets (btn / imgBtn / iconButton / textButton /
@@ -963,6 +974,7 @@ public class LayoutReport
         textOverflowSummary += "[row " + rowIndex + " cell " + cellIndex + "] estimated text width " + estimatedWidth + " exceeds cell width " + cellWidth + " for \"" + text + "\"; "
 
 public function layoutFrame(framehandle parent) returns framehandle
+    uiAllocations++
     return createFrame("FRAME", "multiboardFrame", parent, null, 0)
 
 public function defaultFrame() returns framehandle
