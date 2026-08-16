@@ -153,9 +153,14 @@ public class UIConfirmDialog
         visible to. For a prompt each player answers independently, build one per owner with
         perPlayerFrames(). */
     function setVisible(player p, bool flag) returns thistype
-        // Records that this dialog is being driven per player, so dismissFor() closes it for the
-        // acting player instead of everyone. A later global show() clears it again.
-        ownerScoped = true
+        // Only a scoped SHOW switches the dismissal mode: that is what establishes a per-player
+        // presentation, so dismissFor() then closes for the acting player instead of everyone. A
+        // scoped HIDE must leave the mode alone - hiding a globally shown dialog from one player
+        // (an observer, say) does not make it a per-player prompt, and flipping the mode there would
+        // let a remaining player's Yes close only their own copy and fire the result again and again.
+        // A later global show() clears the mode.
+        if flag
+            ownerScoped = true
         create().setVisible(p, flag)
         if modal != null
             modal.setVisible(p, flag)
@@ -278,9 +283,10 @@ public class UIDialog
     /** Shows or hides the dialog (and its modal backdrop) FOR ONE PLAYER. Creates it on every client
         first, then flips only that player's visibility flag. Never wrap this in a localPlayer block. */
     function setVisible(player p, bool flag) returns thistype
-        // Records that this dialog is being driven per player, so dismissFor() closes it for the
-        // acting player instead of everyone. A later global show() clears it again.
-        ownerScoped = true
+        // Only a scoped SHOW switches the dismissal mode; a scoped hide preserves the mode of the
+        // active presentation. See UIConfirmDialog.setVisible for the reasoning.
+        if flag
+            ownerScoped = true
         getFrame().setVisible(p, flag)
         if modal != null
             modal.setVisible(p, flag)
