@@ -132,6 +132,8 @@ public class UIConfirmDialog
         return frame
 
     function show() returns thistype
+        // Shown to everyone, so dismissal goes back to closing it for everyone.
+        ownerScoped = false
         create().show()
         if modal != null
             modal.show()
@@ -151,6 +153,9 @@ public class UIConfirmDialog
         visible to. For a prompt each player answers independently, build one per owner with
         perPlayerFrames(). */
     function setVisible(player p, bool flag) returns thistype
+        // Records that this dialog is being driven per player, so dismissFor() closes it for the
+        // acting player instead of everyone. A later global show() clears it again.
+        ownerScoped = true
         create().setVisible(p, flag)
         if modal != null
             modal.setVisible(p, flag)
@@ -251,6 +256,8 @@ public class UIDialog
         return f
 
     function show() returns thistype
+        // Shown to everyone, so dismissal goes back to closing it for everyone.
+        ownerScoped = false
         getFrame().show()
         if modal != null
             modal.show()
@@ -271,6 +278,9 @@ public class UIDialog
     /** Shows or hides the dialog (and its modal backdrop) FOR ONE PLAYER. Creates it on every client
         first, then flips only that player's visibility flag. Never wrap this in a localPlayer block. */
     function setVisible(player p, bool flag) returns thistype
+        // Records that this dialog is being driven per player, so dismissFor() closes it for the
+        // acting player instead of everyone. A later global show() clears it again.
+        ownerScoped = true
         getFrame().setVisible(p, flag)
         if modal != null
             modal.setVisible(p, flag)
