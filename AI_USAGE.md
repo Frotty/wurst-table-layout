@@ -328,8 +328,10 @@ To prompt a single player, use the player-scoped overload - never a `localPlayer
 dialog.show(p)          // created for every client, visible only to p
 ```
 
-The dialog is still one shared instance, so the first click resolves it and `onAccept(p)` reports who
-clicked. When each player must answer independently, give each their own (see below).
+Dismissal follows that scope: shown with `show(p)`, the outside click / Yes / No / `closeButton()`
+close it for the acting player only; shown globally with `show()`, they close it for everyone. The
+dialog is still one shared instance, so `onAccept(p)` reports who clicked and the LAST answer wins on
+shared state. When each player must answer independently, give each their own (see below).
 
 ### Per-player UI
 

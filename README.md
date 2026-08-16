@@ -293,6 +293,11 @@ let picker = perPlayerFrames() owner ->
 picker.showEach()                   // each player sees their own, nobody sees anyone else's
 ```
 
+Dialog dismissal follows the same scope. `withModal()`'s outside click, the Yes/No buttons and
+`UIDialog.closeButton()` close the dialog for the **acting player** when it was shown per player
+(`show(p)`), and for everyone when it was shown globally (`show()`) — so a shared prompt still
+resolves once for all, while a private one cannot be closed out from under the other players.
+
 `import TableUiSyncCheck` and call `checkUiSync()` to verify: it asks every player for their UI
 allocation count and logs an error naming any player whose count differs. It is a diagnostic - never
 branch game logic on it.

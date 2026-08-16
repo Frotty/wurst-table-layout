@@ -27,6 +27,10 @@ public class UIConfirmDialog
     framehandle frame = null
     ConfirmDialogListener listener = null
     UIModalBackdrop modal = null
+    // Set once the dialog has been shown/hidden per player. Dismissal then follows the same scope:
+    // a shared dialog closes for everyone (one decision, made once), a per-player prompt closes only
+    // for whoever answered it. Without this, one player clicking the dim closed the prompt for all.
+    private var ownerScoped = false
 
     construct(string title, string message)
         this.title = title
@@ -48,7 +52,9 @@ public class UIConfirmDialog
         return this
 
     /** Attaches a dark full-screen backdrop that dims the scene behind the dialog and closes it
-        (firing onCancel) on any outside click. Call before show(). Default opacity: 0.8. */
+        (firing onCancel) on any outside click. Call before show(). Default opacity: 0.8.
+        The outside click closes the dialog for the CLICKING player when it was shown per player
+        (show(p)), or for everyone when it was shown globally (show()). */
     function withModal() returns thistype
         return withModal(MODAL_DEFAULT_OPACITY)
 
@@ -56,10 +62,18 @@ public class UIConfirmDialog
         if modal == null
             modal = new UIModalBackdrop(Layer.DIALOG, MODAL_BARRIER_LEVEL, opacity)
             modal.onClick() clicker ->
-                hide()
+                dismissFor(clicker)
                 if listener != null
                     listener.onCancel(clicker)
         return this
+
+    /** Closes the dialog for `p` alone when it was shown per player, or for everyone when it was
+        shown globally. Answering a prompt only you can see must not close it for the others. */
+    private function dismissFor(player p)
+        if ownerScoped and p != null
+            hide(p)
+        else
+            hide()
 
     function create() returns framehandle
         if frame != null
@@ -90,13 +104,13 @@ public class UIConfirmDialog
 
         accept.onClick() ->
             accept.releaseKeyboardFocus(GetTriggerPlayer())
-            hide()
+            dismissFor(GetTriggerPlayer())
             if listener != null
                 listener.onAccept(GetTriggerPlayer())
 
         cancel.onClick() ->
             cancel.releaseKeyboardFocus(GetTriggerPlayer())
-            hide()
+            dismissFor(GetTriggerPlayer())
             if listener != null
                 listener.onCancel(GetTriggerPlayer())
 
@@ -180,13 +194,17 @@ public class UIDialog
     private real height
     private framehandle frame = null
     private UIModalBackdrop modal = null
+    // See UIConfirmDialog.ownerScoped: dismissal follows how the dialog was shown.
+    private var ownerScoped = false
 
     construct(real width, real height)
         this.width = width
         this.height = height
 
     /** Attaches a dark full-screen backdrop that dims the scene behind the dialog and closes it
-        on any outside click. Call before show(). Default opacity: 0.8. */
+        on any outside click. Call before show(). Default opacity: 0.8.
+        The outside click closes the dialog for the CLICKING player when it was shown per player
+        (show(p)), or for everyone when it was shown globally (show()). */
     function withModal() returns thistype
         return withModal(MODAL_DEFAULT_OPACITY)
 
@@ -194,8 +212,16 @@ public class UIDialog
         if modal == null
             modal = new UIModalBackdrop(Layer.DIALOG, MODAL_BARRIER_LEVEL, opacity)
             modal.onClick() clicker ->
-                hide()
+                dismissFor(clicker)
         return this
+
+    /** Closes the dialog for `p` alone when it was shown per player, or for everyone when it was
+        shown globally. */
+    private function dismissFor(player p)
+        if ownerScoped and p != null
+            hide(p)
+        else
+            hide()
 
     /** Creates (once) the dialog backdrop on the DIALOG layer and returns it, hidden. */
     function getFrame() returns framehandle
@@ -256,9 +282,10 @@ public class UIDialog
     function hide(player p) returns thistype
         return setVisible(p, false)
 
-    /** Returns a sized "X" button that calls hide() on this dialog (including its modal backdrop).
-        Use this instead of closeButton(getFrame()) when a modal is attached, so the backdrop
-        is dismissed together with the panel. */
+    /** Returns a sized "X" button that closes this dialog (including its modal backdrop). Use this
+        instead of closeButton(getFrame()) when a modal is attached, so the backdrop is dismissed
+        together with the panel. Closes for the clicking player when the dialog was shown per player,
+        for everyone when it was shown globally. */
     function closeButton() returns framehandle
         return closeButton(0.018)
 
@@ -266,7 +293,7 @@ public class UIDialog
         let btn = textButton("X", size, size)
         btn.onClick() ->
             btn.releaseKeyboardFocus(GetTriggerPlayer())
-            hide()
+            dismissFor(GetTriggerPlayer())
         return btn
 
     /** Positions the dialog's TOPLEFT, clamped into the safe area (clear of the melee HUD). */
