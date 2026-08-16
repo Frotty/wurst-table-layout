@@ -354,8 +354,12 @@ picker.showEach()               // each player sees their own picker
 picker.hide(somePlayer)         // and only theirs can be hidden
 ```
 
-Use `perPlayerFrames(owners, factory)` to build for an explicit list (a team, observers). Derive that
-list from synced state - slot/controller state, forces, map setup - never from a client-local value.
+Use `perPlayerFrames(owners, factory)` with an `ArrayList<player>` (e.g. `asArrayList(p1, p2)`) to
+build for an explicit set - a team, observers. Derive that list from synced state - slot/controller
+state, forces, map setup - never from a client-local value.
+
+Each root is created globally hidden, so a player only ever sees a tree explicitly shown to them; the
+factory does not need to hide what it builds.
 
 To catch a divergence that slipped through, import `TableUiSyncCheck` and call `checkUiSync()`; it
 logs an error naming any player whose UI allocation count differs. Diagnostic only, never game logic.

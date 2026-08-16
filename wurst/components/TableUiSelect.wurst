@@ -73,7 +73,9 @@ public class UISelect
             ..setAllPoints(root)
         toggleButton.onClick() ->
             toggleButton.releaseKeyboardFocus(GetTriggerPlayer())
-            toggle()
+            // Only the acting player gets the menu. A hidden toggle receives no clicks, so on an
+            // owner-scoped select this is always the owner.
+            toggleFor(GetTriggerPlayer())
 
         // The dropdown lives in the OVERLAY band so it floats above content and the HUD; it is anchored
         // to the toggle by point, so it needs no shared parent with root. The menu must be tall enough
@@ -138,6 +140,9 @@ public class UISelect
     function toggle()
         setOpen(not open)
 
+    function toggleFor(player p)
+        setOpenFor(p, not open)
+
     function syncMenuOverlay()
         // menu is created in the OVERLAY band, so on open we only re-anchor it to the toggle and
         // refresh levels: no reparenting (which could misalign the option buttons' hit areas).
@@ -147,17 +152,30 @@ public class UISelect
         menuBackdrop.setLevel(OVERLAY_LEVEL)
         optionFrames.forEach(option -> option.setLevel(OVERLAY_LEVEL + 1))
 
+    /** Opens/closes the dropdown for every player. */
     function setOpen(bool flag)
+        setOpenFor(null, flag)
+
+    /** Opens the dropdown for ONE player (null = everyone), closing always applies to everyone.
+
+        The menu deliberately lives in the OVERLAY band, OUTSIDE this select's root, so that it renders
+        above panels - which also means root visibility does not cover it. Opening it globally would
+        therefore put one player's dropdown on every screen, and on an owner-scoped select it would
+        show the menu to players who cannot even see the select. Opening it only for the acting player
+        is both the correct per-player behaviour and better shared-UI behaviour. */
+    function setOpenFor(player p, bool flag)
         create()
         if flag == open
             return
         open = flag
         if open
             syncMenuOverlay()
-            menu.show()
-            optionFrames.forEach(option -> option.show())
-            clickCatcher.show()
+            menu.setVisible(p, true)
+            optionFrames.forEach(option -> option.setVisible(p, true))
+            clickCatcher.setVisible(p, true)
         else
+            // Closing is unconditional: hiding a frame nobody can see is a harmless no-op, and it
+            // guarantees no client is left with a stale open menu.
             clickCatcher.hide()
             optionFrames.forEach(option -> option.hide())
             menu.hide()
