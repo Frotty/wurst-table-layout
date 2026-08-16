@@ -390,6 +390,10 @@ panel.show(p2)          // now exactly p1 and p2
 panel.hide(p1)          // now p2 only
 ```
 
+A first scoped **hide** is subtractive instead: `panel.hide(p)` on a still-global panel means "take it
+away from p", not "take it away from everyone", so a later `panel.show(p)` restores that player
+without disturbing anyone else.
+
 `framehandle.setVisibleForOwner(player, bool)` exposes the same behaviour for your own frames.
 
 When each player needs UI they own independently, build one tree per owner instead of diverging one

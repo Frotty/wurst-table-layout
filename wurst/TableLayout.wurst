@@ -51,19 +51,26 @@ public function uiAllocationCount() returns int
 // setVisible(p, flag) only ever touches p's client, so showing a default-visible frame to one player
 // leaves it on every OTHER player's screen untouched - i.e. still visible to everyone.
 //
-// So the FIRST player-scoped show takes the frame out of that "everyone" default by hiding it
+// So the FIRST player-scoped SHOW takes the frame out of that "everyone" default by hiding it
 // globally, then reveals it to the requested player. Later scoped calls are additive, so showing to a
 // set of players still works (show(p1); show(p2) leaves exactly p1 and p2). A global show()/hide() is
 // untouched, so the ordinary layout flow behaves exactly as before.
+//
+// A first scoped HIDE is different: hide(p) on a globally visible frame means "take it away from p",
+// not "take it away from everyone", so it must NOT trigger the global hide. It still marks the frame
+// as owner-scoped, otherwise a later show(p) restoring that player would be mistaken for a first show
+// and would yank the frame off every other screen.
 constant ownerScopedFrames = new HashMap<framehandle, bool>
 
-/** Shows or hides `this` for ONE player, hiding it from everyone else first if this is the frame's
-    first player-scoped show. The frame must already exist on every client - allocate outside any
-    local-player branch. This is the only frame state allowed to differ between clients. */
+/** Shows or hides `this` for ONE player. On the frame's first player-scoped SHOW it is hidden from
+    everyone else first, so a component created visible does not stay on every screen; a first scoped
+    HIDE is subtractive and leaves other players alone. The frame must already exist on every client -
+    allocate outside any local-player branch. This is the only frame state allowed to differ. */
 public function framehandle.setVisibleForOwner(player p, bool flag)
-    if flag and not ownerScopedFrames.has(this)
+    if not ownerScopedFrames.has(this)
         ownerScopedFrames.put(this, true)
-        this.hide()
+        if flag
+            this.hide()
     this.setVisible(p, flag)
 
 // --- Focus -------------------------------------------------------------------
