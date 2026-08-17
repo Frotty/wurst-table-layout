@@ -104,6 +104,15 @@ function buildComponentsPanel(UIConfirmDialog confirm, UIDialog custom)
     customButton.onClick() ->
         customButton.releaseKeyboardFocus(GetTriggerPlayer())
         custom.show()
+    // Per-player prompt. MULTIPLAYER check (cannot be seen single-player): the dialog opens only for
+    // the player who clicked, and dismissing it - via the dim, Yes/No - closes it for that player
+    // alone. The "Confirm" button above still opens the same dialog globally, where dismissing it
+    // closes it for everyone; the scope follows how it was shown.
+    let privateButton = textButton("Private", 0.058, 0.024)
+        ..withTooltip("Open the confirm dialog for the clicking player only.")
+    privateButton.onClick() ->
+        privateButton.releaseKeyboardFocus(GetTriggerPlayer())
+        confirm.show(GetTriggerPlayer())
 
     let layout = new TableLayout(cw, ch, "Components")
     layout.padding = padding(PANEL_BORDER_INSET, PANEL_BORDER_INSET, PANEL_BORDER_INSET, PANEL_BORDER_INSET)
@@ -119,6 +128,7 @@ function buildComponentsPanel(UIConfirmDialog confirm, UIDialog custom)
     // Click repeatedly: visibility toggles must not accelerate the autocast animation.
     ..row()..add(label("Autocast", NAME_W))..add(autocastButton)
     ..row()..add(label("Dialogs", NAME_W))..add(confirmButton)..add(customButton)
+    ..row()..add(label("Per-player", NAME_W))..add(privateButton)
     ..row()..middle()..add(label("Text area", NAME_W))..add(textArea(NOTES_TEXT, 0.13, 0.064))
     layout.applyTo(root)
     defaultFrameParent = prev
