@@ -1,5 +1,10 @@
 pipeline {
-    agent { dockerfile { filename 'ci/Dockerfile'; args '-u root --entrypoint=""' } }
+    agent {
+        dockerfile {
+            filename 'ci/Dockerfile'
+            args '-u root --entrypoint=""'
+        }
+    }
     options {
         timestamps()
         timeout(time: 30, unit: 'MINUTES')
