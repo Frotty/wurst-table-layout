@@ -1,7 +1,7 @@
 <img width="582" height="113" alt="Screenshot 2026-06-03 125518" src="https://github.com/user-attachments/assets/2b004018-4283-41ad-a65e-f1100978d1be" />
 
 
-[![CI](https://github.com/Frotty/wurst-table-layout/actions/workflows/ci.yml/badge.svg)](https://github.com/Frotty/wurst-table-layout/actions/workflows/ci.yml)
+[CI on Jenkins](https://jenkins.oxbot.stream/job/wurst-table-layout/)
 
 # wurst-table-layout
 
