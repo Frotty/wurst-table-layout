@@ -2,6 +2,7 @@ package TableUiSliders
 // A labelled value slider on WC3's native SLIDER: [label] [====O====] [value].
 import TableLayout
 import TableUiText
+import ClosureTimers
 
 /** `p` is the player whose drag produced the value, or null when the change came from setValue(). */
 public interface SliderListener
@@ -22,6 +23,7 @@ public class UISlider
     private boolean showValue = true
     private SliderListener listener = null
     private boolean syncingValue = false
+    private CallbackSingle pendingKnobSync = null
     private framehandle root = null
     private framehandle sliderFrame = null
     private framehandle valueFrame = null
@@ -84,6 +86,16 @@ public class UISlider
             syncingValue = false
         return setValue(value)
 
+    // Frame input is synchronized, but a drag moves the native knob only on its originating client.
+    // Coalesce queued payloads before mirroring the latest model value on every client. The event
+    // produced by this write has the same value and therefore cannot schedule another write.
+    private function scheduleKnobSync()
+        if pendingKnobSync != null
+            return
+        pendingKnobSync = doAfter(0.) ->
+            pendingKnobSync = null
+            sliderFrame.setValue(value)
+
     function onChange(SliderListener cb) returns thistype
         listener = cb
         return this
@@ -109,13 +121,14 @@ public class UISlider
                 ..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_RIGHT)
 
         valueChangeFrameListener = sliderFrame.onSliderValueChange() ->
-            // Native events can be queued. Writing back here creates more queued events after
-            // syncingValue has reset, replaying earlier values rather than terminating at equality.
-            // Consume the synchronized payload into the model/label; the user's knob already moved.
+            // Never write the knob from this event: a burst can replay old payloads indefinitely.
+            // Clamp against today's range because the payload may predate setRange().
             let programmatic = syncingValue
-            let nextValue = BlzGetTriggerFrameValue()
+            let nextValue = max(minValue, min(maxValue, BlzGetTriggerFrameValue()))
             let changed = nextValue != value
             value = nextValue
+            if changed
+                scheduleKnobSync()
             if valueFrame != null
                 valueFrame.setText(format(value))
             if changed and not programmatic
@@ -139,6 +152,9 @@ public class UISlider
         return root
 
     ondestroy
+        if pendingKnobSync != null
+            destroy pendingKnobSync
+            pendingKnobSync = null
         if root != null
             root.hide()
         if valueChangeFrameListener != null

@@ -337,13 +337,14 @@ Two consequences worth internalising, because they surprise people in opposite d
   was programmatic rather than a click. Check it, or build per-player instances.
 - **Widget state a player changes by hand is still local.** A slider drag moves the knob on the
   dragging client, while `SLIDER_VALUE_CHANGED` delivers its payload to every client. `UISlider`
-  updates its Wurst value and text label from that payload. Never write the native slider value back
-  from its value-change handler: events may be queued, so a temporary boolean guard/equality check
-  cannot prevent old values feeding back after the guard resets. A three-value burst (1, 0, 2)
-  measured 48 callbacks/write-backs with one listener before this fix. Use `setValue()` for explicit
-  programmatic changes outside the native event feedback path. Independent owner trees avoid needing
-  to mirror another player's knob. Read trigger text/value inside the event, not local getters as
-  gameplay input. This single-client regression does not establish multiplayer visual equivalence.
+  clamps that payload to the current range, updates its Wurst value and text label, then coalesces
+  changed input into one zero-delay native knob update for every client. Never write the native slider
+  value back directly from its value-change handler: queued old values can feed back after a temporary
+  boolean guard resets. The deferred write uses the latest model value; its equal-value echo must not
+  schedule another write or notify listeners. Cancel pending work when destroying the component.
+  A three-value burst (1, 0, 2) measured 48 callbacks/write-backs with one listener before this fix.
+  Read trigger text/value inside the event, not local getters as gameplay input. A single-client
+  regression can verify bounded feedback but does not establish multiplayer visual equivalence.
 
 ### Keyboard focus
 
