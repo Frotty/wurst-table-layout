@@ -127,6 +127,7 @@ public class TableLayout
 
     framehandle baseFrame = null
     private framehandle ownedRoot = null
+    private boolean strictFrameParents = false
 
     var defaultHalign = Align.UNSET
     var defaultValign = Align.UNSET
@@ -369,19 +370,22 @@ public class TableLayout
         gapX = both
         gapY = both
 
-    /** Applies this layout to a newly created default frame with backdrop */
+    /** Legacy convenience: creates the root after its cells, so populated tables require reparenting.
+        New code should use panelTable() + withContent() + build(). */
     function createFrame() returns framehandle
         let fhandle = defaultFrame()
         applyTo(fhandle)
         return fhandle
 
-    /** Applies this layout to a newly created layout frame without backdrop */
+    /** Legacy convenience: creates the root after its cells. For parent-safe nested tables, bind
+        an existing container with withRoot(), then create cells in withContent() and build(). */
     function createContainer(framehandle parent) returns framehandle
         let fhandle = layoutFrame(parent)
         applyTo(fhandle)
         return fhandle
 
-    /** Applies this layout to the given base frame */
+    /** Applies to an existing root. Legacy layouts retain reparenting for compatibility.
+        Use requireCreationParents() to reject mismatched parents before cell mutation. */
     function applyTo(framehandle baseFrame)
         if baseFrame == null
             if tableWarnings
@@ -422,10 +426,37 @@ public class TableLayout
         applyTo(ownedRoot)
         return ownedRoot
 
+    /** Opt-in creation-parent enforcement. A mismatched tree skips the whole cell layout pass;
+        existing callers retain legacy reparenting unless they choose this mode. */
+    function requireCreationParents() returns thistype
+        strictFrameParents = true
+        return this
+
+    /** Checks actual cell parents without moving, resizing or anchoring any cell.
+        Headless inspect()/checkFits() remain frame-independent sizing checks. */
+    function checkFrameParents() returns boolean
+        let expectedParent = baseFrame != null ? baseFrame : ownedRoot
+        if expectedParent == null
+            return false
+        var valid = true
+        for row in rows
+            for cell in row.cells
+                if cell.frame != null and cell.frame.getParent() != expectedParent
+                    valid = false
+                    if tableWarnings and not cell.warnedParentMismatch
+                        cell.warnedParentMismatch = true
+                        Log.warn("TableLayout " + name + ": cell parent mismatch. Legacy layout will reparent; requireCreationParents() skips the pass. Create content inside withParent(root) or layout.withContent() before applyTo/build.")
+        return valid
+
     function layout()
         if baseFrame == null
             if tableWarnings
                 Log.warn("Ignoring TableLayout.layout() on " + name + " because no base frame was applied yet.")
+            return
+
+        // Check the entire tree before invalidate()/grow can change any cell dimensions.
+        let validParents = checkFrameParents()
+        if strictFrameParents and not validParents
             return
 
         var offset = vec2(padding.left, -padding.top)
@@ -870,6 +901,7 @@ public class Cell
     var prefWidth = -1.
     var prefHeight = -1.
     var warnedEmpty = false
+    var warnedParentMismatch = false
     var textValue = ""
     var textFontSize = 0.
     var hasTextMetric = false
@@ -947,10 +979,9 @@ public class Cell
     function layout(framehandle baseFrame, vec2 offset)
         if frame == null
             return
-        // Parent the cell to baseFrame only when it is not already there. Re-parenting on every layout()
-        // pass (e.g. UIBar.setValue re-runs layout() on each update) is unnecessary and resets per-frame
-        // state in WC3 - notably it re-enables a frame that was disabled (e.g. by clickableOverlay's
-        // disableDescendants), letting bar images capture the mouse again and block the click overlay.
+        // Compatibility for the original createFrame/createContainer API: their root does not exist
+        // when callers construct cells. Strict layouts reject mismatches before reaching this path.
+        // Keep the equality guard: even redundant reparenting can reset disabled/input state in WC3.
         if frame.getParent() != baseFrame
             frame.setParent(baseFrame)
         // Clear any pre-existing anchor before placing the cell. decoratedFrame()-based content

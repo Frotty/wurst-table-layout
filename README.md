@@ -78,8 +78,10 @@ The layout is applied to a framehandle, which becomes the base frame to which al
 
 ```
 // Default base frame
-new TableLayout(0.3, 0.35)
-..createFrame()
+let layout = panelTable(0.3, 0.35, "Example")
+layout.withContent() ->
+    layout
+layout.build()
 ```
 
 ![Photoshop_oXmHmp3h1B](https://user-images.githubusercontent.com/1486037/142065401-1f754d8d-5bf8-4376-baec-e608eef57f83.png)
@@ -95,16 +97,18 @@ new TableLayout(0.3, 0.35)
 The API extensively uses the cascade operator (`..`) to apply changes to the root element. To get started, create a `TableLayout` by specifying the width and height in relative screen space units. Then, add rows and cells using the `.row()` and `.add()` methods. These methods always operate on the most recently added row or cell.
 
 ```
-new TableLayout(0.2, 0.15)
-..row()
-..add(p("1"))
-..add(p("2"))
-..add(p("3"))
-..row()
-..add(p("4"))
-..add(p("5"))
-..add(p("6"))
-..createFrame()
+let layout = panelTable(0.2, 0.15, "Example")
+layout.withContent() ->
+    layout
+    ..row()
+    ..add(p("1")..setSize(0.04, 0.014))
+    ..add(p("2")..setSize(0.04, 0.014))
+    ..add(p("3")..setSize(0.04, 0.014))
+    ..row()
+    ..add(p("4")..setSize(0.04, 0.014))
+    ..add(p("5")..setSize(0.04, 0.014))
+    ..add(p("6")..setSize(0.04, 0.014))
+layout.build()
 ```
 
 ![Warcraft_III_ZMlsVQqqxX](https://user-images.githubusercontent.com/1486037/142065460-35d1eb89-ecb9-4573-9f4e-5438e947d8ec.png)
@@ -114,16 +118,18 @@ new TableLayout(0.2, 0.15)
 By default, cells have no padding, making them appear right next to each other. You can introduce space between cells by adding padding to each of the four sides: left, right, top, and bottom.
 
 ```
-new TableLayout(0.2, 0.15)
-..row()
-..add(p("1")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
-..add(p("2")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
-..add(p("3")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
-..row()
-..add(p("4")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
-..add(p("5")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
-..add(p("6")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
-..createFrame()
+let layout = panelTable(0.2, 0.15, "Example")
+layout.withContent() ->
+    layout
+    ..row()
+    ..add(p("1")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
+    ..add(p("2")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
+    ..add(p("3")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
+    ..row()
+    ..add(p("4")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
+    ..add(p("5")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
+    ..add(p("6")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
+layout.build()
 ```
 
 ![Warcraft_III_MzBrGAza4Q](https://user-images.githubusercontent.com/1486037/142065482-3c9d8b72-6acf-4925-bb07-8378ffdde546.png)
@@ -133,16 +139,18 @@ new TableLayout(0.2, 0.15)
 By default, the alignment in a table is top-left. You can adjust horizontal alignment on a per-row basis.
 
 ```
-new TableLayout(0.2, 0.15)
-..row()..center()
-..add(p("1")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
-..add(p("2")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
-..add(p("3")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
-..row()..end_()
-..add(p("4")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
-..add(p("5")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
-..add(p("6")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
-..createFrame()
+let layout = panelTable(0.2, 0.15, "Example")
+layout.withContent() ->
+    layout
+    ..row()..center()
+    ..add(p("1")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
+    ..add(p("2")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
+    ..add(p("3")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
+    ..row()..end_()
+    ..add(p("4")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
+    ..add(p("5")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
+    ..add(p("6")..setSize(0.04, 0.014))..padRight(SPACE_S)..padTop(SPACE_S)
+layout.build()
 ```
 
 ![Warcraft_III_1R8F91NBJl](https://user-images.githubusercontent.com/1486037/142065499-73aabd15-1da1-4173-b081-ed1c6130ecfb.png)
@@ -150,16 +158,18 @@ new TableLayout(0.2, 0.15)
 You can also make certain cells grow horizontally to distribute them evenly.
 
 ```
-new TableLayout(0.2, 0.15)
-..row()
-..add(p("1")..setSize(0.04, 0.014))..growX()..padBot(SPACE_S)
-..add(p("2")..setSize(0.04, 0.014))..growX()
-..add(p("3")..setSize(0.04, 0.014))..growX()
-..row()
-..add(p("4")..setSize(0.04, 0.014))
-..add(p("5")..setSize(0.04, 0.014))..growX()
-..add(p("6")..setSize(0.04, 0.014))
-..createFrame()
+let layout = panelTable(0.2, 0.15, "Example")
+layout.withContent() ->
+    layout
+    ..row()
+    ..add(p("1")..setSize(0.04, 0.014))..growX()..padBot(SPACE_S)
+    ..add(p("2")..setSize(0.04, 0.014))..growX()
+    ..add(p("3")..setSize(0.04, 0.014))..growX()
+    ..row()
+    ..add(p("4")..setSize(0.04, 0.014))
+    ..add(p("5")..setSize(0.04, 0.014))..growX()
+    ..add(p("6")..setSize(0.04, 0.014))
+layout.build()
 ```
 
 ![Warcraft_III_GEeA1xkx1e](https://user-images.githubusercontent.com/1486037/142065518-b15fe6dd-579f-4616-a7bc-28d243a986eb.png)
@@ -176,52 +186,16 @@ Because you cannot use scaling with the table layout, several presets are provid
 - Higher-level components in `TableUi` such as spacers, separators, icon/label rows, label/value rows, close/X buttons, boxed tooltips, edit boxes, text areas, dynamic selects, sliders, tabs, stat/icon cards, confirm dialogs, and stat bars
 - Spacing scale `SPACE_2XS`-`SPACE_XL` for use in `gap` / `padding` / `spacer`
 
-```
-let baseFrame = defaultFrame()
-
-let bar1 = new UIBar(0.075, 0.01)
-
-let nestedTable1 = new TableLayout(0.1, 0.05)
-..row()..center()
-..add(img(Icons.bTNAcolyte))
-..row()..center()
-..add(p("Acolyte")..setSize(0.10, 0.014))..padTop(SPACE_S)
-
-let nestedTable2 = new TableLayout(0.1, 0.05)
-..row()..center()
-..add(img(Icons.bTNAbomination))
-..row()..center()
-..add(p("Abomination")..setSize(0.10, 0.014))..padTop(SPACE_S)
-
-new TableLayout(0.25, 0.35)
-..row()
-..add(h1("h1"))
-..row()
-..add(h2("h2"))
-..row()
-..add(h3("h3"))
-..row()
-..add(h4("h4"))
-..row()
-..add(h5("h5"))
-..row()
-..add(p("p1"))
-..row()
-..add(p2("p2"))
-..row()
-..add(p3("p3"))
-..row()
-..add(img(Icons.bTNAcorn1))
-..row()
-..add(btn("button")..setWidth(0.125)..setHeight(0.02))
-..row()
-..add(imgBtn(Icons.bTNHumanBuild))
-..row()
-..add(bar1.create())
-..row()
-..add(nestedTable1.createContainer(baseFrame))..padRight(SPACE_2XS)
-..add(nestedTable2.createContainer(baseFrame))
-..applyTo(baseFrame)
+```wurst
+let presets = panelTable(0.25, 0.35, "Presets")
+presets.withContent() ->
+    presets
+    ..row()..add(h1("Heading")..setSize(0.20, 0.03))
+    ..row()..add(p("Paragraph")..setSize(0.20, 0.014))
+    ..row()..add(img(Icons.bTNAcorn1))
+    ..row()..add(textButton("Button", 0.125, 0.024))
+    ..row()..add(new UIBar(0.075, 0.01).create())
+presets.build()
 ```
 
 ![image](https://user-images.githubusercontent.com/1486037/182793113-a73c3fe7-5856-4061-a897-311b7164551b.png)
@@ -233,22 +207,26 @@ Since the table is just a layout container, you can modify the contained frameha
 You can use the cascade operator for inline notation or simply save the framehandle in a variable.
 
 ```
-let titleHandle = h1("Hello")..setSize(0.18, 0.03)
-new TableLayout(0.2, 0.25)
-..row()..center()
-..add(titleHandle)
-..row()
-..add(btn("button")..setSize(0.125, 0.024))
-..createFrame()
+let layout = panelTable(0.2, 0.25, "Example")
+layout.withContent() ->
+    let titleHandle = h1("Hello")..setSize(0.18, 0.03)
+    layout
+    ..row()..center()
+    ..add(titleHandle)
+    ..row()
+    ..add(btn("button")..setSize(0.125, 0.024))
+layout.build()
 ```
 
 You can combine this with the `ClosureFrames` package to add event listeners.
 
 ```
-new TableLayout(0.5, 0.25)
-..row()..center()
-..add(btn("button")..setSize(0.125, 0.024)..onClick(() -> print("clicked")))
-..createFrame()
+let layout = panelTable(0.5, 0.25, "Example")
+layout.withContent() ->
+    layout
+    ..row()..center()
+    ..add(btn("button")..setSize(0.125, 0.024)..onClick(() -> print("clicked")))
+layout.build()
 ```
 
 ## Per-player UI
@@ -311,20 +289,21 @@ See [`AI_USAGE.md`](AI_USAGE.md) for a decision tree and cookbook-style examples
 import TableUi
 
 let root = panel(0.24, 0.16)
+withParent(root) ->
 
-let difficulty = select("Difficulty", 0.12)
-..addOption("Practice")
-..addOption("Normal")
-..addOption("Hard")
+    let difficulty = select("Difficulty", 0.12)
+    ..addOption("Practice")
+    ..addOption("Normal")
+    ..addOption("Hard")
 
-new TableLayout(0.24, 0.16, "SetupPanel")
-..gap(SPACE_XS, SPACE_XS)
-..row()..add(h2("Setup")..setSize(0.16, 0.022))..growX()..add(closeButton(root))
-..row()..add(separator(0.21))
-..row()..add(label("Select", 0.06))..add(difficulty.create())..growX()
-..row()..add(labelValue("Status", "Ready", 0.18))
-..row()..add(textButton("Start", 0.08, 0.024).withTooltip("Begin the selected mode."))
-..applyTo(root)
+    new TableLayout(0.24, 0.16, "SetupPanel")
+    ..gap(SPACE_XS, SPACE_XS)
+    ..row()..add(h2("Setup")..setSize(0.16, 0.022))..growX()..add(closeButton(root))
+    ..row()..add(separator(0.21))
+    ..row()..add(label("Select", 0.06))..add(difficulty.create())..growX()
+    ..row()..add(labelValue("Status", "Ready", 0.18))
+    ..row()..add(textButton("Start", 0.08, 0.024).withTooltip("Begin the selected mode."))
+    ..applyTo(root)
 ```
 
 `select` is implemented as a custom code-driven list of buttons so options can be generated in code. The dropdown closes automatically when the user clicks anywhere outside it. Native `POPUPMENU` is still useful for fixed FDF-defined menus, but its options are not dynamic.
@@ -377,13 +356,14 @@ By default a table has no columns: each row is laid out independently, so cells 
 
 ```
 let roster = panel(0.2, 0.13)
-new TableLayout(0.2, 0.13, "Roster")
-..columns()
-..gap(SPACE_XS + SPACE_2XS, SPACE_XS)
-..row()..add(h4("Roster")..setSize(0.12, 0.016))..colspan(2)
-..row()..add(iconLabel(Icons.bTNAcolyte, "Acolyte", 0.11))..add(p("x12")..setSize(0.03, 0.014))
-..row()..add(iconLabel(Icons.bTNAbomination, "Abomination", 0.11))..add(p("x3")..setSize(0.03, 0.014))
-..applyTo(roster)
+withParent(roster) ->
+    new TableLayout(0.2, 0.13, "Roster")
+    ..columns()
+    ..gap(SPACE_XS + SPACE_2XS, SPACE_XS)
+    ..row()..add(h4("Roster")..setSize(0.12, 0.016))..colspan(2)
+    ..row()..add(iconLabel(Icons.bTNAcolyte, "Acolyte", 0.11))..add(p("x12")..setSize(0.03, 0.014))
+    ..row()..add(iconLabel(Icons.bTNAbomination, "Abomination", 0.11))..add(p("x3")..setSize(0.03, 0.014))
+    ..applyTo(roster)
 ```
 
 Grid mode is opt-in and back-compatible (tables render exactly as before unless you call `columns()`). `growX()` is ignored in grid mode: size cells, and the columns do the aligning. A `colspan` cell only widens the columns it spans when it is wider than their combined width (so a spanning header that overruns its columns is caught by `checkFits()` and laid out to fit); otherwise the other rows define those columns. (Note: don't shadow the `p()` text helper with a local named `p` as in older snippets - name the root `roster`/`root` instead.)
@@ -412,20 +392,17 @@ For z-order, parent into the right layer rather than fighting `setLevel` (which 
 
 A table can be applied to any framehandle and thus easily inserted into another table. Ensure that the parent frame already exists when creating the child frame.
 
-The `#createContainer` function can be used to create a container framehandle without any visuals, which can be added to other tables.
+For a borderless nested table, bind `container(...)` with `withRoot(...)`, create its cells inside its own `withContent()`, and add `build()` to the outer table. Calling `createContainer(parent)` after populating a table cannot repair its children's creation parents.
 
-```
-let baseFrame = defaultFrame()
-
-let nestedTable1 = new TableLayout(0.1, 0.05)
-
-let nestedTable2 = new TableLayout(0.1, 0.05)
-
-new TableLayout(0.25, 0.35)
-..row()
-..add(nestedTable1.createContainer(baseFrame))..padRight(SPACE_2XS)
-..add(nestedTable2.createContainer(baseFrame))
-..applyTo(baseFrame)
+```wurst
+let outer = panelTable(0.25, 0.12, "Outer")
+outer.withContent() ->
+    let inner = new TableLayout(0.1, 0.05, "Inner").withRoot(container(0.1, 0.05))
+    inner.padding = padding(0, 0, 0, 0)
+    inner.withContent() ->
+        inner..row()..add(label("Nested", 0.08))
+    outer..row()..add(inner.build())
+outer.build()
 ```
 
 ## Validation
@@ -471,7 +448,7 @@ There currently is no change detection. If you changed the contained frames and 
 
 ## Changing the default frame parent
 
-Due to quirks in Warcraft III's handling of frames, frames created by the presets are created as children of `GAME_UI` by default. The parent is then changed to the table's base frame after layouting. However, this can cause problems if you're trying to use a table layout inside an existing frame. The clean way is `withParent(parent) -> ...`, a scoped, nestable push/pop of `defaultFrameParent` that creates everything inside under `parent` and restores the previous value automatically. For a `panelTable()` / `cardTable()`, use `layout.withContent() -> ...`; it scopes the bound root automatically. Parent-aware overloads such as `h3(parent, text)`, `img(parent, ...)`, and `textButton(parent, ...)` are available when a single component must be created outside a scope. Use `inLayer(Layer.DIALOG/OVERLAY) -> ...` for floating UI:
+Due to quirks in Warcraft III's handling of frames, frames created by the presets are created as children of `GAME_UI` by default. Legacy layout still changes that parent for compatibility, and warns when this is needed. New code should create cells under their final root and opt into `requireCreationParents()`: on a mismatch it skips the entire cell layout pass before resizing or anchoring cells. Existing layouts can migrate one tree at a time without silently changing their rendering. `checkFrameParents()` checks actual parents after binding a root; headless `checkFits()` / `inspect()` validate sizes only. The clean way is `withParent(parent) -> ...`, a scoped, nestable push/pop of `defaultFrameParent` that creates everything inside under `parent` and restores the previous value automatically. For a `panelTable()` / `cardTable()`, use `layout.withContent() -> ...`; it scopes the bound root automatically. Parent-aware overloads such as `h3(parent, text)`, `img(parent, ...)`, and `textButton(parent, ...)` are available when a single component must be created outside a scope. Use `inLayer(Layer.DIALOG/OVERLAY) -> ...` for floating UI:
 
 ```
 withParent(getFrame("SimpleInfoPanelUnitDetail", 0)) ->

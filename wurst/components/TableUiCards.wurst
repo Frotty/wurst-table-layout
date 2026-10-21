@@ -44,8 +44,8 @@ public function iconCard(string iconPath, string title, string subtitle, real wi
     textLayout.padding = padding(0, 0, 0, 0)
     textLayout.gap(0, SPACE_2XS)
     textLayout
-    ..row()..add(p(title)..setSize(textWidth, 0.014)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
-    ..row()..add(p3(muted(subtitle))..setSize(textWidth, 0.012)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
+    ..row()..add(p(textCol, title)..setSize(textWidth, 0.014)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
+    ..row()..add(p3(textCol, muted(subtitle))..setSize(textWidth, 0.012)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
     textLayout.applyTo(textCol)
     destroy textLayout
 

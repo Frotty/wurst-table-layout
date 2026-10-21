@@ -22,6 +22,7 @@ Safe setup pattern:
 package MyUi
 import ClosureTimers
 import TableLayout
+import TableUi
 
 framehandle root = null
 
@@ -30,14 +31,15 @@ function createMyUi()
         root.show()
         return
 
-    let layout = new TableLayout(0.18, 0.08, "MyUi")
+    let layout = panelTable(0.18, 0.08, "MyUi")
     layout.padding = padding(SPACE_XS + SPACE_2XS, SPACE_S, SPACE_XS + SPACE_2XS, SPACE_S)
-    layout
-    ..row()..add(h3("Status")..setSize(0.16, 0.02))..growX()
-    ..row()..add(p("Ready")..setSize(0.16, 0.014))..growX()
-    ..row()..add(btn("Close")..setSize(0.08, 0.024))
+    layout.withContent() ->
+        layout
+        ..row()..add(h3("Status")..setSize(0.16, 0.02))..growX()
+        ..row()..add(p("Ready")..setSize(0.16, 0.014))..growX()
+        ..row()..add(btn("Close")..setSize(0.08, 0.024))
 
-    root = layout.createFrame()
+    root = layout.build()
 
 init
     doAfter(0.) ->
@@ -131,8 +133,7 @@ inLayer(Layer.OVERLAY) ->
         ..row()..add(h3("Confirm")..setSize(0.20, 0.02))..growX()
     dialog.build().placeSafe(vec2(0.4, 0.4), 0.24, 0.12)
 
-// or move an existing frame (last resort; the dual-parent bug may misalign the hit area)
-myFrame.setLayer(Layer.OVERLAY)
+// Do not move an existing frame into a layer; create its replacement there from birth.
 ```
 
 `confirmDialog` / `dialogFrame` create themselves in `DIALOG`; `select` / tooltip-style overlays use `OVERLAY`, so they render above content with correctly aligned hit areas with no extra work.
@@ -203,16 +204,17 @@ boss.setValue(0.4)   // update later; getFrame() for show/hide
 `TableLayout` is the preferred abstraction here. It lays out rows and cells by reading each child frame's size at layout time.
 
 ```wurst
-let layout = new TableLayout(0.22, 0.10, "Panel")
+let layout = panelTable(0.22, 0.10, "Panel")
 layout.padding = padding(SPACE_XS + SPACE_2XS, SPACE_S + SPACE_XS, SPACE_XS + SPACE_2XS, SPACE_S + SPACE_XS)
-layout
-..row()..center()..add(h2("Inventory")..setSize(0.18, 0.022))
-..row()
-..add(img("ReplaceableTextures\\CommandButtons\\BTNFootman.blp", 0.024, 0.024))
-..add(p("Footman")..setSize(0.10, 0.014))..growX()
-..row()
-..add(btn("Select")..setSize(0.08, 0.024))
-let panel = layout.createFrame()
+layout.withContent() ->
+    layout
+    ..row()..center()..add(h2("Inventory")..setSize(0.18, 0.022))
+    ..row()
+    ..add(img("ReplaceableTextures\\CommandButtons\\BTNFootman.blp", 0.024, 0.024))
+    ..add(p("Footman")..setSize(0.10, 0.014))..growX()
+    ..row()
+    ..add(btn("Select")..setSize(0.08, 0.024))
+let panel = layout.build()
 ```
 
 Important behavior:
@@ -220,7 +222,7 @@ Important behavior:
 - `add(...)` uses the latest row. If no row exists, `TableLayout` creates one.
 - Set widths/heights before `applyTo`, `createFrame`, or `createContainer`.
 - `growX()` applies only to the most recently added cell.
-- If child sizes change later, call `layout.layout()` again.
+- If child sizes change later, call `layout.layout()` again. Legacy layout still reparents mismatched cells for compatibility, with a warning. New scoped layouts should opt into `requireCreationParents()` to skip a mismatched pass before cell sizes/anchors change. `checkFrameParents()` checks runtime parents after binding a root; headless `checkFits()` does not.
 - Use `defaultFrameParent` when helpers must be created under an existing parent from the start.
 
 Build nested content under its parent with `withParent` (a scoped, nestable push/pop of `defaultFrameParent` that auto-restores), so frames are created in place instead of created globally and re-parented in (a post-creation `setParent` leaves the frame in both parents' child lists, which can misalign its hit area from its visual):
@@ -333,11 +335,16 @@ Two consequences worth internalising, because they surprise people in opposite d
   fire the callback that "belongs" to player 1. Every library listener therefore passes the acting
   `player` first (`onSelect(p, index, value)`, `onChange(p, value)`, ...); it is null when the change
   was programmatic rather than a click. Check it, or build per-player instances.
-- **Widget state a player changes by hand is still local.** Dragging a slider moves the knob only on
-  the dragging client, even though `SLIDER_VALUE_CHANGED` reaches everyone with the same value; the
-  same goes for text typed into an edit box. Re-assert such state from inside the (synced) event on
-  every client - `UISlider` does exactly this - and read the value from `BlzGetTriggerFrameValue()` /
-  `BlzGetTriggerFrameText()`, never from `BlzFrameGetValue` / `BlzFrameGetText`.
+- **Widget state a player changes by hand is still local.** A slider drag moves the knob on the
+  dragging client, while `SLIDER_VALUE_CHANGED` delivers its payload to every client. `UISlider`
+  clamps that payload to the current range, updates its Wurst value and text label, then coalesces
+  changed input into one zero-delay native knob update for every client. Never write the native slider
+  value back directly from its value-change handler: queued old values can feed back after a temporary
+  boolean guard resets. The deferred write uses the latest model value; its equal-value echo must not
+  schedule another write or notify listeners. Cancel pending work when destroying the component.
+  A three-value burst (1, 0, 2) measured 48 callbacks/write-backs with one listener before this fix.
+  Read trigger text/value inside the event, not local getters as gameplay input. A single-client
+  regression can verify bounded feedback but does not establish multiplayer visual equivalence.
 
 ### Keyboard focus
 

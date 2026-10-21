@@ -11,7 +11,7 @@ public function iconLabel(string path, string text, real width) returns framehan
 public function iconLabel(string path, string text, real width, real height) returns framehandle
     let root = layoutFrame(defaultFrameParent)
         ..setSize(width, height)
-    let label = p(text)
+    let label = p(root, text)
         ..setSize(max(0.001, width - height - 0.004), height)
         ..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT)
 
@@ -20,7 +20,7 @@ public function iconLabel(string path, string text, real width, real height) ret
     layout.gap(SPACE_XS, 0)
     layout
     ..row()
-    ..add(img(path, height, height))
+    ..add(img(root, path, height, height))
     ..add(label)..growX()
     layout.applyTo(root)
     // The wrapper graph is dead once applied (positions are baked into the frames); free it so repeated
@@ -35,10 +35,10 @@ public function labelValue(string label, string value, real width) returns frame
 public function labelValue(string label, string value, real width, real height) returns framehandle
     let root = layoutFrame(defaultFrameParent)
         ..setSize(width, height)
-    let labelFrame = p(muted(label))
+    let labelFrame = p(root, muted(label))
         ..setSize(width * 0.56, height)
         ..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT)
-    let valueFrame = p(value)
+    let valueFrame = p(root, value)
         ..setSize(width * 0.40, height)
         ..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_RIGHT)
 

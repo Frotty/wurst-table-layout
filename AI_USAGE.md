@@ -7,7 +7,7 @@ The goal is to make the boring choice the correct choice: use the existing layou
 
 Use this order and stop only when both gates are complete:
 
-1. Build with `TableLayout` / `TableUi`; use explicit-parent helpers or `withParent(...)`.
+1. Build with `TableLayout` / `TableUi`; use explicit-parent helpers or `withParent(...)`. Legacy layout preserves automatic reparenting for compatibility and warns on mismatches. For new scoped layouts, call `requireCreationParents()` to skip a mismatched cell layout pass before any cell resize/anchor changes. Use `checkFrameParents()` after binding a root for a runtime parent check; `checkFits()` only checks sizing.
 2. For `panelTable()` / `cardTable()`, use `layout.withContent() -> ...` so cell frames are born under the bound root.
 3. Run Wurst typecheck and headless tests. A skipped tool is not a pass.
 4. Before handover, run the actual WC3/e2e harness and verify its artifact/screenshot.
@@ -126,14 +126,15 @@ import TableLayout
 import TableUi
 
 let root = panel(0.24, 0.12)
+withParent(root) ->
 
-new TableLayout(0.24, 0.12, "BasicPanel")
-..gap(SPACE_XS, SPACE_XS)
-..row()..add(h2("Status")..setSize(0.16, 0.022))..growX()..add(closeButton(root))
-..row()..add(separator(0.21))
-..row()..add(labelValue("State", "Ready", 0.20))
-..row()..add(textButton("Close", 0.08, 0.024))
-..applyTo(root)
+    new TableLayout(0.24, 0.12, "BasicPanel")
+    ..gap(SPACE_XS, SPACE_XS)
+    ..row()..add(h2("Status")..setSize(0.16, 0.022))..growX()..add(closeButton(root))
+    ..row()..add(separator(0.21))
+    ..row()..add(labelValue("State", "Ready", 0.20))
+    ..row()..add(textButton("Close", 0.08, 0.024))
+    ..applyTo(root)
 ```
 
 ### Settings Form
@@ -143,18 +144,19 @@ import TableLayout
 import TableUi
 
 let root = card(0.26, 0.16)
-let difficulty = select("Difficulty", 0.12)
-..addOption("Easy")
-..addOption("Normal")
-..addOption("Hard")
+withParent(root) ->
+    let difficulty = select("Difficulty", 0.12)
+    ..addOption("Easy")
+    ..addOption("Normal")
+    ..addOption("Hard")
 
-new TableLayout(0.26, 0.16, "SettingsForm")
-..gap(SPACE_XS, SPACE_XS)
-..row()..add(h2("Settings")..setSize(0.22, 0.022))..growX()
-..row()..add(p("Select")..setSize(0.06, 0.024))..add(difficulty.create())..growX()
-..row()..add(p("Name")..setSize(0.06, 0.024))..add(textInput("", 0.12).create())..growX()
-..row()..add(textButton("Apply", 0.08, 0.024).withTooltip("Apply these settings."))
-..applyTo(root)
+    new TableLayout(0.26, 0.16, "SettingsForm")
+    ..gap(SPACE_XS, SPACE_XS)
+    ..row()..add(h2("Settings")..setSize(0.22, 0.022))..growX()
+    ..row()..add(p("Select")..setSize(0.06, 0.024))..add(difficulty.create())..growX()
+    ..row()..add(p("Name")..setSize(0.06, 0.024))..add(textInput("", 0.12).create())..growX()
+    ..row()..add(textButton("Apply", 0.08, 0.024).withTooltip("Apply these settings."))
+    ..applyTo(root)
 // label cells are sized (0.06 wide); the controls take the rest via growX
 ```
 
@@ -164,13 +166,15 @@ new TableLayout(0.26, 0.16, "SettingsForm")
 import TableLayout
 import TableUi
 
-new TableLayout(0.18, 0.04, "IconButtons")
-..gap(SPACE_2XS, 0.)
-..row()
-..add(iconButton("ReplaceableTextures\\CommandButtons\\BTNHumanBuild.blp", 0.026).withTooltip("Build"))
-..add(iconButton("ReplaceableTextures\\CommandButtons\\BTNMove.blp", 0.026).withTooltip("Move"))
-..add(iconButton("ReplaceableTextures\\CommandButtons\\BTNStop.blp", 0.026).withTooltip("Stop"))
-..createFrame()
+let layout = panelTable(0.18, 0.04, "IconButtons")
+layout.withContent() ->
+    layout
+    ..gap(SPACE_2XS, 0.)
+    ..row()
+    ..add(iconButton("ReplaceableTextures\\CommandButtons\\BTNHumanBuild.blp", 0.026).withTooltip("Build"))
+    ..add(iconButton("ReplaceableTextures\\CommandButtons\\BTNMove.blp", 0.026).withTooltip("Move"))
+    ..add(iconButton("ReplaceableTextures\\CommandButtons\\BTNStop.blp", 0.026).withTooltip("Stop"))
+layout.build()
 ```
 
 ### Icon Label
@@ -235,7 +239,7 @@ no raw effect frame or retarget operation, and hiding/destroying the wrapper nev
 ### Building nested content under its parent (`withParent`)
 
 When you build a sub-panel's *content* (e.g. a stats panel holding bars), create it UNDER its eventual
-parent so `applyTo`'s re-parent is a no-op and no hit area misaligns. Wrap the build in `withParent`:
+parent so `applyTo` never needs to change a parent. Wrap the build in `withParent`:
 
 ```wurst
 import TableLayout
@@ -276,10 +280,12 @@ let difficulty = select("Difficulty", 0.12)
 ..addOption("Normal")
 ..addOption("Nightmare")
 
-new TableLayout(0.22, 0.08, "SelectExample")
-..gap(SPACE_XS, SPACE_XS)
-..row()..add(label("Difficulty", 0.08))..add(difficulty.create())..growX()
-..createFrame()
+let layout = panelTable(0.22, 0.08, "SelectExample")
+layout.withContent() ->
+    layout
+    ..gap(SPACE_XS, SPACE_XS)
+    ..row()..add(label("Difficulty", 0.08))..add(difficulty.create())..growX()
+layout.build()
 // the label is sized (0.08); the select takes the rest via growX. A bare unsized p("Difficulty") here
 // would collapse to 0 and overlap the select (and fail checkFits()).
 ```
@@ -508,6 +514,11 @@ panel.build().placeSafe(vec2(0.5, 0.5), 0.24, 0.12)
 ```
 
 If a requested layout needs new behavior, add it behind an explicit method. Existing layouts should render the same after upgrading the dependency.
+
+For an input-only navigation scrollbar, use `slider(width, height, min, max)`; it returns the same
+`UISlider` with no caption/value column. `setRange(min, max)` changes its range only when needed and
+clamps the model value. `setValue` is idempotent for the current model value. Register `onChange` once;
+do not echo native input back into the control from the callback.
 
 ## Component Rules
 

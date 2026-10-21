@@ -145,10 +145,10 @@ public function underline(string text) returns framehandle
     layout.padding = padding(0, 0, 0, 0)
     layout.gap(0, 0.001)
     layout
-    ..row()..add(p(text)..setSize(w, FONT_P)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
+    ..row()..add(p(root, text)..setSize(w, FONT_P)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
     // White rule (matches the default text colour). WC3 cannot measure text, so the width is a slightly
     // trimmed estimate to hug the glyphs rather than overrun to the cell edge.
-    ..row()..add(img("Textures\\white.blp", w * 0.9, 0.0014, true)..disable())
+    ..row()..add(img(root, "Textures\\white.blp", w * 0.9, 0.0014, true)..disable())
     layout.applyTo(root)
     destroy layout
     root.disable()

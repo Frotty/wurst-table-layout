@@ -2,6 +2,7 @@ package TableUiSliders
 // A labelled value slider on WC3's native SLIDER: [label] [====O====] [value].
 import TableLayout
 import TableUiText
+import ClosureTimers
 
 /** `p` is the player whose drag produced the value, or null when the change came from setValue(). */
 public interface SliderListener
@@ -18,8 +19,11 @@ public class UISlider
     private int valueDecimals = 0
     private real width = 0.
     private string label = ""
+    private real height = 0.024
+    private boolean showValue = true
     private SliderListener listener = null
     private boolean syncingValue = false
+    private CallbackSingle pendingKnobSync = null
     private framehandle root = null
     private framehandle sliderFrame = null
     private framehandle valueFrame = null
@@ -31,6 +35,15 @@ public class UISlider
         this.minValue = minValue
         this.maxValue = maxValue
         this.value = minValue
+
+    /** Input-only slider for scrollbars: no caption or value column. */
+    construct(real width, real height, real minValue, real maxValue)
+        this.width = width
+        this.height = height
+        this.minValue = minValue
+        this.maxValue = maxValue
+        this.value = minValue
+        showValue = false
 
     private function format(real v) returns string
         return v.toString(valueDecimals)
@@ -49,7 +62,10 @@ public class UISlider
         return this
 
     function setValue(real newValue) returns thistype
-        value = max(minValue, min(maxValue, newValue))
+        let nextValue = max(minValue, min(maxValue, newValue))
+        if nextValue == value
+            return this
+        value = nextValue
         if sliderFrame != null
             syncingValue = true
             sliderFrame.setValue(value)
@@ -57,6 +73,28 @@ public class UISlider
         if valueFrame != null
             valueFrame.setText(format(value))
         return this
+
+    /** Updates the range only when it changes and clamps the model value to it. */
+    function setRange(real minValue, real maxValue) returns thistype
+        if this.minValue == minValue and this.maxValue == maxValue
+            return this
+        this.minValue = minValue
+        this.maxValue = maxValue
+        if sliderFrame != null
+            syncingValue = true
+            sliderFrame.setMinMax(minValue, maxValue)
+            syncingValue = false
+        return setValue(value)
+
+    // Frame input is synchronized, but a drag moves the native knob only on its originating client.
+    // Coalesce queued payloads before mirroring the latest model value on every client. The event
+    // produced by this write has the same value and therefore cannot schedule another write.
+    private function scheduleKnobSync()
+        if pendingKnobSync != null
+            return
+        pendingKnobSync = doAfter(0.) ->
+            pendingKnobSync = null
+            sliderFrame.setValue(value)
 
     function onChange(SliderListener cb) returns thistype
         listener = cb
@@ -69,7 +107,6 @@ public class UISlider
         if root != null
             return root
         let prevParent = defaultFrameParent
-        let height = 0.024
         root = layoutFrame(defaultFrameParent)..setSize(width, height)
         defaultFrameParent = root
 
@@ -78,43 +115,46 @@ public class UISlider
 
         // Floor the value column so multi-digit / decimal values (e.g. "100.0") do not wrap to a
         // second line on a narrow slider.
-        valueFrame = p(format(value))
-            ..setSize(max(0.034, width * 0.18), height)
-            ..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_RIGHT)
+        if showValue
+            valueFrame = p(format(value))
+                ..setSize(max(0.034, width * 0.18), height)
+                ..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_RIGHT)
 
         valueChangeFrameListener = sliderFrame.onSliderValueChange() ->
-            // The event itself is synced (every client gets the same BlzGetTriggerFrameValue), but a
-            // DRAG only moved the knob on the dragging client's machine - no script call touched the
-            // others. Without the re-assert below, remote clients show the new number against a stale
-            // knob. Re-asserting brings the knob into the synced half, leaving visibility as the only
-            // per-player state. Re-entry terminates: the re-fired event carries the same value, so
-            // `changed` is false and this branch is skipped.
+            // Never write the knob from this event: a burst can replay old payloads indefinitely.
+            // Clamp against today's range because the payload may predate setRange().
             let programmatic = syncingValue
-            let nextValue = BlzGetTriggerFrameValue()
+            let nextValue = max(minValue, min(maxValue, BlzGetTriggerFrameValue()))
             let changed = nextValue != value
             value = nextValue
-            valueFrame.setText(format(value))
+            if changed
+                scheduleKnobSync()
+            if valueFrame != null
+                valueFrame.setText(format(value))
             if changed and not programmatic
-                syncingValue = true
-                sliderFrame.setValue(value)
-                syncingValue = false
                 if listener != null
                     listener.onChange(GetTriggerPlayer(), value)
 
-        let layout = new TableLayout(width, height, "Slider")
-        layout.padding = padding(0, 0, 0, 0)
-        layout.gap(SPACE_XS + SPACE_2XS, 0)
-        layout..row()..middle()
-        if label != ""
-            layout..add(p(label)..setSize(width * 0.30, height)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
-        layout..add(sliderFrame)..growX()
-        layout..add(valueFrame)
-        layout.applyTo(root)
-        destroy layout
+        if showValue
+            let layout = new TableLayout(width, height, "Slider")
+            layout.padding = padding(0, 0, 0, 0)
+            layout.gap(SPACE_XS + SPACE_2XS, 0)
+            layout..row()..middle()
+            if label != ""
+                layout..add(p(label)..setSize(width * 0.30, height)..setTextAlignment(TEXT_JUSTIFY_MIDDLE, TEXT_JUSTIFY_LEFT))
+            layout..add(sliderFrame)..growX()
+            layout..add(valueFrame)
+            layout.applyTo(root)
+            destroy layout
+        else
+            sliderFrame.setAllPoints(root)
         defaultFrameParent = prevParent
         return root
 
     ondestroy
+        if pendingKnobSync != null
+            destroy pendingKnobSync
+            pendingKnobSync = null
         if root != null
             root.hide()
         if valueChangeFrameListener != null
@@ -141,3 +181,7 @@ public function slider(string label, real width, real minValue, real maxValue) r
 
 public function slider(real width, real minValue, real maxValue) returns UISlider
     return new UISlider("", width, minValue, maxValue)
+
+/** Input-only slider with an explicit height; suitable for navigation/scrollbars. */
+public function slider(real width, real height, real minValue, real maxValue) returns UISlider
+    return new UISlider(width, height, minValue, maxValue)

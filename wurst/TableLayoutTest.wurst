@@ -23,6 +23,8 @@ init
         confirm.getFrame().clearAndSetAbsPoint(FRAMEPOINT_CENTER, vec2(0.4, 0.32))
         let custom = buildCustomDialog()
 
+        checkParentSafety()
+        checkInputSliderSafety()
         buildComponentsPanel(confirm, custom)
         buildPerPlayerDemo()
         buildDisplayPanel()
@@ -364,3 +366,65 @@ function buildShowcasePanel()
     ..row()..add(showTabs.getFrame())..growX()
     layout.applyTo(root)
     defaultFrameParent = prev
+
+// Engine regression: a rejected cross-root layout must leave ALL cell dimensions and parents alone,
+// including a valid grow cell preceding the mismatched one. Also exercise nested content scopes.
+function checkParentSafety()
+    let previous = defaultFrameParent
+    let outer = panelTable(0.20, 0.10, "ParentProbe").requireCreationParents()
+    outer.withContent() ->
+        let outerRoot = defaultFrameParent
+        let valid = label("Valid", 0.04)
+        let wrong = label(previous, "Wrong parent", 0.04)
+        let inner = new TableLayout(0.06, 0.03, "NestedProbe").withRoot(container(0.06, 0.03))
+        inner.padding = padding(0, 0, 0, 0)
+        inner.withContent() ->
+            inner..row()..add(label("Nested", 0.04))
+        let nested = inner.build()
+        if defaultFrameParent != outerRoot or nested.getParent() != outerRoot or not inner.checkFrameParents()
+            Log.error("Parent safety probe FAILED: nested scope or child parent")
+        outer..row()..add(valid)..growX()..add(wrong)
+        outer.build()
+        if outer.checkFrameParents() or valid.getParent() != outerRoot or wrong.getParent() != previous or (valid.getWidth() - 0.04).abs() > 0.0001
+            Log.error("Parent safety probe FAILED: mismatch changed a cell")
+        outer.layout()
+        if wrong.getParent() != previous or (valid.getWidth() - 0.04).abs() > 0.0001
+            Log.error("Parent safety probe FAILED: repeated layout changed a cell")
+        wrong.hide()
+        nested.hide()
+        outerRoot.hide()
+        destroy inner
+    if defaultFrameParent != previous
+        Log.error("Parent safety probe FAILED: ambient parent was not restored")
+    destroy outer
+
+// Engine regression for the input-only scrollbar used by downstream maps. A burst must settle
+// without callback feedback, keep its explicit dimensions and reuse the same root.
+int inputSliderChanges = 0
+function checkInputSliderSafety()
+    let control = slider(0.18, 0.014, 0., 0.)
+    let root = control.create()
+    root.hide()
+    control.setRange(0., 10.)
+    control.onChange() (_clicker, _value) ->
+        inputSliderChanges++
+    control.setValue(1.)
+    control.setValue(0.)
+    control.setValue(2.)
+    doAfter(1.) ->
+        if inputSliderChanges != 3 or control.getValue() != 2. or control.create() != root or (root.getHeight() - 0.014).abs() > 0.0001
+            Log.error("Input slider regression FAILED: callbacks=" + inputSliderChanges + ", value=" + control.getValue())
+        let nativeSlider = BlzFrameGetChild(root, 0)
+        if nativeSlider.getValue() != control.getValue()
+            Log.error("Input slider regression FAILED: knob does not match model")
+        // Old queued payloads must not escape a subsequently shrunken range.
+        control.onChange() (_clicker, newValue) ->
+            if newValue < 0. or newValue > 3.
+                Log.error("Input slider regression FAILED: out-of-range notification=" + newValue)
+        nativeSlider.setValue(8.)
+        nativeSlider.setValue(9.)
+        control.setRange(0., 3.)
+        doAfter(1.) ->
+            if control.getValue() > 3. or nativeSlider.getValue() != control.getValue()
+                Log.error("Input slider regression FAILED: queued range change did not settle")
+            destroy control
