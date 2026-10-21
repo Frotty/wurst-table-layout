@@ -25,7 +25,7 @@ If you are modifying a downstream map's `_build/dependencies/wurst-table-layout`
 - Do not create first-time frame handles inside `localPlayer` blocks.
 - Listener callbacks pass the acting `player` first (null when the change was programmatic). Use it instead of assuming the handler belongs to one player: a shared widget fires for everyone.
 - Do not use local UI getters (`getText`, `getValue`, `getWidth`, `getHeight`, `isVisible`, `BlzGetLocalClientWidth/Height`, etc.) as synced game logic or layout authority.
-- Build frames under their eventual parent with `withParent(...)` / `inLayer(...)`; for `panelTable()` / `cardTable()` use `layout.withContent(...)`. Avoid post-creation `setParent`, which leaves the frame in both parents' child lists and can misalign hit areas.
+- Build frames under their eventual parent with `withParent(...)` / `inLayer(...)`; for `panelTable()` / `cardTable()` use `layout.withContent(...)`. Use `requireCreationParents()` on new scoped layouts to reject mismatched cell parents before resizing/anchoring cells; legacy layouts retain reparenting with a warning; `checkFrameParents()` is the runtime check (headless `checkFits()` covers sizing only). Never use post-creation `setParent`, which leaves the frame in both parents' child lists and can misalign hit areas.
 - Keep ordinary roots in the strict safe band with `placeSafe(...)`; use `placeVisuallySafe(...)` only for deliberate sidecars/status UI where left idle-button overlap is acceptable.
 - Do not move Blizzard chat/message frames with arbitrary coordinates. Create map-owned UI in a safe band instead.
 - Size every non-grow cell. Text presets measure `0` until sized; use `setSize`, `prefSize`, `fixedWidth`, `minWidth`, or `growX/growY`.

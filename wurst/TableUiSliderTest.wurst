@@ -1,0 +1,27 @@
+package TableUiSliderTest
+import TableUiSliders
+
+@Test
+function shrinkingRangeClampsCachedValue()
+    let control = slider(0.18, 0.014, 0., 10.)
+    control.setValue(8.)
+    control.setRange(0., 3.)
+    control.getValue().assertEquals(3.)
+    destroy control
+
+@Test
+function raisingRangeFloorClampsCachedValue()
+    let control = slider(0.18, 0.014, 0., 10.)
+    control.setValue(2.)
+    control.setRange(5., 10.)
+    control.getValue().assertEquals(5.)
+    destroy control
+
+@Test
+function repeatedRangeAndValueKeepSelection()
+    let control = slider("Volume", 0.18, 0., 100.)
+    control.setValue(60.)
+    control.setRange(0., 100.)
+    control.setValue(60.)
+    control.getValue().assertEquals(60.)
+    destroy control
