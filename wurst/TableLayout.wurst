@@ -174,7 +174,7 @@ public class TableLayout
 
     function add(framehandle frame)
         if frame == null
-            if tableWarnings
+            if tableWarningsEnabled()
                 tableWarning("Ignoring TableLayout.add() on " + name + " because the frame is null.")
             return
         if rows.isEmpty()
@@ -183,7 +183,7 @@ public class TableLayout
 
     private function getLastCellOrWarn(string action) returns Cell
         if lastCell == null
-            if tableWarnings
+            if tableWarningsEnabled()
                 tableWarning("Ignoring TableLayout." + action + "() on " + name + " because no cell was added yet. Call add(...) first.")
             return null
 
@@ -398,7 +398,7 @@ public class TableLayout
         Use requireCreationParents() to reject mismatched parents before cell mutation. */
     function applyTo(framehandle baseFrame)
         if baseFrame == null
-            if tableWarnings
+            if tableWarningsEnabled()
                 tableWarning("Ignoring TableLayout.applyTo() on " + name + " because the base frame is null.")
             return
 
@@ -419,7 +419,7 @@ public class TableLayout
     function withContent(TableLayoutScope body)
         let parent = ownedRoot != null ? ownedRoot : baseFrame
         if parent == null
-            if tableWarnings
+            if tableWarningsEnabled()
                 tableWarning("TableLayout.withContent() on " + name + " has no root; call it after withRoot() or applyTo(...).")
             return
         let previous = defaultFrameParent
@@ -430,7 +430,7 @@ public class TableLayout
     /** Applies this layout to its owned root (from panelTable/cardTable) and returns that root frame. */
     function build() returns framehandle
         if ownedRoot == null
-            if tableWarnings
+            if tableWarningsEnabled()
                 tableWarning("TableLayout.build() on " + name + " has no owned root; use applyTo(frame), or create it via panelTable()/cardTable().")
             return null
         applyTo(ownedRoot)
@@ -453,14 +453,14 @@ public class TableLayout
             for cell in row.cells
                 if cell.frame != null and cell.frame.getParent() != expectedParent
                     valid = false
-                    if tableWarnings and not cell.warnedParentMismatch
+                    if tableWarningsEnabled() and not cell.warnedParentMismatch
                         cell.warnedParentMismatch = true
                         tableWarning("TableLayout " + name + ": cell parent mismatch. Legacy layout will reparent; requireCreationParents() skips the pass. Create content inside withParent(root) or layout.withContent() before applyTo/build.")
         return valid
 
     function layout()
         if baseFrame == null
-            if tableWarnings
+            if tableWarningsEnabled()
                 tableWarning("Ignoring TableLayout.layout() on " + name + " because no base frame was applied yet.")
             return
 
@@ -501,7 +501,7 @@ public class TableLayout
 
         // Tolerate float rounding so a layout whose content exactly fills the height (content == available)
         // does not spuriously warn; matches the epsilon used by inspect()/checkFits().
-        if tableWarnings and remainingHeight < -0.0001
+        if tableWarningsEnabled() and remainingHeight < -0.0001
             tableWarning("Table " + name + " vertical overflow: content height " + (contentHeight + rowGapTotal) + " exceeds available height " + (height - padding.getHeight()))
 
         count = 0
@@ -512,7 +512,7 @@ public class TableLayout
             // Absolute epsilon, matching inspect()/the vertical check above: a row that fills its width
             // EXACTLY via growX computes fixed + (available - fixed) in float32 and can land one ulp
             // above available, which a bare `rowPercentage > 1.` reports as a (spurious) overflow.
-            if tableWarnings and row.width > availableSpace + 0.0001
+            if tableWarningsEnabled() and row.width > availableSpace + 0.0001
                 tableWarning("Row #" + count + " width " + row.width + " exceeds table " + name + " availableSpace " + availableSpace + " (table width " + width + ")")
                 
             let freeSpace = (1. - rowPercentage) * availableSpace
@@ -691,9 +691,9 @@ public class TableLayout
     /** Runtime helper: logs any inspect() problems (gated by tableWarnings) without aborting layout. */
     function validateAndWarn()
         let report = inspect()
-        if not report.ok and tableWarnings
+        if not report.ok and tableWarningsEnabled()
             tableWarning("TableLayout " + name + " has layout issues: " + report.summary)
-        if report.textOverflow > 0 and tableWarnings
+        if report.textOverflow > 0 and tableWarningsEnabled()
             tableWarning("TableLayout " + name + " has likely text overflow: " + report.textOverflowSummary)
         destroy report
 
@@ -813,7 +813,7 @@ public class Row
         LinkedList<Cell> growList = null
         for cell in cells
             cell.invalidate()
-            if tableWarnings and not cell.warnedEmpty and cell.frame != null and ((not cell.growX and cell.fixedWidth < 0. and cell.width <= 0.) or (not cell.growY and cell.fixedHeight < 0. and cell.height <= 0.))
+            if tableWarningsEnabled() and not cell.warnedEmpty and cell.frame != null and ((not cell.growX and cell.fixedWidth < 0. and cell.width <= 0.) or (not cell.growY and cell.fixedHeight < 0. and cell.height <= 0.))
                 cell.warnedEmpty = true
                 tableWarning("TableLayout " + parent.name + ": a cell has 0 measured size. Text presets (p/p2/p3/h1-h5) are FIXEDSIZE and report 0 until sized - set a size via prefSize/setSize/fixedWidth/minWidth, or use growX/growY.")
             paddingTotal += cell.padding.getWidth()

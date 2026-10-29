@@ -72,7 +72,7 @@ function finish()
             + " count(s) that did arrive agree; the check is inconclusive, not failed.")
     else if answered == 0
         tableWarning("checkUiSync: no ingame players to check.")
-    else if tableWarnings
+    else if tableWarningsEnabled()
         Log.info("checkUiSync: UI allocation counts agree across " + answered
             + " player(s) (" + reference + " via P" + (referencePid + 1) + ").")
 
