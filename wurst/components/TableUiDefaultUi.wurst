@@ -124,16 +124,16 @@ public function setDayNightClockVisible(bool visible)
     let clock = dayNightClock()
     if clock != null
         clock.setVisible(visible)
-    else if tableWarnings
-        Log.warn("dayNightClock(): not reachable (needs WC3 1.32.6+); cannot change its visibility.")
+    else if tableWarningsEnabled()
+        tableWarning("dayNightClock(): not reachable (needs WC3 1.32.6+); cannot change its visibility.")
 
 /** Shows/hides the day/night dial for ONE player. Safe to call directly; never wrap in localPlayer. */
 public function setDayNightClockVisible(player p, bool visible)
     let clock = dayNightClock()
     if clock != null
         clock.setVisible(p, visible)
-    else if tableWarnings
-        Log.warn("dayNightClock(): not reachable (needs WC3 1.32.6+); cannot change its visibility.")
+    else if tableWarningsEnabled()
+        tableWarning("dayNightClock(): not reachable (needs WC3 1.32.6+); cannot change its visibility.")
 
 public function hideDayNightClock()
     setDayNightClockVisible(false)

@@ -58,8 +58,8 @@ public class PerPlayerFrames
                 root.hide()
                 owners.add(owner)
                 roots.add(root)
-            else if tableWarnings
-                Log.warn("perPlayerFrames: the factory returned null for player "
+            else if tableWarningsEnabled()
+                tableWarning("perPlayerFrames: the factory returned null for player "
                     + (owner.getId() + 1) + "; no tree was registered for them.")
 
     private function indexOf(player owner) returns int
