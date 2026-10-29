@@ -67,11 +67,11 @@ function finish()
             + "). A frame tree was created inside a localPlayer block; allocate for all clients and"
             + " use the player-scoped show/hide overloads instead.")
     else if missing != ""
-        Log.warn("checkUiSync: no count arrived from " + missing.trim() + " within " + uiSyncTimeout
+        tableWarning("checkUiSync: no count arrived from " + missing.trim() + " within " + uiSyncTimeout
             + "s (they most likely left mid-check). The " + answered
             + " count(s) that did arrive agree; the check is inconclusive, not failed.")
     else if answered == 0
-        Log.warn("checkUiSync: no ingame players to check.")
+        tableWarning("checkUiSync: no ingame players to check.")
     else if tableWarnings
         Log.info("checkUiSync: UI allocation counts agree across " + answered
             + " player(s) (" + reference + " via P" + (referencePid + 1) + ").")
@@ -90,7 +90,7 @@ public function checkUiSync()
 /** checkUiSync() with a callback for the outcome. Do not branch game logic on the result. */
 public function checkUiSync(UiSyncReport listener)
     if pending > 0
-        Log.warn("checkUiSync: a check is already in flight; ignoring this call.")
+        tableWarning("checkUiSync: a check is already in flight; ignoring this call.")
         if listener != null
             destroy listener
         return

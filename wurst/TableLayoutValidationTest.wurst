@@ -10,6 +10,15 @@ import TableUiTextMetrics
  */
 
 @Test
+function warningsHonorDevelopmentBuildAndConsumerSwitch()
+    let previous = tableWarnings
+    tableWarnings = false
+    tableWarningsEnabled().assertFalse()
+    tableWarnings = true
+    tableWarningsEnabled().assertEquals(not compiletime(isProductionBuild()))
+    tableWarnings = previous
+
+@Test
 function fitsWhenContentWithinBounds()
     let t = new TableLayout(0.2, 0.1)
     t.padding = padding(0, 0, 0, 0)
