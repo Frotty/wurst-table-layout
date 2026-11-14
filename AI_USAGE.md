@@ -404,6 +404,8 @@ boss.getFrame().hide()
 
 `simpleTexture(path, w, h)` is the matching tintable band-art helper (full-width strips, edge decoration); both may be placed outside the 0..0.8 band. Tinting is multiplicative, so light/grey textures show any hue. `checkFits()` does not cover SimpleFrames: verify placement in a real WC3 run.
 
+For an additive HUD glow, use `simpleGlow(w, h)` with the built-in highlight, or `simpleFdfTexture(templateName, textureName, w, h)` with [custom FDF art](WC3_FRAMEHANDLE_GUIDE.md#simpleframes-tableuisimple). Use `setColor` to tint either; the image is fixed in FDF because swapping it at runtime resets additive blending.
+
 ### Multiboard Attachment
 
 ```wurst

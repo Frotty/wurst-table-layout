@@ -102,19 +102,18 @@ public class UISimpleBar
 public function simpleBar(real width, real height) returns UISimpleBar
     return new UISimpleBar(width, height)
 
-/** A tintable SimpleFrame texture: full-width band art, edge HUD decoration, team-coloured accents.
-    Free-floating and placed absolutely with placeAt; NOT usable inside TableLayout cells (see
-    package fence). For images inside layouts keep using img(). */
-public class UISimpleTexture
-    private var path = ""
-    private var width = 0.
-    private var height = 0.
-    private framehandle frame = null
-    // Fragile Texture child: only setTexture / setVertexColor are safe on it, so it stays private.
-    private framehandle texture = null
+module SimpleTextureFrame
+    private string templateName
+    private string textureName
+    private real width
+    private real height
+    protected framehandle frame = null
+    // Fragile Texture child: only setTexture / setVertexColor are safe on it.
+    protected framehandle texture = null
 
-    construct(string path, real width, real height)
-        this.path = path
+    protected function configure(string templateName, string textureName, real width, real height)
+        this.templateName = templateName
+        this.textureName = textureName
         this.width = width
         this.height = height
 
@@ -122,11 +121,13 @@ public class UISimpleTexture
         if frame != null
             return frame
         let context = nextUiContext()
-        frame = createSimpleFrame("TableUiSimpleTexture", WORLD_UI, context)
+        frame = createSimpleFrame(templateName, WORLD_UI, context)
             ..setSize(width, height)
-        texture = namedChild("TableUiSimpleTextureFile", context)
-        texture.setTexture(path, 0, true)
+        texture = namedChild(textureName, context)
+        onTextureCreated()
         return frame
+
+    protected abstract function onTextureCreated()
 
     /** Anchors the texture's centre at an absolute screen position. SimpleFrames may leave the
         0..0.8 band, so full-width / off-4:3 placement is fine here. */
@@ -140,13 +141,6 @@ public class UISimpleTexture
     function setColor(color tint) returns thistype
         create()
         texture.setVertexColor(tint)
-        return this
-
-    /** Swaps the displayed texture. */
-    function setTexture(string newPath) returns thistype
-        path = newPath
-        if frame != null
-            texture.setTexture(path, 0, true)
         return this
 
     /** Raises the texture within the SimpleFrame family: levels start at 0 (below the default HUD art);
@@ -178,5 +172,45 @@ public class UISimpleTexture
         if frame != null
             frame.hide()
 
+/** A tintable SimpleFrame with art and blend mode fixed by its FDF template.
+    Free-floating and placed absolutely with placeAt; NOT usable inside TableLayout cells. */
+public class UISimpleFdfTexture
+    use SimpleTextureFrame
+
+    construct(string templateName, string textureName, real width, real height)
+        configure(templateName, textureName, width, height)
+
+    override protected function onTextureCreated()
+        skip
+
+/** A tintable SimpleFrame with a texture path that can be swapped at runtime. */
+public class UISimpleTexture
+    use SimpleTextureFrame
+
+    private string path
+
+    construct(string path, real width, real height)
+        configure("TableUiSimpleTexture", "TableUiSimpleTextureFile", width, height)
+        this.path = path
+
+    override protected function onTextureCreated()
+        texture.setTexture(path, 0, true)
+
+    /** Swaps the displayed texture. */
+    function setTexture(string newPath) returns thistype
+        path = newPath
+        if frame != null
+            onTextureCreated()
+        return this
+
 public function simpleTexture(string path, real width, real height) returns UISimpleTexture
     return new UISimpleTexture(path, width, height)
+
+/** Uses a loaded SIMPLEFRAME template and its named Texture child as defined in FDF.
+    Set File and AlphaMode "ADD" in the FDF for custom additive art. */
+public function simpleFdfTexture(string templateName, string textureName, real width, real height) returns UISimpleFdfTexture
+    return new UISimpleFdfTexture(templateName, textureName, width, height)
+
+/** A built-in additive glow using Warcraft III's human menu highlight texture. */
+public function simpleGlow(real width, real height) returns UISimpleFdfTexture
+    return simpleFdfTexture("TableUiSimpleGlow", "TableUiSimpleGlowFile", width, height)

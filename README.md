@@ -321,6 +321,8 @@ let boss = simpleBar(0.30, 0.012)
 ..placeAt(vec2(0.4, 0.575))
 ```
 
+`simpleGlow(w, h)` uses the built-in human menu highlight with additive blending. Tint it with `setColor` and position it with `placeAt`. For custom glow art, see [the SimpleFrame guide](WC3_FRAMEHANDLE_GUIDE.md#simpleframes-tableuisimple).
+
 The trade-off: SimpleFrames render **below** all ordinary frames and cannot be parented under them, so these helpers can never go inside a `TableLayout` cell or panel; they are free-floating HUD furniture placed absolutely with `placeAt`. For bars and images inside layouts, keep using `UIBar`/`statBar` and `img`. See [`WC3_FRAMEHANDLE_GUIDE.md`](WC3_FRAMEHANDLE_GUIDE.md) ("SimpleFrames") for the full rules.
 
 ## Taming the default WC3 UI
