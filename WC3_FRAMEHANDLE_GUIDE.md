@@ -186,6 +186,7 @@ Choosing between the two families:
 | Free-floating boss/HUD bar, runtime-tinted fill | `simpleBar` (SIMPLESTATUSBAR) |
 | Image inside a layout | `img` (Frame group) |
 | Full-width / off-4:3 band art, runtime-tinted texture | `simpleTexture` |
+| Additive HUD glow | `simpleGlow` (built-in art) or `simpleFdfTexture` (custom art) |
 | Solid colour block inside a layout | `coloredRect` (team-colour textures) |
 
 ```wurst
@@ -198,6 +199,22 @@ let boss = simpleBar(0.30, 0.012)
 ..placeAt(vec2(0.4, 0.575))
 boss.setValue(0.4)   // update later; getFrame() for show/hide
 ```
+
+For custom additive art, define both the file and blend mode on a named Texture child:
+
+```fdf
+Frame "SIMPLEFRAME" "MapHudGlow" {
+    Texture "MapHudGlowArt" {
+        File "war3mapImported\hud-glow.blp",
+        AlphaMode "ADD",
+    }
+}
+```
+
+Load the FDF through the map's TOC during init. At elapsed time 0.00 or later, call
+`simpleFdfTexture("MapHudGlow", "MapHudGlowArt", width, height)` and place it with `placeAt`.
+This wrapper leaves the FDF texture intact: `BlzFrameSetTexture` resets its blend mode, so
+the runtime path and `setTexture` on `simpleTexture` are only for ordinary blending.
 
 ## TableLayout Patterns
 

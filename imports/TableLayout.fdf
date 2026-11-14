@@ -284,3 +284,13 @@ Frame "SIMPLEFRAME" "TableUiSimpleTexture" {
         File "Textures\Black32.blp",
     }
 }
+
+// BlzFrameSetTexture would reset the blend mode. Keep the image and mode together in the FDF.
+Frame "SIMPLEFRAME" "TableUiSimpleGlow" {
+    Width 0.1,
+    Height 0.1,
+    Texture "TableUiSimpleGlowFile" {
+        File "UI\Widgets\EscMenu\Human\human-options-button-highlight.blp",
+        AlphaMode "ADD",
+    }
+}
