@@ -55,6 +55,11 @@ real attachedTitleWidth = 0.
 real attachedContentHeight = 0.
 CallbackPeriodic attachedRefreshTicker = null
 
+// The periodic reassert re-anchors the container only when this cache says its geometry changed.
+// attachToMultiboardSized(), refreshAttachedMultiboardLayout() and an explicit refreshAttachedMultiboard()
+// all invalidate it, so the next pass after any of them always writes.
+let attachedContainerCache = new AttachedContainerCache()
+
 function rowsNeededFor(real contentHeight) returns int
     let target = contentHeight
     return max(1, (target / rowHeightEstimate).ceil())
@@ -69,13 +74,43 @@ public function fitMultiboardRowsToHeight(multiboard board, real contentHeight)
     board.setRowCount(rowsNeededFor(contentHeight))
 
 /**
-    Reassert the geometry owned by the active multiboard attachment.
+    The container geometry an attachment last wrote. needsWrite() returns true, and records the new
+    geometry as written, when the container, its anchor or its size differ from the last write or the
+    cache was invalidated. MultiboardAttach feeds it only the synced attachment globals (never a frame
+    getter or the client's screen size), so its answer is the same on every client.
+*/
+public class AttachedContainerCache
+    private var valid = false
+    private framehandle container = null
+    private framehandle anchor = null
+    private var width = 0.
+    private var height = 0.
+
+    function invalidate()
+        valid = false
+
+    function needsWrite(framehandle container, framehandle anchor, real width, real height) returns boolean
+        if valid and this.container == container and this.anchor == anchor and this.width == width and this.height == height
+            return false
+        valid = true
+        this.container = container
+        this.anchor = anchor
+        this.width = width
+        this.height = height
+        return true
+
+/**
+    Reassert the geometry owned by the active attachment, writing the container only when it changed.
+    This is what the refresh ticker runs every ATTACH_REFRESH_PERIOD.
 
     Warcraft III rewrites the shared multiboard frames after minimize/maximize, timer-dialog changes,
-    and some show calls. Keep the native body at the measured layout size: its synthetic native rows
-    are bookkeeping and use a different height from TableLayout rows.
+    and some show calls, with no event for it, so the two native shell sizes are written on every pass.
+    Keep the native body at the measured layout size: its synthetic native rows are bookkeeping and use
+    a different height from TableLayout rows. The custom container is ours; the engine never rewrites it
+    and its TOPRIGHT anchor follows the native backdrop on its own, so it is re-anchored only when the
+    wanted geometry differs from what was last written.
 */
-public function refreshAttachedMultiboard()
+function reassertAttachedMultiboard()
     if attachedItemContainer == null or attachedNativeBackdrop == null
         return
 
@@ -86,10 +121,21 @@ public function refreshAttachedMultiboard()
     // to the minimize button, so they already span the complete visible header. Only height is ours.
     attachedNativeBackdrop.setHeight(attachedContentHeight)
 
-    attachedItemContainer
-    ..clearAllPoints()
-    ..setSize(attachedPanelWidth, attachedContentHeight)
-    ..setPoint(FRAMEPOINT_TOPRIGHT, attachedNativeBackdrop, FRAMEPOINT_TOPRIGHT, vec2(0, 0))
+    if attachedContainerCache.needsWrite(attachedItemContainer, attachedNativeBackdrop, attachedPanelWidth, attachedContentHeight)
+        attachedItemContainer
+        ..clearAllPoints()
+        ..setSize(attachedPanelWidth, attachedContentHeight)
+        ..setPoint(FRAMEPOINT_TOPRIGHT, attachedNativeBackdrop, FRAMEPOINT_TOPRIGHT, vec2(0, 0))
+
+/**
+    Rewrite all geometry owned by the active multiboard attachment, unconditionally.
+
+    Call this after changing the returned item container yourself or after anything else that may have
+    moved it; the periodic reassert skips the container while its own wanted geometry is unchanged.
+*/
+public function refreshAttachedMultiboard()
+    attachedContainerCache.invalidate()
+    reassertAttachedMultiboard()
 
 /**
     Re-measure and apply the active TableLayout attachment after rows are added or removed.
@@ -111,7 +157,7 @@ function ensureAttachedMultiboardRefreshTicker()
         // The default UI has no event for every geometry rewrite. A few cheap frame updates per tick
         // are more reliable than guessing which native show/timer-dialog transition needs a delay.
         attachedRefreshTicker = doPeriodically(ATTACH_REFRESH_PERIOD) cb ->
-            refreshAttachedMultiboard()
+            reassertAttachedMultiboard()
 
 public function attachToMultiboardSized(
     multiboard board,

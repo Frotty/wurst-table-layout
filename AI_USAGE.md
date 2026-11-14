@@ -431,7 +431,9 @@ content, use `attachToMultiboard`; if its content and title widths intentionally
 
 The helper keeps the native multiboard backdrop as the single panel background and continuously reasserts
 its exact measured width and height because Warcraft III's synthetic native rows have different geometry
-and the shared shell is rewritten after minimize/maximize, timer-dialog, and show transitions. Only one
+and the shared shell is rewritten after minimize/maximize, timer-dialog, and show transitions. The
+custom container is re-anchored only when its geometry changes; call `refreshAttachedMultiboard()` if
+you move or resize the returned container yourself. Only one
 custom attachment can be active per client; attaching another retires the previous custom container.
 After changing multiboard behavior, manually verify minimize/maximize.
 

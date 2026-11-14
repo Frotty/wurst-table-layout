@@ -1,0 +1,113 @@
+package TableUiBarWritesTest
+import TableUiBars
+
+/*
+ * UIBar.applyValue() asks a UIBarFillCache before each native write and writes only on true. The
+ * interpreter has no BlzFrameSetTexture, so a UIBar cannot be created here; these drive the cache through
+ * the same sequence applyValue() uses and count the writes it allows.
+ */
+
+constant BAR_WIDTH = 0.1
+
+function levelTexture(real value) returns string
+    if value <= 0.3
+        return "bar-low.dds"
+    if value <= 0.6
+        return "bar-mid.dds"
+    return "bar-active.dds"
+
+/** One applyValue() pass; returns how many native writes the cache allowed. */
+function applyWithTexture(UIBarFillCache cache, real value, string activeTexture) returns int
+    var writes = 0
+    if cache.activeShow()
+        writes++
+    if cache.activeTexture(activeTexture)
+        writes++
+    if cache.activeWidth(max(0.001, value * BAR_WIDTH))
+        writes++
+    if cache.bgWidth(max(0.001, (1. - value) * BAR_WIDTH))
+        writes++
+    if value < 1.0
+        if cache.bgTexture("bar-bg.dds")
+            writes++
+        if cache.bgVisible(true)
+            writes++
+    else if cache.bgVisible(false)
+        writes++
+    cache.finish()
+    return writes
+
+function apply(UIBarFillCache cache, real value) returns int
+    return applyWithTexture(cache, value, levelTexture(value))
+
+@Test
+function firstApplyWritesEverything()
+    let cache = new UIBarFillCache()
+    // active show + texture + width, background width + texture + show
+    apply(cache, 0.5).assertEquals(6)
+    destroy cache
+
+@Test
+function unchangedValueWritesNothing()
+    let cache = new UIBarFillCache()
+    apply(cache, 0.5)
+    var writes = 0
+    for i = 1 to 10
+        writes += apply(cache, 0.5)
+    writes.assertEquals(0)
+    destroy cache
+
+@Test
+function valueChangeWithinLevelWritesOnlyWidths()
+    let cache = new UIBarFillCache()
+    apply(cache, 0.5)
+    apply(cache, 0.55).assertEquals(2)
+    destroy cache
+
+@Test
+function crossingLevelWritesActiveTextureOnce()
+    let cache = new UIBarFillCache()
+    apply(cache, 0.5)
+    // mid -> low: two widths and the active texture
+    apply(cache, 0.2).assertEquals(3)
+    // still low: widths only
+    apply(cache, 0.25).assertEquals(2)
+    destroy cache
+
+@Test
+function fullBarHidesAndRestoresBackgroundOnlyOnChange()
+    let cache = new UIBarFillCache()
+    apply(cache, 0.5)
+    // mid -> full: active texture, two widths, background hide
+    apply(cache, 1.).assertEquals(4)
+    apply(cache, 1.).assertEquals(0)
+    // full -> 0.9: two widths and the background show; both textures are unchanged
+    apply(cache, 0.9).assertEquals(3)
+    apply(cache, 0.9).assertEquals(0)
+    destroy cache
+
+@Test
+function fullBarFirstAppliedWritesBackgroundTextureWhenItReturns()
+    let cache = new UIBarFillCache()
+    // active show + texture + width, background width + hide; the hidden background's texture waits
+    apply(cache, 1.).assertEquals(5)
+    // two widths, the background texture and its show
+    apply(cache, 0.9).assertEquals(4)
+    destroy cache
+
+@Test
+function changedTextureGetterIsWrittenOnNextUpdate()
+    let cache = new UIBarFillCache()
+    applyWithTexture(cache, 0.5, "swap-a.dds")
+    applyWithTexture(cache, 0.5, "swap-a.dds").assertEquals(0)
+    applyWithTexture(cache, 0.5, "swap-b.dds").assertEquals(1)
+    applyWithTexture(cache, 0.5, "swap-b.dds").assertEquals(0)
+    destroy cache
+
+@Test
+function valueSetBeforeCreateCountsAsTheFirstApply()
+    // setValue() before create() never reaches the cache; create()'s apply is the first one and writes all.
+    let cache = new UIBarFillCache()
+    apply(cache, 0.8).assertEquals(6)
+    apply(cache, 0.8).assertEquals(0)
+    destroy cache

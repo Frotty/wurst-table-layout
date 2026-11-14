@@ -6,6 +6,55 @@ import TableLayout
 import TableUiImages
 import TableUiText
 
+/** What a UIBar last wrote to its two fills, so a value update writes only what changed. Each check
+    returns true when the native write is needed and records the new value as written. Everything it
+    holds derives from the bar's value and texture getters, never from a frame getter, so it is the same
+    on every client. Until the first finish() every check returns true: the first apply writes everything. */
+public class UIBarFillCache
+    private var applied = false
+    private var acTexture = ""
+    private var bgTexture = ""
+    private var acWidth = 0.
+    private var bgWidth = 0.
+    private var bgVisible = false
+
+    /** The active fill is only ever shown, so it is written on the first apply alone. */
+    function activeShow() returns boolean
+        return not applied
+
+    function activeTexture(string texture) returns boolean
+        if applied and texture == acTexture
+            return false
+        acTexture = texture
+        return true
+
+    function activeWidth(real width) returns boolean
+        if applied and width == acWidth
+            return false
+        acWidth = width
+        return true
+
+    function bgTexture(string texture) returns boolean
+        if applied and texture == bgTexture
+            return false
+        bgTexture = texture
+        return true
+
+    function bgWidth(real width) returns boolean
+        if applied and width == bgWidth
+            return false
+        bgWidth = width
+        return true
+
+    function bgVisible(boolean visible) returns boolean
+        if applied and visible == bgVisible
+            return false
+        bgVisible = visible
+        return true
+
+    function finish()
+        applied = true
+
 public class UIBar
     private var width = 0.
     private var height = 0.
@@ -13,10 +62,14 @@ public class UIBar
     framehandle frame = null
     framehandle treeBarAc
     framehandle treeBarBg
+    private let written = new UIBarFillCache()
 
     construct(real width, real height)
         this.width = width
         this.height = height
+
+    ondestroy
+        destroy written
 
     function create() returns framehandle
         if frame != null
@@ -49,16 +102,31 @@ public class UIBar
     function getBgTexture() returns string
         return "bar-bg.dds"
 
+    /** Writes only what differs from the last write: a value update is normally one or two width
+        writes, and the textures change only when the fill crosses a level or a subclass's getter changes.
+        The fills' own visibility is touched only here (the bar's show/hide flips the root frame), so the
+        last written flag is the fills' real state. The order of the writes is unchanged. */
     private function applyValue()
-        treeBarAc
-        ..show()
-        ..setTexture(getActiveTexture(), 0, false)
-        ..setWidth(max(0.001, value * width))
-        treeBarBg.setWidth(max(0.001, (1. - value) * width))
+        if written.activeShow()
+            treeBarAc.show()
+        let acTexture = getActiveTexture()
+        if written.activeTexture(acTexture)
+            treeBarAc.setTexture(acTexture, 0, false)
+        let acWidth = max(0.001, value * width)
+        if written.activeWidth(acWidth)
+            treeBarAc.setWidth(acWidth)
+        let bgWidth = max(0.001, (1. - value) * width)
+        if written.bgWidth(bgWidth)
+            treeBarBg.setWidth(bgWidth)
         if value < 1.0
-            treeBarBg..setTexture(getBgTexture(), 0, false)..show()
-        else
+            let bgTexture = getBgTexture()
+            if written.bgTexture(bgTexture)
+                treeBarBg.setTexture(bgTexture, 0, false)
+            if written.bgVisible(true)
+                treeBarBg.show()
+        else if written.bgVisible(false)
             treeBarBg.hide()
+        written.finish()
 
     /** Sets the fill (0..1). Only resizes the two images - no layout pass, no re-parent, so it never
         disturbs an interactivity overlay on a parent frame. */
