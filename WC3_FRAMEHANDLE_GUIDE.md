@@ -556,6 +556,8 @@ Multiboard-specific cautions:
   continuously reasserts the measured layout dimensions while keeping the native body backdrop as the
   single panel background. Native row count is only shell bookkeeping; do not size content from it, add
   a second map-owned multiboard backdrop, or run a competing geometry timer.
+  The custom container is re-anchored only when its own geometry changes (it follows the native
+  backdrop through its anchor); call `refreshAttachedMultiboard()` after touching it yourself.
 - Verify maximize/minimize manually after changes.
 
 ## Tooltips

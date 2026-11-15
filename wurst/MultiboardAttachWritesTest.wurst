@@ -1,0 +1,63 @@
+package MultiboardAttachWritesTest
+import MultiboardAttach
+
+/*
+ * The periodic reassert re-anchors the attachment's container only when AttachedContainerCache says
+ * its geometry changed. The interpreter has no multiboard natives, BlzFrameSetLevel or frame getters,
+ * so an attachment cannot be built here; these drive the cache the way reassertAttachedMultiboard() and
+ * its invalidation paths do. The two native shell sizes are written on every pass by design.
+ */
+
+function testFrame(string name) returns framehandle
+    return createFrame("FRAME", name, GAME_UI, "", 0)
+
+@Test
+function firstTickWritesAndUnchangedTicksDoNot()
+    let cache = new AttachedContainerCache()
+    let container = testFrame("MbCacheIdleContainer")
+    let anchor = testFrame("MbCacheIdleAnchor")
+    cache.needsWrite(container, anchor, 0.2, 0.05).assertTrue()
+    var writes = 0
+    for i = 1 to 33
+        if cache.needsWrite(container, anchor, 0.2, 0.05)
+            writes++
+    writes.assertEquals(0)
+    destroy cache
+
+@Test
+function changedSizeWrites()
+    let cache = new AttachedContainerCache()
+    let container = testFrame("MbCacheSizeContainer")
+    let anchor = testFrame("MbCacheSizeAnchor")
+    cache.needsWrite(container, anchor, 0.2, 0.05)
+    cache.needsWrite(container, anchor, 0.2, 0.07).assertTrue()
+    cache.needsWrite(container, anchor, 0.2, 0.07).assertFalse()
+    cache.needsWrite(container, anchor, 0.25, 0.07).assertTrue()
+    cache.needsWrite(container, anchor, 0.25, 0.07).assertFalse()
+    destroy cache
+
+@Test
+function newContainerOrAnchorWrites()
+    let cache = new AttachedContainerCache()
+    let first = testFrame("MbCacheFirstContainer")
+    let second = testFrame("MbCacheSecondContainer")
+    let anchor = testFrame("MbCacheAnchorA")
+    let otherAnchor = testFrame("MbCacheAnchorB")
+    cache.needsWrite(first, anchor, 0.2, 0.05)
+    // A re-attach with the same geometry: the new container must still be written.
+    cache.needsWrite(second, anchor, 0.2, 0.05).assertTrue()
+    cache.needsWrite(second, otherAnchor, 0.2, 0.05).assertTrue()
+    cache.needsWrite(second, otherAnchor, 0.2, 0.05).assertFalse()
+    destroy cache
+
+@Test
+function invalidateForcesTheNextWrite()
+    // refreshAttachedMultiboard(), and through it attach and refreshAttachedMultiboardLayout(), invalidate.
+    let cache = new AttachedContainerCache()
+    let container = testFrame("MbCacheForcedContainer")
+    let anchor = testFrame("MbCacheForcedAnchor")
+    cache.needsWrite(container, anchor, 0.2, 0.05)
+    cache.invalidate()
+    cache.needsWrite(container, anchor, 0.2, 0.05).assertTrue()
+    cache.needsWrite(container, anchor, 0.2, 0.05).assertFalse()
+    destroy cache
